@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.sumologic.elasticsearch</groupId>
+	<artifactId>all</artifactId>
+	<name>all</name>
+	<version>1.0.0</version>
+
+	<packaging>pom</packaging>
+	  <licenses>
+	    <license>
+	      <name>Apache License, Version 2.0</name>
+	      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+	      <distribution>repo</distribution>
+	    </license>
+	  </licenses>
+	<modules>
+		<module>elasticsearch</module>
+		<module>elasticsearch-test</module>
+	</modules>
+</project>

@@ -1,0 +1,72 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.sumologic.elasticsearch-test</groupId>
+  <artifactId>elasticsearch-test</artifactId>
+  <name>elasticsearch-test</name>
+  <packaging>jar</packaging>
+  <version>20.1-SNAPSHOT</version>
+  <scm><connection>scm:git:git@github.com:Sanyaku/sumologic.git</connection></scm>
+
+  <parent>
+    <groupId>com.sumologic</groupId>
+    <artifactId>parent</artifactId>
+    <version>20.1-SNAPSHOT</version>
+    <relativePath>../parent/pom.xml</relativePath>
+  </parent>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <scala.fatalWarnings>-Xfatal-warnings</scala.fatalWarnings>
+  </properties>
+
+  <dependencies>
+
+    <!-- ATTN: If you need elasticsearch-test you need to also add these dependencies to your pom directly
+         with <scope>test</scope>! -->
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-core</artifactId>
+      <version>4.10.4</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-analyzers-common</artifactId>
+      <version>4.10.4</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.elasticsearch</groupId>
+      <artifactId>elasticsearch</artifactId>
+      <version>1.6.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.elasticsearch</groupId>
+      <artifactId>elasticsearch</artifactId>
+      <version>1.6.2</version>
+      <type>test-jar</type>
+    </dependency>
+
+    <!-- Non-Sumo Test Dependencies. -->
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-test-framework</artifactId>
+      <version>4.10.4</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest_2.11</artifactId>
+      <version>2.2.6</version>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <testSourceDirectory>src/test/scala</testSourceDirectory>
+  </build>
+</project>

@@ -1,0 +1,12 @@
+*.iws
+*.iml
+*.ipr
+*.bak
+*.hprof
+*.diff
+/target/
+.pull.exitcode
+.pull.out
+/data
+/logs
+/temp

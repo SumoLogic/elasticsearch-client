@@ -1,0 +1,131 @@
+package com.sumologic.elasticsearch.restlastic
+
+import com.sumologic.elasticsearch.restlastic.dsl.Dsl
+import Dsl._
+import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.IndexAlreadyExistsException
+import com.sumologic.elasticsearch_test.ElasticsearchIntegrationTest
+import org.junit.runner.RunWith
+import org.scalatest._
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.time.{Seconds, Millis, Span}
+
+import scala.concurrent.{Future, Await}
+import scala.concurrent.duration._
+
+@RunWith(classOf[JUnitRunner])
+class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFutures with BeforeAndAfterAll with ElasticsearchIntegrationTest {
+  val index = Index(IndexName)
+  val tpe = Type("foo")
+
+  import scala.concurrent.ExecutionContext.Implicits.global
+  implicit val patience = PatienceConfig(timeout = scaled(Span(10, Seconds)), interval = scaled(Span(50, Millis)))
+
+  lazy val restClient = {
+    val (host, port) = endpoint
+    new RestlasticSearchClient(new StaticEndpoint(new Endpoint(host, port)))
+  }
+
+  "RestlasticSearchClient" should {
+    "Be able to create an index, index a document, and search it" in {
+      val ir = for {
+        _ <- restClient.createIndex(index)
+        ir <- restClient.index(index, tpe, Document("doc1", Map("text" -> "here")))
+      } yield {
+          ir
+      }
+      whenReady(ir) { ir =>
+        ir.created should be(true)
+      }
+      refresh()
+      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here")))
+      whenReady(resFut) { res =>
+        res.sourceAsMap.toList should be(List(Map("text" -> "here")))
+      }
+    }
+
+    "Throw IndexAlreadyExists exception" in {
+      val res = for {
+        _ <- restClient.createIndex(index)
+        _ <- restClient.createIndex(index)
+      } yield {
+          "created"
+        }
+      intercept[IndexAlreadyExistsException] {
+        Await.result(res, 10.seconds)
+      }
+    }
+
+    "Support document mapping" in {
+      val doc = Document("doc6", Map("f1" -> "f1value", "f2" -> 5))
+      val fut = restClient.index(index, tpe, doc)
+      whenReady(fut) { _ => refresh() }
+      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("f1", "f1value")))
+      whenReady(resFut) { resp =>
+        resp.extractSource[DocType].head should be(DocType("f1value", 5))
+      }
+    }
+
+    "Support bulk indexing" in {
+
+      val doc3 = Document("doc3", Map("text" -> "here"))
+      val doc4 = Document("doc4", Map("text" -> "here"))
+      val doc5 = Document("doc5", Map("text" -> "nowhere"))
+
+      // doc3 is inserted twice, so when it is inserted in bulk, it should have already been created
+      val fut = for {
+        _ <- restClient.index(index, tpe, doc3)
+        bulk <- restClient.bulkIndex(index, tpe, Seq(doc3, doc4, doc5))
+      } yield {
+        bulk
+      }
+      whenReady(fut) { resp =>
+        resp.length should be(3)
+        resp(0).created should be(false)
+        resp(0).alreadyExists should be(true)
+        resp(1).created should be(true)
+        resp(2).created should be(true)
+      }
+
+      refresh()
+      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here")))
+      whenReady(resFut) { res =>
+        res.jsonStr should include("doc3")
+        res.jsonStr should include("doc4")
+        res.jsonStr should not include("doc5")
+      }
+    }
+
+    "Support scroll requests" in {
+      val fut = restClient.startScrollRequest(index, tpe, QueryRoot(MatchAll, Some(1)))
+      val scrollId = whenReady(fut) { resp =>
+        resp.id should not be('empty)
+        resp
+      }
+      whenReady(restClient.scroll(scrollId)) { resp =>
+        resp._2.sourceAsMap should not be ('empty)
+        resp._2.sourceAsMap.head should not be ('empty)
+      }
+    }
+
+    "Support the count API" in {
+      val docFutures = (1 to 10).map { n =>
+        Document(s"doc-$n", Map("ct" -> "ct", "id" -> n))
+      }.map { doc =>
+        restClient.index(index, tpe, doc)
+      }
+
+      val docs = Future.sequence(docFutures)
+      whenReady(docs) { _ =>
+        refresh()
+      }
+      val ctFut = restClient.count(index, tpe, QueryRoot(TermQuery("ct", "ct")))
+      whenReady(ctFut) { ct =>
+        ct should be (10)
+      }
+    }
+  }
+}
+
+
+case class DocType(f1: String, f2: Int)
