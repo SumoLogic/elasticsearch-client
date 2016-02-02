@@ -14,15 +14,106 @@
     </license>
   </licenses>
   <modules>
-    <module>elasticsearch</module>
+    <module>elasticsearch-akka</module>
+    <module>elasticsearch-core</module>
+    <module>elasticsearch-aws</module>
     <module>elasticsearch-test</module>
   </modules>
   <scm>
     <url>https://github.com/SumoLogic/elasticsearch-client</url>
     <connection>https://github.com/SumoLogic/elasticsearch-client.git</connection>
   </scm>
+
+  <properties>
+    <scala.version.major>2.11</scala.version.major>
+    <akka.version>2.3.11</akka.version>
+  </properties>
+<dependencies>
+  <dependency>
+    <groupId>org.scalatest</groupId>
+    <artifactId>scalatest_${scala.version.major}</artifactId>
+    <version>2.2.6</version>
+  </dependency>
+</dependencies>
   <build>
+
+    <!-- plugins on by default. -->
     <plugins>
+      <!-- Do the scala. -->
+      <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+        <version>3.1.6</version>
+        <executions>
+          <execution>
+            <id>test-compile</id>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+            <phase>test-compile</phase>
+          </execution>
+
+          <execution>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>add-source</goal>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+        </executions>
+
+        <configuration>
+          <!-- Enable that when we will migrate to new Scala major version (e.g. 2.11) -->
+          <checkMultipleScalaVersions>false</checkMultipleScalaVersions>
+          <args>
+            <arg>-target:jvm-1.6</arg>
+            <arg>-dependencyfile</arg>
+            <arg>${project.build.directory}/.scala_dependencies</arg>
+            <arg>-deprecation</arg>
+            <arg>-language:implicitConversions</arg>
+            <arg>-unchecked</arg>
+            <arg>-feature</arg>
+            <arg>-Ybackend:GenBCode</arg>
+            <arg>-optimise</arg>
+          </args>
+          <jvmArgs>
+            <jvmArg>-client</jvmArg>
+            <jvmArg>-Xmx2G</jvmArg>
+            <jvmArg>-XX:+HeapDumpOnOutOfMemoryError</jvmArg>
+            <jvmArg>-XX:+CMSClassUnloadingEnabled</jvmArg>
+          </jvmArgs>
+        </configuration>
+      </plugin>
+
+      <!-- disable surefire -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.7</version>
+        <configuration>
+          <skipTests>true</skipTests>
+        </configuration>
+      </plugin>
+      <!-- enable scalatest -->
+      <plugin>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-maven-plugin</artifactId>
+        <version>1.0</version>
+        <configuration>
+          <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+          <junitxml>.</junitxml>
+          <filereports>WDF TestSuite.txt</filereports>
+        </configuration>
+        <executions>
+          <execution>
+            <id>test</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-gpg-plugin</artifactId>
