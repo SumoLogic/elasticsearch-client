@@ -1,17 +1,15 @@
 package com.sumologic.elasticsearch.restlastic
 
-import com.sumologic.elasticsearch.restlastic.dsl.Dsl
-import Dsl._
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.IndexAlreadyExistsException
+import spray.http.HttpMethods._
+import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch_test.ElasticsearchIntegrationTest
-import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.time.{Seconds, Millis, Span}
+import org.scalatest.time.{Millis, Seconds, Span}
 
-import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFutures with BeforeAndAfterAll with ElasticsearchIntegrationTest {
   val index = Index(IndexName)
@@ -121,6 +119,13 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val ctFut = restClient.count(index, tpe, QueryRoot(TermQuery("ct", "ct")))
       whenReady(ctFut) { ct =>
         ct should be (10)
+      }
+    }
+
+    "Support raw requests" in {
+      val future = restClient.runRawEsRequest(op = "", endpoint = "/_stats/indices", GET)
+      whenReady(future) { res =>
+        res.jsonStr should include(IndexName)
       }
     }
   }

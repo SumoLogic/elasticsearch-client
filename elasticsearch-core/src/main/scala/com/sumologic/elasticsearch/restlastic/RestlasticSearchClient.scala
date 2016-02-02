@@ -125,6 +125,13 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   }
 
   private def runEsCommand(op: RootObject,
+                         endpoint: String,
+                         method: HttpMethod = POST,
+                         query: UriQuery = UriQuery.Empty): Future[RawJsonResponse] = {
+    runRawEsRequest(op.toJsonStr, endpoint, method, query)
+  }
+
+  def runRawEsRequest(op: String,
                            endpoint: String,
                            method: HttpMethod = POST,
                            query: UriQuery = UriQuery.Empty): Future[RawJsonResponse] = {
@@ -132,7 +139,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       val unauthed = HttpRequest(
         method = method,
         uri = buildUri(endpoint, query),
-        entity = HttpEntity(op.toJsonStr))
+        entity = HttpEntity(op))
       signer.map(_.withAuthHeader(unauthed)).getOrElse(unauthed)
     }
 
@@ -142,7 +149,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       logger.debug(s"Got Es response: ${response.status}")
       if (response.status.isFailure) {
         logger.warn(s"Failure response: ${response.entity.asString.take(500)}")
-        logger.warn(s"Failing request: ${op.toJsonStr.take(5000)}")
+        logger.warn(s"Failing request: ${op.take(5000)}")
 
         val jsonTree = parse(response.entity.asString)
         throw jsonTree.extract[ElasticErrorResponse]
