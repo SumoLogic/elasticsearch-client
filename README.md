@@ -1,9 +1,9 @@
 ## Elasticsearch Client
-The SumoLogic Elasticsearch library provides Elasticsearch bindings with a Scala DSL. Unlike other Scala libraries, this library targets the REST API. The REST API has a two primary advantages:
+The SumoLogic Elasticsearch library provides Elasticsearch bindings with a Scala DSL. Unlike other Scala libraries like [elastic4s](https://github.com/sksamuel/elastic4s) this library targets the REST API. The REST API has a two primary advantages:
   1. Ability to upgrade Elasticsearch without the need to atomically also upgrade the client.
   2. Ability to use hosted Elasticsearch such as the version provided by [AWS](https://aws.amazon.com/elasticsearch-service/).
 
-Along with a basic Elasticsearch client (elasticsearch-core), helper functionality for using Elasticsearch with Akka (elasticssearch-akka) and AWS (elasticsearch-aws) is also provided.
+Along with a basic Elasticsearch client (`elasticsearch-core`), helper functionality for using Elasticsearch with Akka (`elasticssearch-akka`) and AWS (`elasticsearch-aws`) is also provided. The goal of the DSL is to keep it as simple as possible, occasionally sacrifing some end-user boilerplate to maintain a DSL that is easy to modify and add to. The DSL attempts to be type-safe in that it should be impossible to create an invalid Elasticsearch query.
 
 ## Usage
 All client methods return futures that can be composed to perform multiple actions.
