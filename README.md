@@ -25,3 +25,28 @@ restClient.query(index, tpe, QueryRoot(TermQuery("text", "Hello World!"))).map {
 }
 ```
 https://github.com/SumoLogic/elasticsearch-client/blob/master/elasticsearch-core/src/test/scala/com/sumologic/elasticsearch/restlastic/RestlasticSearchClientTest.scala provides other basic examples.
+
+### Using the BulkIndexerActor
+The BulkIndexer actor provides a single-document style interface that actually delegates to the bulk API. This allows you to keep your code simple while still getting the performance benefits of bulk inserts and updates. The BulkIndexerActor has two configurable parameters:
+  * `maxDocuments`: The number of documents at which a bulk request will be flushed
+  * `flushDuration`: If the `maxDocuments` limit is not hit, it will flush after `flushDuration`.
+```scala
+val restClient: RestlasticSearchClient = ...
+val (index, tpe) = (Index("i"), Type("t"))
+// Designed for potentially dynamic configuration:
+val config = new BulkConfig(
+  flushDuration = () => FiniteDuration(2, TimeUnit.Seconds),
+  maxDocuments = () => 2000)
+val bulkActor = context.actorOf(BulkIndexerActor.props(restClient, config))
+val sess = BulkSession.create()
+val resultFuture = bulkActor ? CreateRequest(sess, index, tpe, Document("id", Map("k" -> "v")))
+val resultFuture2 = bulkActor ? CreateRequest(sess, index, tpe, Document("id", Map("k" -> "v")))
+// The resultFuture contains a `sessionId` you can use to match up replies with requests assuming you do not use
+// the ask pattern as above.
+// The two requests will be batched into a single bulk request and sent to Elasticsearch 
+```
+
+You can also use the Bulk api directly via the REST client:
+```
+restClient.bulkIndex(index, tpe, Seq(doc1, doc2, doc3))
+```
