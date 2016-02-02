@@ -4,7 +4,38 @@ The SumoLogic Elasticsearch library provides Elasticsearch bindings with a Scala
   2. Ability to use hosted Elasticsearch such as the version provided by [AWS](https://aws.amazon.com/elasticsearch-service/).
 
 Along with a basic Elasticsearch client (`elasticsearch-core`), helper functionality for using Elasticsearch with Akka (`elasticssearch-akka`) and AWS (`elasticsearch-aws`) is also provided. The goal of the DSL is to keep it as simple as possible, occasionally sacrifing some end-user boilerplate to maintain a DSL that is easy to modify and add to. The DSL attempts to be type-safe in that it should be impossible to create an invalid Elasticsearch query.
+## Install / Download
+The library components are offered a la carte:
+* `elasticsearch-core` contains the basic Elasticsearch client and typesafe DSL
+* `elasticsearch-aws` contains utilities for using [AWS Hosted Elasticsearch](https://aws.amazon.com/elasticsearch-service/).
+* `elasticsearch-akka` contains Actors to use with Akka & Akka Streams
+* `elasticsearch-test` contains a test harness to test against a in JVM Elasticsearch instance
+```
+    <dependency>
+      <groupId>com.sumologic.elasticsearch</groupId>
+      <artifactId>elasticsearch-core</artifactId>
+      <version>1.0.0</version>
+    </dependency>
 
+    <dependency>
+      <groupId>com.sumologic.elasticsearch</groupId>
+      <artifactId>elasticsearch-aws</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.sumologic.elasticsearch</groupId>
+      <artifactId>elasticsearch-akka</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.sumologic.elasticsearch</groupId>
+      <artifactId>elasticsearch-test</artifactId>
+      <version>1.0.0</version>
+      <scope>test</scope>
+    </dependency>
+  ```
 ## Usage
 All client methods return futures that can be composed to perform multiple actions.
 
