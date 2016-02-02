@@ -59,6 +59,7 @@
                         <goals>
                             <goal>add-source</goal>
                             <goal>compile</goal>
+                            <goal>doc-jar</goal>
                         </goals>
                     </execution>
                 </executions>

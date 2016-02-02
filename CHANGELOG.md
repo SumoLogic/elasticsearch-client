@@ -4,4 +4,4 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased][unreleased]
 ### Added
-- Initial release created.
+- Initial release created (1.0.0).
