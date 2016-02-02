@@ -48,14 +48,14 @@ val resultFuture2 = bulkActor ? CreateRequest(sess, index, tpe, Document("id", M
 ```
 
 You can also use the Bulk api directly via the REST client:
-```
+```scala
 restClient.bulkIndex(index, tpe, Seq(doc1, doc2, doc3))
 ```
 
 ### Usage With AWS
 
 One common way to configure AWS Elasticsearch is with IAM roles. This requires you to sign every request you send to Elasticsearch with your use key. The `elasticsearch-aws` module includes a request signer for this purpose:
-```
+```scala
 import com.sumologic.elasticsearch.util.AwsRequestSigner
 import com.amazonaws.auth.AWSCredentials
 val awsCredentials = _ // Credentials for the AWS use that has permissions to access Elasticsearch
