@@ -64,4 +64,4 @@ val signer = new AwsRequestSigner(awsCredentials, "REGION", "es")
 val endpoint = new StaticEndpoint(new Endpoint("es.blahblahblah.amazon.com", 443))
 val restClient = new RestlasticSearchClient(endpoint, Some(signer))
 ```
-`restClient` will now have every request automatically signed with your credentials.
+`restClient` will now sign every request automatically with your AWS credentials.
