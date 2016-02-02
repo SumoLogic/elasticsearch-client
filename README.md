@@ -27,6 +27,7 @@ restClient.query(index, tpe, QueryRoot(TermQuery("text", "Hello World!"))).map {
 https://github.com/SumoLogic/elasticsearch-client/blob/master/elasticsearch-core/src/test/scala/com/sumologic/elasticsearch/restlastic/RestlasticSearchClientTest.scala provides other basic examples.
 
 ### Using the BulkIndexerActor
+#### NOTE: to use the BulkIndexerActor you must add a dependency to `elasticsearch-akka`.
 The BulkIndexer actor provides a single-document style interface that actually delegates to the bulk API. This allows you to keep your code simple while still getting the performance benefits of bulk inserts and updates. The BulkIndexerActor has two configurable parameters:
   * `maxDocuments`: The number of documents at which a bulk request will be flushed
   * `flushDuration`: If the `maxDocuments` limit is not hit, it will flush after `flushDuration`.
@@ -50,3 +51,17 @@ You can also use the Bulk api directly via the REST client:
 ```
 restClient.bulkIndex(index, tpe, Seq(doc1, doc2, doc3))
 ```
+
+### Usage With AWS
+
+One common way to configure AWS Elasticsearch is with IAM roles. This requires you to sign every request you send to Elasticsearch with your use key. The `elasticsearch-aws` module includes a request signer for this purpose:
+```
+import com.sumologic.elasticsearch.util.AwsRequestSigner
+import com.amazonaws.auth.AWSCredentials
+val awsCredentials = _ // Credentials for the AWS use that has permissions to access Elasticsearch
+val signer = new AwsRequestSigner(awsCredentials, "REGION", "es")
+// You can also create your own dynamic endpoint class based off runtime configuration or the AWS API.
+val endpoint = new StaticEndpoint(new Endpoint("es.blahblahblah.amazon.com", 443))
+val restClient = new RestlasticSearchClient(endpoint, Some(signer))
+```
+`restClient` will now have every request automatically signed with your credentials.
