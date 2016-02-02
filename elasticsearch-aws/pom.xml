@@ -6,7 +6,7 @@
   <artifactId>elasticsearch-aws</artifactId>
   <name>elasticsearch-aws</name>
   <packaging>jar</packaging>
-  <version>20.1-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <scm><connection>scm:git:git@github.com:Sanyaku/sumologic.git</connection></scm>
 
 
