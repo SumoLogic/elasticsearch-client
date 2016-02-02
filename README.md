@@ -24,3 +24,4 @@ restClient.query(index, tpe, QueryRoot(TermQuery("text", "Hello World!"))).map {
   println(res.sourceAsMap) // List(Map(text -> Hello World))
 }
 ```
+https://github.com/SumoLogic/elasticsearch-client/blob/master/elasticsearch-core/src/test/scala/com/sumologic/elasticsearch/restlastic/RestlasticSearchClientTest.scala provides other basic examples.
