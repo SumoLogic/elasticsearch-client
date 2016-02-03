@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/SumoLogic/elasticsearch-client.svg?branch=master)](https://travis-ci.org/SumoLogic/elasticsearch-client)
 ## Elasticsearch Client
 The SumoLogic Elasticsearch library provides Elasticsearch bindings with a Scala DSL. Unlike other Scala libraries like [elastic4s](https://github.com/sksamuel/elastic4s) this library targets the REST API. The REST API has a two primary advantages:
   1. Ability to upgrade Elasticsearch without the need to atomically also upgrade the client.
