@@ -1,8 +1,9 @@
 [![Build Status](https://travis-ci.org/SumoLogic/elasticsearch-client.svg?branch=master)](https://travis-ci.org/SumoLogic/elasticsearch-client)
 [![codecov.io](https://codecov.io/github/SumoLogic/elasticsearch-client/coverage.svg?branch=master)](https://codecov.io/github/SumoLogic/elasticsearch-client?branch=master)
+[![Join the chat at https://gitter.im/SumoLogic/elasticsearch-client](https://badges.gitter.im/SumoLogic/elasticsearch-client.svg)](https://gitter.im/SumoLogic/elasticsearch-client?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 ## Elasticsearch Client
 
-[![Join the chat at https://gitter.im/SumoLogic/elasticsearch-client](https://badges.gitter.im/SumoLogic/elasticsearch-client.svg)](https://gitter.im/SumoLogic/elasticsearch-client?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 The SumoLogic Elasticsearch library provides Elasticsearch bindings with a Scala DSL. Unlike other Scala libraries like [elastic4s](https://github.com/sksamuel/elastic4s) this library targets the REST API. The REST API has a two primary advantages:
   1. Ability to upgrade Elasticsearch without the need to atomically also upgrade the client.
   2. Ability to use hosted Elasticsearch such as the version provided by [AWS](https://aws.amazon.com/elasticsearch-service/).
