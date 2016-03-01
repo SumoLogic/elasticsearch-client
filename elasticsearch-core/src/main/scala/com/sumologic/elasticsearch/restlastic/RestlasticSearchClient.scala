@@ -227,7 +227,7 @@ object RestlasticSearchClient {
     case class ElasticJsonDocument(_index: String,
                                    _type: String,
                                    _id: String,
-                                   _score: Float,
+                                    _score: Option[Float],
                                    _source: JObject)
 
     case class RawJsonResponse(jsonStr: String) {
@@ -257,4 +257,3 @@ object RestlasticSearchClient {
   }
 
 }
-
