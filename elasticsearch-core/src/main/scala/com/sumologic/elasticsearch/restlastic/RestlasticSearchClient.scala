@@ -126,6 +126,10 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     runEsCommand(EmptyObject, s"/${index.name}", DELETE)
   }
 
+  def deleteDocument(index: Index, tpe: Type, query: QueryRoot): Future[RawJsonResponse] = {
+    runEsCommand(query, s"/${index.name}/${tpe.name}/_query", DELETE)
+  }
+
   def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindow: String = "1m"): Future[ScrollId] = {
     val uriQuery = UriQuery("scroll" -> resultWindow, "search_type" -> "scan")
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = uriQuery).map { resp =>
