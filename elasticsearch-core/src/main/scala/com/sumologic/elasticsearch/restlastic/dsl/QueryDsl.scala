@@ -26,14 +26,15 @@ trait QueryDsl extends DslCommons {
 
   sealed trait Filter extends EsOperation
 
-  case class QueryRoot(query: Query, sizeOpt: Option[Int] = None, sortOpt: Option[Seq[(String, String)]] = None) extends RootObject {
+  case class QueryRoot(query: Query, fromOpt: Option[Int] = None, sizeOpt: Option[Int] = None, sortOpt: Option[Seq[(String, String)]] = None) extends RootObject {
     val _query = "query"
     val _size = "size"
     val _sort = "sort"
     val _order = "order"
+    val _from = "from"
 
     override def toJson: Map[String, Any] = {
-      Map(_query -> query.toJson) ++ sizeOpt.map(size => _size -> size) ++ sortOpt.map(sort => _sort -> sort.map{ case (field, order) => field -> Map(_order -> order) })
+      Map(_query -> query.toJson) ++ fromOpt.map(from => _from -> from) ++ sizeOpt.map(size => _size -> size) ++ sortOpt.map(sort => _sort -> sort.map{ case (field, order) => field -> Map(_order -> order) })
     }
   }
 
@@ -43,6 +44,7 @@ trait QueryDsl extends DslCommons {
     val _filtered = "filtered"
     val _filter = "filter"
     val _query = "query"
+    val _searchType = "search-type"
 
     override def toJson: Map[String, Any] = {
       Map(
