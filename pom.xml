@@ -4,7 +4,7 @@
     <groupId>com.sumologic.elasticsearch</groupId>
     <artifactId>all</artifactId>
     <name>all</name>
-    <version>1.0.3</version>
+    <version>1.0.3-SNAPSHOT</version>
     <packaging>pom</packaging>
     <licenses>
         <license>
