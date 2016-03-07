@@ -4,14 +4,14 @@
   <artifactId>elasticsearch-aws</artifactId>
   <name>elasticsearch-aws</name>
   <packaging>jar</packaging>
-  <version>1.0.3</version>
+  <version>1.0.3-SNAPSHOT</version>
   <scm><connection>scm:git:git@github.com:Sanyaku/sumologic.git/tags/all-1.0.3/sumologic.git</connection></scm>
 
 
   <parent>
     <artifactId>all</artifactId>
     <groupId>com.sumologic.elasticsearch</groupId>
-    <version>1.0.3</version>
+    <version>1.0.3-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
 
@@ -25,7 +25,7 @@
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-core</artifactId>
-      <version>1.0.3</version>
+      <version>1.0.3-SNAPSHOT</version>
     </dependency>
 
     <dependency>
