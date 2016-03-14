@@ -94,6 +94,12 @@ trait MappingDsl extends DslCommons {
     }
   }
 
+  case class TimeStampMapping(enabled: Boolean) extends FieldMapping {
+    val _timestamp = "_timestamp"
+    val _enabled = "enabled"
+    override def toJson: Map[String, Any] = Map(_timestamp -> Map(_enabled -> enabled))
+  }
+
   case class CompletionContext(path: String)
 }
 
