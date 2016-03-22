@@ -55,7 +55,7 @@ trait MappingDsl extends DslCommons {
     override def toJson: Map[String, Any] = Map(tpe.name -> mapping.toJson)
   }
 
-  case class IndexMapping(fields: Map[String, FieldMapping], enabled:EnabledFiledMapping) extends EsOperation {
+  case class IndexMapping(fields: Map[String, FieldMapping], enabled:EnabledFieldMapping) extends EsOperation {
     override def toJson: Map[String, Any] = Map(_properties -> fields.mapValues(_.toJson), _timestamp -> enabled.toJson)
   }
 
@@ -95,7 +95,7 @@ trait MappingDsl extends DslCommons {
     }
   }
 
-  case class EnabledFiledMapping(enabled: Boolean) extends FieldMapping {
+  case class EnabledFieldMapping(enabled: Boolean) extends FieldMapping {
     val _enabled = "enabled"
     override def toJson: Map[String, Any] = Map(_enabled -> enabled)
   }
