@@ -7,7 +7,6 @@
   <version>1.0.8-SNAPSHOT</version>
   <scm><connection>scm:git:git@github.com:Sanyaku/sumologic.git/tags/all-1.0.4/sumologic.git</connection></scm>
 
-
   <parent>
     <artifactId>all</artifactId>
     <groupId>com.sumologic.elasticsearch</groupId>

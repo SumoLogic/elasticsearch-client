@@ -111,6 +111,11 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     bulkIndex(bulkOperation)
   }
 
+  def bulkUpdate(index: Index, tpe: Type, documents: Seq[Document]): Future[Seq[BulkItem]] = {
+    val bulkOperation = Bulk(documents.map(BulkOperation(update, Some(index -> tpe), _)))
+    bulkIndex(bulkOperation)
+  }
+
   def putMapping(index: Index, tpe: Type, mapping: Mapping): Future[RawJsonResponse] = {
     runEsCommand(mapping, s"/${index.name}/_mapping/${tpe.name}")
   }

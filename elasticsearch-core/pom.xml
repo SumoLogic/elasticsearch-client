@@ -3,12 +3,20 @@
   <artifactId>elasticsearch-core</artifactId>
   <name>elasticsearch-core</name>
   <packaging>jar</packaging>
+<<<<<<< HEAD
   <version>1.0.8-SNAPSHOT</version>
+=======
+  <version>1.0.6-SNAPSHOT</version>
+>>>>>>> 58b355bcfd8478b6c0021a60d7834ed534ab8954
 
   <parent>
     <artifactId>all</artifactId>
     <groupId>com.sumologic.elasticsearch</groupId>
+<<<<<<< HEAD
     <version>1.0.8-SNAPSHOT</version>
+=======
+    <version>1.0.6-SNAPSHOT</version>
+>>>>>>> 58b355bcfd8478b6c0021a60d7834ed534ab8954
     <relativePath>../</relativePath>
   </parent>
 
@@ -26,7 +34,11 @@
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-test</artifactId>
+<<<<<<< HEAD
       <version>1.0.8-SNAPSHOT</version>
+=======
+      <version>1.0.6-SNAPSHOT</version>
+>>>>>>> 58b355bcfd8478b6c0021a60d7834ed534ab8954
       <scope>test</scope>
     </dependency>
 

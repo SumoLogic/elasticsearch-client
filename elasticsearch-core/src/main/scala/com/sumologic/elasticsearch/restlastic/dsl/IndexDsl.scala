@@ -48,10 +48,15 @@ trait IndexDsl extends DslCommons {
     import EsOperation.compactJson
     override def toJson: Map[String, Any] = throw new UnsupportedOperationException
     def toJsonStr: String = {
+      val doc = operation match {
+        case `update` =>
+          Document(document.id, Map("doc"->document.data) ++ Map("detect_noop" -> true, "doc_as_upsert" -> true))
+        case _ => document
+      }
       val jsonObjects = Map(operation.jsonStr ->
-        (Map("_id" -> document.id) ++ location.map { case (index, tpe) => Map("_index" -> index.name, "_type" -> tpe.name)}.getOrElse(Map()))
+        (Map("_id" -> doc.id) ++ location.map { case (index, tpe) => Map("_index" -> index.name, "_type" -> tpe.name)}.getOrElse(Map()))
       )
-      s"${compactJson(jsonObjects)}\n${document.toJsonStr}"
+      s"${compactJson(jsonObjects)}\n${doc.toJsonStr}"
     }
   }
 }
