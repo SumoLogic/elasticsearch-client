@@ -16,8 +16,8 @@
   <parent>
     <artifactId>all</artifactId>
     <groupId>com.sumologic.elasticsearch</groupId>
-    <relativePath>../</relativePath>
     <version>1.0.8-SNAPSHOT</version>
+    <relativePath>../</relativePath>
   </parent>
 
   <dependencies>
