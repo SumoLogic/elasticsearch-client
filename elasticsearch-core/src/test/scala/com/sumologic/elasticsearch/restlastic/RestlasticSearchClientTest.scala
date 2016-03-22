@@ -164,6 +164,61 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         res.sourceAsMap.toList should be(List())
       }
     }
+
+    "Support bulk update document when document does not exist" in {
+      val doc1 = Document("bulk_doc1", Map("text" -> "here"))
+      val doc2 = Document("bulk_doc2", Map("text" -> "here"))
+      val doc3 = Document("bulk_doc3", Map("text" -> "here"))
+
+      val fut = for {
+        bulk <- restClient.bulkUpdate(index, tpe, Seq(doc1, doc2, doc3))
+      } yield {
+        bulk
+      }
+
+      whenReady(fut) { resp =>
+        resp.length should be(3)
+        resp(0).created should be(true)
+        resp(1).created should be(true)
+        resp(2).created should be(true)
+      }
+
+      refresh()
+      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here")))
+      whenReady(resFut) { res =>
+        res.jsonStr should include("bulk_doc1")
+        res.jsonStr should include("bulk_doc2")
+        res.jsonStr should include("bulk_doc3")
+      }
+    }
+
+    "Support bulk update document when document exists with different content" in {
+      val doc1 = Document("bulk_doc1", Map("text" -> "updated"))
+      val doc2 = Document("bulk_doc2", Map("text" -> "updated"))
+      val doc3 = Document("bulk_doc3", Map("text" -> "updated"))
+
+      val fut = for {
+        bulk <- restClient.bulkUpdate(index, tpe, Seq(doc1, doc2, doc3))
+      } yield {
+        bulk
+      }
+
+      whenReady(fut) { resp =>
+        resp.length should be(3)
+        resp(0).created should be(false)
+        resp(1).created should be(false)
+        resp(2).created should be(false)
+      }
+
+      refresh()
+      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "updated")))
+      whenReady(resFut) { res =>
+        res.jsonStr should include("bulk_doc1")
+        res.jsonStr should include("bulk_doc2")
+        res.jsonStr should include("bulk_doc3")
+      }
+
+    }
   }
 }
 
