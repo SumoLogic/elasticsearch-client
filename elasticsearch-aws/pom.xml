@@ -38,7 +38,7 @@
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk</artifactId>
-      <version>1.10.43</version>
+      <version>1.10.62</version>
     </dependency>
 
     <dependency>
