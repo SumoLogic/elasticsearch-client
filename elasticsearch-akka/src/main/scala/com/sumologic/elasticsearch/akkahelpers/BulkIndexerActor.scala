@@ -64,6 +64,10 @@ class BulkIndexerActor(restlasticSearchClient: RestlasticSearchClient, bulkConfi
       queue = OpWithTarget(BulkOperation(index, Some(indexName -> tpe), doc), sender(), sess) :: queue
       if (queueFull) flush()
 
+    case UpdateRequest(sess, index, tpe, doc) =>
+      queue = OpWithTarget(BulkOperation(update, Some(index -> tpe), doc), sender(), sess) :: queue
+      if (queueFull) flush()
+
     case ForceFlush => flush()
 
     case IndexingComplete(items) =>
@@ -127,6 +131,7 @@ object BulkIndexerActor {
   // Messages
   case class CreateRequest(sessionId: BulkSession, index: Index, tpe: Type, doc: Document)
   case class IndexRequest(sessionId: BulkSession, index: Index, tpe: Type, doc: Document)
+  case class UpdateRequest(sessionId: BulkSession, index: Index, tpe: Type, doc: Document)
   case object ForceFlush
 
   // Replies
