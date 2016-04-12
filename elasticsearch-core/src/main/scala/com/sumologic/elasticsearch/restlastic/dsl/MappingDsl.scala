@@ -39,9 +39,13 @@ trait MappingDsl extends DslCommons {
   sealed trait IndexType {
     val rep: String
   }
-
+  
   case object NotAnalyzedIndex extends IndexType {
     val rep = "not_analyzed"
+  }
+
+  case object NotIndexedIndex extends IndexType {
+    val rep = "no"
   }
 
   case object MappingPath {
