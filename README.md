@@ -19,25 +19,25 @@ The library components are offered a la carte:
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-core</artifactId>
-      <version>1.0.8</version>
+      <version>1.0.9</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-aws</artifactId>
-      <version>1.0.8</version>
+      <version>1.0.9</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-akka</artifactId>
-      <version>1.0.8</version>
+      <version>1.0.9</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-test</artifactId>
-      <version>1.0.8/version>
+      <version>1.0.9/version>
       <scope>test</scope>
     </dependency>
   ```
