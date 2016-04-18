@@ -87,6 +87,39 @@ trait QueryDsl extends DslCommons {
     }
   }
 
+  case class Range(key: String, bounds: RangeBound*) extends Query {
+    val _range = "range"
+    val boundsMap = Map(key -> (bounds :\ Map[String, Any]())(_.toJson ++ _))
+
+    override def toJson: Map[String, Any] =  Map(_range -> boundsMap)
+  }
+
+  sealed trait RangeBound extends EsOperation
+
+  case class Gt(value: String) extends RangeBound {
+    val _gt = "gt"
+
+    override def toJson: Map[String, Any] = Map(_gt -> value)
+  }
+
+  case class Gte(value: String) extends RangeBound {
+    val _gte = "gte"
+
+    override def toJson: Map[String, Any] = Map(_gte -> value)
+  }
+
+  case class Lt(value: String) extends RangeBound {
+    val _lt = "lt"
+
+    override def toJson: Map[String, Any] = Map(_lt -> value)
+  }
+
+  case class Lte(value: String) extends RangeBound {
+    val _lte = "lte"
+
+    override def toJson: Map[String, Any] = Map(_lte -> value)
+  }
+
   case class WildcardQuery(key: String, value: String) extends Query {
     val _wildcard = "wildcard"
 
