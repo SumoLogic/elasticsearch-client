@@ -41,12 +41,12 @@
       <artifactId>mockito-core</artifactId>
       <version>1.9.5</version>
       <scope>test</scope>
-    </dependency>		
+    </dependency>
 
     <dependency>
       <groupId>org.json4s</groupId>
       <artifactId>json4s-native_${scala.version.major}</artifactId>
-      <version>3.2.11</version>
+      <version>3.4.0-SUMO</version>
     </dependency>
 
     <dependency>
