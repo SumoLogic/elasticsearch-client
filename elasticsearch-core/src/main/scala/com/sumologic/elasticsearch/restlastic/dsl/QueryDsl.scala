@@ -87,7 +87,7 @@ trait QueryDsl extends DslCommons {
     }
   }
 
-  case class Range(key: String, bounds: RangeBound*) extends Query {
+  case class RangeQuery(key: String, bounds: RangeBound*) extends Query {
     val _range = "range"
     val boundsMap = Map(key -> (bounds :\ Map[String, Any]())(_.toJson ++ _))
 
