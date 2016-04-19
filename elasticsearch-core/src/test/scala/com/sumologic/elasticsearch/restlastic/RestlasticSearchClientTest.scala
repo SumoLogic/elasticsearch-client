@@ -217,7 +217,38 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         res.jsonStr should include("bulk_doc2")
         res.jsonStr should include("bulk_doc3")
       }
+    }
 
+    "Support case insensitive autocomplete" in {
+      val unanalyzedString = BasicFieldMapping(StringType, Some(NotAnalyzedIndex))
+      val timestampMapping = EnabledFieldMapping(true)
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("name" -> unanalyzedString, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), false)),
+        timestampMapping))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
+      val keyWords = List("Case", "case")
+      val input = Map(
+        "name" -> "test",
+        "suggest" -> Map(
+          "input" -> keyWords
+        )
+      )
+      val docFut = restClient.index(index, tpe, Document("autocompelte", input))
+      whenReady(docFut) { _ => refresh() }
+
+      // test lower case c
+      val autocompelteLower = restClient.suggest(index, tpe, Suggest("c", Completion("suggest", 50, Map("f" -> "test"))))
+      whenReady(autocompelteLower) {
+        resp => resp should be(List("Case", "case"))
+      }
+      // test upper case C
+      val autocompelteUpper = restClient.suggest(index, tpe, Suggest("C", Completion("suggest", 50, Map("f" -> "test"))))
+      whenReady(autocompelteUpper) {
+        resp => resp should be(List("Case", "case"))
+      }
     }
   }
 }
