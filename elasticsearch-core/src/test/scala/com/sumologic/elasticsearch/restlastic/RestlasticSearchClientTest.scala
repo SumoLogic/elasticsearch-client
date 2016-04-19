@@ -219,11 +219,11 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       }
     }
 
-    "Support case insensitive auto complete" in {
+    "Support auto case insensitive complete" in {
       val unanalyzedString = BasicFieldMapping(StringType, Some(NotAnalyzedIndex))
       val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
-        Map("name" -> unanalyzedString, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")))),
+        Map("name" -> unanalyzedString, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), false)),
         timestampMapping))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)

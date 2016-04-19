@@ -78,11 +78,12 @@ trait MappingDsl extends DslCommons {
     override def toJson: Map[String, Any] = Map(_properties -> fields.mapValues(_.toJson))
   }
 
-  case class CompletionMapping(context: Map[String, CompletionContext]) extends FieldMapping {
+  case class CompletionMapping(context: Map[String, CompletionContext], caseSensitive: Boolean = true) extends FieldMapping {
     val _type = "type" -> "completion"
     // simple analyzer does case insensitive autocomplete
-    val _analzyer = "analyzer" -> "simple"
-    val _sanalyzer = "search_analyzer" -> "simple"
+    val analyzer = if (caseSensitive) "keyword" else "simple"
+    val _analzyer = "analyzer" -> analyzer
+    val _sanalyzer = "search_analyzer" -> analyzer
     val _context = "context"
 
     override def toJson: Map[String, Any] = {
