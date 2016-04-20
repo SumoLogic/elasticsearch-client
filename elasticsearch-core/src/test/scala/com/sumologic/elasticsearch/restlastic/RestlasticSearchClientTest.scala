@@ -250,6 +250,49 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         resp => resp should be(List("Case", "case"))
       }
     }
+
+    "Support range queries" in {
+      val rangeFutures = (1 to 10).map { n =>
+        Document(s"range-$n", Map("range-id" -> n))
+      }.map { doc =>
+        restClient.index(index, tpe, doc)
+      }
+
+      val range = Future.sequence(rangeFutures)
+      whenReady(range) { _ =>
+        refresh()
+      }
+
+      val ltQuery = QueryRoot(RangeQuery("range-id", Lt("4")))
+      val ltFut = restClient.query(index, tpe, ltQuery)
+      whenReady(ltFut) { resp =>
+        resp should have length 3
+      }
+
+      val lteQuery = QueryRoot(RangeQuery("range-id", Lte("4")))
+      val lteFut = restClient.query(index, tpe, lteQuery)
+      whenReady(lteFut) { resp =>
+        resp should have length 4
+      }
+
+      val gtQuery = QueryRoot(RangeQuery("range-id", Gt("4")))
+      val gtFut = restClient.query(index, tpe, gtQuery)
+      whenReady(gtFut) { resp =>
+        resp should have length 6
+      }
+
+      val gteQuery = QueryRoot(RangeQuery("range-id", Gte("4")))
+      val gteFut = restClient.query(index, tpe, gteQuery)
+      whenReady(gteFut) { resp =>
+        resp should have length 7
+      }
+
+      val sliceQuery = QueryRoot(RangeQuery("range-id", Gte("5"), Lte("6")))
+      val sliceFut = restClient.query(index, tpe, sliceQuery)
+      whenReady(sliceFut) { resp =>
+        resp should have length 2
+      }
+    }
   }
 }
 
