@@ -250,18 +250,18 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       whenReady(docFut) { _ => refresh() }
 
       // test lower case c
-      val autocompelteLower = restClient.suggest(index, tpe, Suggest("c", Completion("suggest", 50, Map("f" -> "test"))))
-      whenReady(autocompelteLower) {
+      val autocompleteLower = restClient.suggest(index, tpe, Suggest("c", Completion("suggest", 50, Map("f" -> "test"))))
+      whenReady(autocompleteLower) {
         resp => resp should be(List("Case", "case"))
       }
       // test upper case C
-      val autocompelteUpper = restClient.suggest(index, tpe, Suggest("C", Completion("suggest", 50, Map("f" -> "test"))))
-      whenReady(autocompelteUpper) {
+      val autocompleteUpper = restClient.suggest(index, tpe, Suggest("C", Completion("suggest", 50, Map("f" -> "test"))))
+      whenReady(autocompleteUpper) {
         resp => resp should be(List("Case", "case"))
       }
       // test special characters
-      val autocompelteSpecial = restClient.suggest(index, tpe, Suggest("#", Completion("suggest", 50, Map("f" -> "test"))))
-      whenReady(autocompelteSpecial) {
+      val autocompleteSpecial = restClient.suggest(index, tpe, Suggest("#", Completion("suggest", 50, Map("f" -> "test"))))
+      whenReady(autocompleteSpecial) {
         resp => resp should be(List("#Case`case"))
       }
     }
