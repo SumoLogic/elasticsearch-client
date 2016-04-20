@@ -28,6 +28,10 @@ trait DslCommons {
     def toJson: Map[String, Any]
   }
 
+  trait FieldType {
+    val rep: String
+  }
+
   object EsOperation {
     implicit val formats = org.json4s.DefaultFormats
     def compactJson(map: Map[String, Any]) = compact(render(decompose(map)))
@@ -56,6 +60,8 @@ trait DslCommons {
   case class Index(name: String)
 
   case class Type(name: String)
+
+  case class Name(name: String)
 }
 
 
