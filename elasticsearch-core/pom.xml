@@ -46,7 +46,7 @@
     <dependency>
       <groupId>org.json4s</groupId>
       <artifactId>json4s-native_${scala.version.major}</artifactId>
-      <version>3.4.0-SUMO</version>
+      <version>3.3.0</version>
     </dependency>
 
     <dependency>
