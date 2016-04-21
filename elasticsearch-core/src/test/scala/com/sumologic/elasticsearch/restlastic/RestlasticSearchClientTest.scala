@@ -32,6 +32,7 @@ import scala.concurrent.{Await, Future}
 class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFutures with BeforeAndAfterAll with ElasticsearchIntegrationTest {
   val index = Index(IndexName)
   val tpe = Type("foo")
+  val analyzerName = Name("keyword_lowercase")
 
   import scala.concurrent.ExecutionContext.Implicits.global
   implicit val patience = PatienceConfig(timeout = scaled(Span(10, Seconds)), interval = scaled(Span(50, Millis)))
@@ -42,9 +43,26 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
   }
 
   "RestlasticSearchClient" should {
+    "Be able to create an index and setup index setting" in {
+      val analyzer = Analyzer(analyzerName, Keyword, Lowercase)
+      val indexSetting = IndexSetting(12, 1, analyzer)
+      val indexFut = restClient.createIndex(index, Some(indexSetting))
+      whenReady(indexFut) { _ => refresh() }
+    }
+
+    "Be able to setup document mapping" in {
+      val basicFiledMapping = BasicFieldMapping(StringType, None, Some(analyzerName))
+      val timestampMapping = EnabledFieldMapping(true)
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)),
+        timestampMapping))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+    }
+
     "Be able to create an index, index a document, and search it" in {
       val ir = for {
-        _ <- restClient.createIndex(index)
         ir <- restClient.index(index, tpe, Document("doc1", Map("text" -> "here")))
       } yield {
           ir
@@ -220,16 +238,8 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Support case insensitive autocomplete" in {
-      val unanalyzedString = BasicFieldMapping(StringType, Some(NotAnalyzedIndex))
-      val timestampMapping = EnabledFieldMapping(true)
-      val metadataMapping = Mapping(tpe, IndexMapping(
-        Map("name" -> unanalyzedString, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), false)),
-        timestampMapping))
 
-      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
-      whenReady(mappingFut) { _ => refresh() }
-
-      val keyWords = List("Case", "case")
+      val keyWords = List("Case", "case", "#Case`case")
       val input = Map(
         "name" -> "test",
         "suggest" -> Map(
@@ -240,14 +250,30 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       whenReady(docFut) { _ => refresh() }
 
       // test lower case c
-      val autocompelteLower = restClient.suggest(index, tpe, Suggest("c", Completion("suggest", 50, Map("f" -> "test"))))
-      whenReady(autocompelteLower) {
+      val autocompleteLower = restClient.suggest(index, tpe, Suggest("c", Completion("suggest", 50, Map("f" -> "test"))))
+      whenReady(autocompleteLower) {
         resp => resp should be(List("Case", "case"))
       }
       // test upper case C
-      val autocompelteUpper = restClient.suggest(index, tpe, Suggest("C", Completion("suggest", 50, Map("f" -> "test"))))
-      whenReady(autocompelteUpper) {
+      val autocompleteUpper = restClient.suggest(index, tpe, Suggest("C", Completion("suggest", 50, Map("f" -> "test"))))
+      whenReady(autocompleteUpper) {
         resp => resp should be(List("Case", "case"))
+      }
+      // test special characters
+      val autocompleteSpecial = restClient.suggest(index, tpe, Suggest("#", Completion("suggest", 50, Map("f" -> "test"))))
+      whenReady(autocompleteSpecial) {
+        resp => resp should be(List("#Case`case"))
+      }
+    }
+
+    "Suport case insensitive query" in {
+      val docLower = Document("caseinsensitivequerylower", Map("f1" -> "CaSe", "f2" -> 5))
+      val futLower = restClient.index(index, tpe, docLower)
+      whenReady(futLower) { _ => refresh() }
+      // WildcardQuery is not analyzed https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wildcard-query.html
+      val resFutLower = restClient.query(index, tpe, QueryRoot(WildcardQuery("f1", "case")))
+      whenReady(resFutLower) { resp =>
+        resp.extractSource[DocType].head should be(DocType("CaSe", 5))
       }
     }
 

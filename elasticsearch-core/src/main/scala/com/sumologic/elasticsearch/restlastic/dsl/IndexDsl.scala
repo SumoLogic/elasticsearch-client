@@ -19,8 +19,12 @@
 package com.sumologic.elasticsearch.restlastic.dsl
 
 trait IndexDsl extends DslCommons {
-  case object CreateIndex extends RootObject {
-    override def toJson: Map[String, Any] = Map()
+  case class CreateIndex(settings: Option[IndexSetting] = None) extends RootObject {
+    val _settings = "settings"
+
+    override def toJson: Map[String, Any] = if (settings.nonEmpty) {
+      Map(_settings -> settings.get.toJson)
+    } else Map()
   }
 
   case class Document(id: String, data: Map[String, Any]) extends EsOperation with RootObject {
@@ -58,6 +62,36 @@ trait IndexDsl extends DslCommons {
       )
       s"${compactJson(jsonObjects)}\n${doc.toJsonStr}"
     }
+  }
+
+  case class IndexSetting(numberOfShards: Int, numberOfReplicas: Int, analyzer: Analyzer) extends EsOperation {
+    val _shards = "number_of_shards"
+    val _replicas = "number_of_replicas"
+    val _analysis = "analysis"
+
+    override def toJson: Map[String, Any] = Map(
+      _shards -> numberOfShards,
+      _replicas -> numberOfReplicas,
+      _analysis -> analyzer.toJson)
+  }
+
+  case class Analyzer(name: Name, tokenizer: FieldType, filter: FieldType) extends EsOperation {
+
+    val _analyzer = "analyzer"
+    val _tokenizer = "tokenizer"
+    val _filter = "filter"
+
+    override def toJson: Map[String, Any] = {
+      Map(_analyzer -> Map(name.name -> Map(_tokenizer -> tokenizer.rep, _filter -> filter.rep)))
+    }
+  }
+
+  case object Keyword extends FieldType {
+    val rep = "keyword"
+  }
+
+  case object Lowercase extends FieldType {
+    val rep = "lowercase"
   }
 }
 

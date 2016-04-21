@@ -86,7 +86,7 @@ class AwsRequestSignerTest extends WordSpec with Matchers {
         host = "search-kwan-metrics-es-l2fecxdxfit54aod5dgpqchndq.us-east-1.es.amazonaws.com",
         path = "/metrics-catalog-index"
       ),
-      entity = HttpEntity(CreateIndex.toJsonStr)
+      entity = HttpEntity(CreateIndex().toJsonStr)
     )
 
     val expectedCanonical = "POST" +

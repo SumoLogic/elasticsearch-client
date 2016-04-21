@@ -20,10 +20,6 @@ package com.sumologic.elasticsearch.restlastic.dsl
 
 trait MappingDsl extends DslCommons {
 
-  sealed trait FieldType {
-    val rep: String
-  }
-
   case object StringType extends FieldType {
     val rep = "string"
   }
@@ -69,21 +65,20 @@ trait MappingDsl extends DslCommons {
   val _timestamp = "_timestamp"
   val _type = "type"
   val _index = "index"
+  val _analyzer = "analyzer"
 
-  case class BasicFieldMapping(tpe: FieldType, index: Option[IndexType]) extends FieldMapping {
-    override def toJson: Map[String, Any] = Map(_type -> tpe.rep) ++ index.map(_index -> _.rep).toList.toMap
+  case class BasicFieldMapping(tpe: FieldType, index: Option[IndexType], analyzer: Option[Name]) extends FieldMapping {
+    override def toJson: Map[String, Any] = Map(_type -> tpe.rep) ++ index.map(_index -> _.rep) ++ analyzer.map(_analyzer -> _.name).toList.toMap
   }
 
   case class BasicObjectMapping(fields: Map[String, FieldMapping]) extends FieldMapping {
     override def toJson: Map[String, Any] = Map(_properties -> fields.mapValues(_.toJson))
   }
 
-  case class CompletionMapping(context: Map[String, CompletionContext], caseSensitive: Boolean = true) extends FieldMapping {
+  case class CompletionMapping(context: Map[String, CompletionContext], analyzer: Name = Name("keyword")) extends FieldMapping {
     val _type = "type" -> "completion"
-    // simple analyzer does case insensitive autocomplete
-    val analyzer = if (caseSensitive) "keyword" else "simple"
-    val _analzyer = "analyzer" -> analyzer
-    val _sanalyzer = "search_analyzer" -> analyzer
+    val _analzyer = "analyzer" -> analyzer.name
+    val _sanalyzer = "search_analyzer" -> analyzer.name
     val _context = "context"
 
     override def toJson: Map[String, Any] = {

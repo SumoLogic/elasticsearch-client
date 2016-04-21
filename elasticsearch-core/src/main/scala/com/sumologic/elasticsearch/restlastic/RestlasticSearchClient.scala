@@ -120,8 +120,8 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     runEsCommand(mapping, s"/${index.name}/_mapping/${tpe.name}")
   }
 
-  def createIndex(index: Index): Future[RawJsonResponse] = {
-    runEsCommand(CreateIndex, s"/${index.name}").recover {
+  def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse] = {
+    runEsCommand(CreateIndex(settings), s"/${index.name}").recover {
       case ElasticErrorResponse(message, status) if message contains "IndexAlreadyExistsException" =>
         throw new IndexAlreadyExistsException(message)
     }
