@@ -25,7 +25,7 @@ import java.util.{Calendar, TimeZone}
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-import com.amazonaws.auth.AWSCredentials
+import com.amazonaws.auth.{AWSCredentials, AWSSessionCredentials}
 import com.sumologic.elasticsearch.restlastic.RequestSigner
 import spray.http.HttpHeaders.{Host, RawHeader}
 import spray.http.HttpRequest
@@ -46,7 +46,18 @@ class AwsRequestSigner(awsCredentials: AWSCredentials, region: String, service: 
 
     val headerValue = s"$Algorithm Credential=${awsCredentials.getAWSAccessKeyId}/${credentialScope(dateStr)}, SignedHeaders=${signedHeaders(withDateAndHost)}" +
       s", Signature=${signature(withDateAndHost, dateTimeStr, dateStr)}"
-    withDateAndHost.withHeaders(RawHeader("Authorization", headerValue) :: withDateAndHost.headers)
+
+    val withAuth = withDateAndHost.withHeaders(RawHeader("Authorization", headerValue) :: withDateAndHost.headers)
+
+    // Append the session key, if session credentials were provided
+    addSessionToken(withAuth)
+  }
+
+  val xAmzSecurityToken = "X-Amz-Security-Token"
+  def addSessionToken(httpRequest: HttpRequest): HttpRequest = awsCredentials match {
+    case (sc: AWSSessionCredentials) =>
+      httpRequest.withHeaders(RawHeader(xAmzSecurityToken, sc.getSessionToken) :: httpRequest.headers)
+    case _ => httpRequest
   }
 
   private [util] def completedRequest(httpRequest: HttpRequest, dateTimeStr: String): HttpRequest = {

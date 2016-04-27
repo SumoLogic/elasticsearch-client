@@ -18,7 +18,7 @@
  */
 package com.sumologic.elasticsearch.util
 
-import com.amazonaws.auth.AWSCredentials
+import com.amazonaws.auth.{AWSCredentials, AWSSessionCredentials}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.scalatest.{Matchers, WordSpec}
 import spray.http.HttpHeaders.RawHeader
@@ -138,7 +138,24 @@ class AwsRequestSignerTest extends WordSpec with Matchers {
     signer.createCanonicalRequest(req) should be(expectedCanonical)
     signer.stringToSign(req, realDateTimeStr, realDateStr) should be(expectedToSing)
 
+  }
 
+  "add a session key if AWSSessionCredentials are provided" in {
+    val dummySessionCredentials = new AWSSessionCredentials {
+      override def getAWSAccessKeyId: String = "AKIDEXAMPLE"
+      override def getAWSSecretKey: String = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY"
+      override def getSessionToken: String = "SESSIONTOKEN"
+    }
+
+    val sessionSigner = new TestSigner(dateStr, dateTimeStr, dummySessionCredentials, region, "es")
+    val req = sessionSigner.withAuthHeader(HttpRequest())
+
+    val containsHeader = req.headers.exists(header => {
+      header.name == "X-Amz-Security-Token" &&
+      header.value == "SESSIONTOKEN"
+    })
+
+    containsHeader should be(true)
   }
 }
 
@@ -146,5 +163,3 @@ class TestSigner(dateStr: String, datetimeStr: String, creds: AWSCredentials, re
   extends AwsRequestSigner(creds, region, service) {
   override def currentDateStrings = (datetimeStr, dateStr)
 }
-
-
