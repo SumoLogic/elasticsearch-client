@@ -62,12 +62,14 @@ trait QueryDsl extends DslCommons {
     val _filter = "filter"
     val _query = "query"
     val _searchType = "search-type"
+    val _bool = "bool"
+    val _must = "must"
 
     override def toJson: Map[String, Any] = {
       Map(
         _filtered -> Map(
           _query -> query.toJson,
-          _filter -> filter.map(_.toJson)
+          _filter -> Map(_bool -> Map(_must -> filter.map(_.toJson)))
         )
       )
     }
