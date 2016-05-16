@@ -335,12 +335,19 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val termf3 = TermFilter("filter1", "val2")
       val validQuery = MultiTermFilteredQuery(MatchAll, termf1, termf2)
       val invalidQuery = MultiTermFilteredQuery(MatchAll, termf1, termf3)
+      val invalidQuery2 = MultiTermFilteredQuery(MatchAll, termf3, termf1)
       val resFut = restClient.query(index, tpe, QueryRoot(validQuery))
       whenReady(resFut) { res =>
         res.sourceAsMap.toList should be(List(Map("filter1" -> "val1", "filter2" -> "val2")))
       }
       val resFut2 = restClient.query(index, tpe, QueryRoot(invalidQuery))
       whenReady(resFut2) { res =>
+        res.sourceAsMap.toList should be(List())
+      }
+
+      println(s"MultitermQuery: ${invalidQuery2.toJson}")
+      val resFut3 = restClient.query(index, tpe, QueryRoot(invalidQuery2))
+      whenReady(resFut3) { res =>
         res.sourceAsMap.toList should be(List())
       }
     }
