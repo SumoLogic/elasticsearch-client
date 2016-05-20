@@ -30,7 +30,7 @@ import org.json4s._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class ScanAndScrollSourceTest extends WordSpec with Matchers with ScalaFutures {
   val resultMaps: List[Map[String, AnyRef]] = List(Map("a" -> "1"), Map("a" -> "2"), Map("a" -> "3"))
@@ -69,7 +69,8 @@ class MockScrollClient(results: List[SearchResponse]) extends ScrollClient {
   var started = false
   var resultsQueue = results
   override def startScrollRequest(index: Dsl.Index, tpe: Dsl.Type, query: Dsl.QueryRoot,
-                                  resultWindow: String): Future[ScrollId] = {
+                                  resultWindow: String)
+                                 (implicit ec: ExecutionContext): Future[ScrollId] = {
     if (!started) {
       started = true
       Future.successful(ScrollId(id.toString))
@@ -78,7 +79,8 @@ class MockScrollClient(results: List[SearchResponse]) extends ScrollClient {
     }
   }
 
-  override def scroll(scrollId: ScrollId, resultWindow: String): Future[(ScrollId, SearchResponse)] = {
+  override def scroll(scrollId: ScrollId, resultWindow: String)
+                     (implicit ec: ExecutionContext): Future[(ScrollId, SearchResponse)] = {
     if (scrollId.id.toInt == id) {
       id += 1
       resultsQueue match {
