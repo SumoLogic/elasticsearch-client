@@ -60,11 +60,11 @@ with BeforeAndAfterAll with BeforeAndAfterEach with MockitoSugar with ImplicitSe
   "BulkIndexerActor" should {
     "flush every message when set to 1" in {
       maxMessages = 1
-      when(mockEs.bulkIndex(any())).thenReturn(Future.successful(Seq(BulkItem("index","type", "_id", 201, None))))
+      when(mockEs.bulkIndex(any())(any())).thenReturn(Future.successful(Seq(BulkItem("index","type", "_id", 201, None))))
       val sess = BulkSession.create()
       indexerActor ! CreateRequest(sess, Index("i"), Type("tpe"), Document("id", Map("k" -> "v")))
       eventually {
-        mockEs.bulkIndex(any())
+        mockEs.bulkIndex(any())(any())
       }
       val msg = expectMsgType[DocumentIndexed]
       msg.sessionId should be(sess)

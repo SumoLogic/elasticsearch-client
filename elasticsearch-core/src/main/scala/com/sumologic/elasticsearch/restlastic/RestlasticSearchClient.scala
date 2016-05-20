@@ -32,13 +32,15 @@ import spray.http.HttpMethods._
 import spray.http.Uri.{Query => UriQuery}
 import spray.http.{HttpResponse, _}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
 trait ScrollClient {
   import Dsl._
-  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindow: String = "1m"): Future[ScrollId]
-  def scroll(scrollId: ScrollId, resultWindow: String = "1m"): Future[(ScrollId, SearchResponse)]
+  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindow: String = "1m")
+                        (implicit ec: ExecutionContext): Future[ScrollId]
+  def scroll(scrollId: ScrollId, resultWindow: String = "1m")
+            (implicit ec: ExecutionContext): Future[(ScrollId, SearchResponse)]
 }
 
 case class Endpoint(host: String, port: Int)
@@ -71,16 +73,14 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   import Dsl._
   import RestlasticSearchClient.ReturnTypes._
 
-  import scala.concurrent.ExecutionContext.Implicits.global
-
   def ready: Boolean = endpointProvider.ready
-  def query(index: Index, tpe: Type, query: QueryRoot): Future[SearchResponse] = {
+  def query(index: Index, tpe: Type, query: QueryRoot)(implicit ec: ExecutionContext): Future[SearchResponse] = {
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
       SearchResponse(rawJson.mappedTo[RawSearchResponse], rawJson.jsonStr)
     }
   }
 
-  def suggest(index: Index, tpe: Type, query: Suggest): Future[List[String]] = {
+  def suggest(index: Index, tpe: Type, query: Suggest)(implicit ec: ExecutionContext): Future[List[String]] = {
     // I'm not totally sure why, but you don't specify the type for _suggest queries
     val fut = runEsCommand(query, s"/${index.name}/_suggest")
     fut.map { resp =>
@@ -89,53 +89,59 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     }
   }
 
-  def count(index: Index, tpe: Type, query: QueryRoot): Future[Int] = {
+  def count(index: Index, tpe: Type, query: QueryRoot)(implicit ec: ExecutionContext): Future[Int] = {
     val fut = runEsCommand(query, s"/${index.name}/${tpe.name}/_count")
     fut.map(_.mappedTo[CountResponse].count)
   }
 
-  def index(index: Index, tpe: Type, doc: Document): Future[IndexResponse] = {
+  def index(index: Index, tpe: Type, doc: Document)(implicit ec: ExecutionContext): Future[IndexResponse] = {
     runEsCommand(doc, s"/${index.name}/${tpe.name}/${doc.id}").map(_.mappedTo[IndexResponse])
 
   }
 
-  def bulkIndex(bulk: Bulk): Future[Seq[BulkItem]] = {
+  def bulkIndex(bulk: Bulk)(implicit ec: ExecutionContext): Future[Seq[BulkItem]] = {
     runEsCommand(bulk, s"/_bulk").map { resp =>
       val bulkResp = resp.mappedTo[BulkIndexResponse]
       bulkResp.items.map(_.values.head)
     }
   }
 
-  def bulkIndex(index: Index, tpe: Type, documents: Seq[Document]): Future[Seq[BulkItem]] = {
+  def bulkIndex(index: Index, tpe: Type, documents: Seq[Document])
+               (implicit ec: ExecutionContext): Future[Seq[BulkItem]] = {
     val bulkOperation = Bulk(documents.map(BulkOperation(create, Some(index -> tpe), _)))
     bulkIndex(bulkOperation)
   }
 
-  def bulkUpdate(index: Index, tpe: Type, documents: Seq[Document]): Future[Seq[BulkItem]] = {
+  def bulkUpdate(index: Index, tpe: Type, documents: Seq[Document])
+                (implicit ec: ExecutionContext): Future[Seq[BulkItem]] = {
     val bulkOperation = Bulk(documents.map(BulkOperation(update, Some(index -> tpe), _)))
     bulkIndex(bulkOperation)
   }
 
-  def putMapping(index: Index, tpe: Type, mapping: Mapping): Future[RawJsonResponse] = {
+  def putMapping(index: Index, tpe: Type, mapping: Mapping)
+                (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     runEsCommand(mapping, s"/${index.name}/_mapping/${tpe.name}")
   }
 
-  def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse] = {
+  def createIndex(index: Index, settings: Option[IndexSetting] = None)
+                 (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     runEsCommand(CreateIndex(settings), s"/${index.name}").recover {
       case ElasticErrorResponse(message, status) if message contains "IndexAlreadyExistsException" =>
         throw new IndexAlreadyExistsException(message)
     }
   }
 
-  def deleteIndex(index: Index): Future[RawJsonResponse] = {
+  def deleteIndex(index: Index)(implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     runEsCommand(EmptyObject, s"/${index.name}", DELETE)
   }
 
-  def deleteDocument(index: Index, tpe: Type, query: QueryRoot): Future[RawJsonResponse] = {
+  def deleteDocument(index: Index, tpe: Type, query: QueryRoot)
+                    (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     runEsCommand(query, s"/${index.name}/${tpe.name}/_query", DELETE)
   }
 
-  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindow: String = "1m"): Future[ScrollId] = {
+  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindow: String = "1m")
+                        (implicit ec: ExecutionContext): Future[ScrollId] = {
     val uriQuery = UriQuery("scroll" -> resultWindow, "search_type" -> "scan")
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = uriQuery).map { resp =>
       val parsed = resp.mappedTo[ScrollResponse]
@@ -143,7 +149,8 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     }
   }
 
-  def scroll(scrollId: ScrollId, resultWindow: String = "1m"): Future[(ScrollId, SearchResponse)] = {
+  def scroll(scrollId: ScrollId, resultWindow: String = "1m")
+            (implicit ec: ExecutionContext): Future[(ScrollId, SearchResponse)] = {
     val uriQuery = UriQuery("scroll_id" -> scrollId.id, "scroll" -> resultWindow)
     runEsCommand(NoOp, s"/_search/scroll", query = uriQuery).map { resp =>
       val sr = resp.mappedTo[SearchResponseWithScrollId]
@@ -152,16 +159,18 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   }
 
   private def runEsCommand(op: RootObject,
-                         endpoint: String,
-                         method: HttpMethod = POST,
-                         query: UriQuery = UriQuery.Empty): Future[RawJsonResponse] = {
+                           endpoint: String,
+                           method: HttpMethod = POST,
+                           query: UriQuery = UriQuery.Empty)
+                          (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     runRawEsRequest(op.toJsonStr, endpoint, method, query)
   }
 
   def runRawEsRequest(op: String,
-                           endpoint: String,
-                           method: HttpMethod = POST,
-                           query: UriQuery = UriQuery.Empty): Future[RawJsonResponse] = {
+                      endpoint: String,
+                      method: HttpMethod = POST,
+                      query: UriQuery = UriQuery.Empty)
+                     (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     val request = {
       val unauthed = HttpRequest(
         method = method,
