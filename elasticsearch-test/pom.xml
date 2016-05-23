@@ -4,7 +4,7 @@
   <artifactId>elasticsearch-test</artifactId>
   <name>elasticsearch-test</name>
   <packaging>jar</packaging>
-  <version>1.0.14-SNAPSHOT</version>
+  <version>1.0.15-SNAPSHOT</version>
   <scm><connection>scm:git:git@github.com:Sanyaku/sumologic.git/tags/all-1.0.4/sumologic.git</connection></scm>
 
   <properties>
@@ -16,7 +16,7 @@
   <parent>
     <artifactId>all</artifactId>
     <groupId>com.sumologic.elasticsearch</groupId>
-    <version>1.0.14-SNAPSHOT</version>
+    <version>1.0.15-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
 
