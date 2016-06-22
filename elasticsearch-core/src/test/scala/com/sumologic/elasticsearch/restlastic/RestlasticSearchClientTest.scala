@@ -42,6 +42,10 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     new RestlasticSearchClient(new StaticEndpoint(new Endpoint(host, port)))
   }
 
+  override def refresh(): Unit = {
+    Await.result(restClient.refresh(index), 2.seconds)
+  }
+
   "RestlasticSearchClient" should {
     "Be able to create an index and setup index setting" in {
       val analyzer = Analyzer(analyzerName, Keyword, Lowercase)

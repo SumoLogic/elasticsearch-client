@@ -163,6 +163,14 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     }
   }
 
+  def flush(index: Index)(implicit ec: ExecutionContext): Future[RawJsonResponse] = {
+    runEsCommand(EmptyObject, s"/${index.name}/_flush")
+  }
+
+  def refresh(index: Index)(implicit ec: ExecutionContext): Future[RawJsonResponse] = {
+    runEsCommand(EmptyObject, s"/${index.name}/_refresh")
+  }
+
   private def runEsCommand(op: RootObject,
                            endpoint: String,
                            method: HttpMethod = POST,
