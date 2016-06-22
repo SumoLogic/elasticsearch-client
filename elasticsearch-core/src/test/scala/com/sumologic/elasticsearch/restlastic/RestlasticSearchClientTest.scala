@@ -61,6 +61,17 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       whenReady(mappingFut) { _ => refresh() }
     }
 
+    "Be able to setup document mapping with ignoreAbove" in {
+      val basicFiledMapping = BasicFieldMapping(StringType, None, Some(analyzerName), ignoreAbove = Some(10000))
+      val timestampMapping = EnabledFieldMapping(true)
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)),
+        timestampMapping))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+    }
+
     "Be able to create an index, index a document, and search it" in {
       val ir = for {
         ir <- restClient.index(index, tpe, Document("doc1", Map("text" -> "here")))
