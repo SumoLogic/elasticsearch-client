@@ -246,7 +246,7 @@ object RestlasticSearchClient {
       def sourceAsMap: Seq[Map[String, Any]] = hits.hits.map(_._source.values)
     }
 
-    case class Hits(hits: List[ElasticJsonDocument])
+    case class Hits(hits: List[ElasticJsonDocument], total: Int = 0)
     case class ElasticJsonDocument(_index: String,
                                    _type: String,
                                    _id: String,
