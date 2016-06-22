@@ -123,6 +123,11 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     runEsCommand(mapping, s"/${index.name}/_mapping/${tpe.name}")
   }
 
+  def getMapping(index: Index, tpe: Type)
+                (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
+    runEsCommand(EmptyObject, s"/${index.name}/_mapping/${tpe.name}", GET)
+  }
+
   def createIndex(index: Index, settings: Option[IndexSetting] = None)
                  (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     runEsCommand(CreateIndex(settings), s"/${index.name}").recover {
