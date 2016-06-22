@@ -20,17 +20,55 @@ package com.sumologic.elasticsearch.restlastic.dsl
 
 trait MappingDsl extends DslCommons {
 
+  // String datatype - https://www.elastic.co/guide/en/elasticsearch/reference/current/string.html
   case object StringType extends FieldType {
     val rep = "string"
   }
 
+
+  // Numeric datatypes - https://www.elastic.co/guide/en/elasticsearch/reference/current/number.html
   case object LongType extends FieldType {
     val rep = "long"
+  }
+
+  case object IntegerType extends FieldType {
+    val rep = "integer"
   }
 
   case object ShortType extends FieldType {
     val rep = "short"
   }
+
+  case object ByteType extends FieldType {
+    val rep = "byte"
+  }
+
+  case object DoubleType extends FieldType {
+    val rep = "double"
+  }
+
+  case object FloatType extends FieldType {
+    val rep = "float"
+  }
+
+
+  // Date datatype - https://www.elastic.co/guide/en/elasticsearch/reference/current/date.html
+  case object DateType extends FieldType {
+    val rep = "date"
+  }
+
+
+  // Boolean datatype - https://www.elastic.co/guide/en/elasticsearch/reference/current/boolean.html
+  case object BooleanType extends FieldType {
+    val rep = "boolean"
+  }
+
+
+  // Binary datatype - https://www.elastic.co/guide/en/elasticsearch/reference/current/binary.html
+  case object BinaryType extends FieldType {
+    val rep = "binary"
+  }
+
 
   sealed trait IndexType {
     val rep: String
