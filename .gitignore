@@ -19,7 +19,7 @@ project/plugins/project/
 sumo-env.txt
 .idea/
 config/*.conf
-
+*.iml
 # Vim
 *.sw*
 
