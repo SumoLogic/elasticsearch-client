@@ -281,7 +281,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       }
     }
 
-    "Suport case insensitive query" in {
+    "Support case insensitive query" in {
       val docLower = Document("caseinsensitivequerylower", Map("f1" -> "CaSe", "f2" -> 5))
       val futLower = restClient.index(index, tpe, docLower)
       whenReady(futLower) { _ => refresh() }
@@ -334,6 +334,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         resp should have length 2
       }
     }
+
     "Support multi-term filtered query" in {
       val ir = for {
         ir <- restClient.index(index, tpe, Document("multi-term-query-doc",
@@ -362,6 +363,44 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val resFut3 = restClient.query(index, tpe, QueryRoot(invalidQuery2))
       whenReady(resFut3) { res =>
         res.sourceAsMap.toList should be(List())
+      }
+    }
+
+    "Support Bool's Must and MustNot query" in {
+      val mustNotDoc = Document("mustNotDoc", Map("f1" -> "MustNot", "f2" -> 5))
+      val mustNotInsertionFuture = restClient.index(index, tpe, mustNotDoc)
+      whenReady(mustNotInsertionFuture) { _ => refresh() }
+
+      val mustResultFuture = restClient.query(index, tpe, QueryRoot(Bool(Must(MatchQuery("f1", "MustNot")))))
+      whenReady(mustResultFuture) { resp =>
+        resp.extractSource[DocType].head should be(DocType("MustNot", 5))
+      }
+
+      val mustNotResultFuture = restClient.query(index, tpe, QueryRoot(Bool(MustNot(MatchQuery("f1", "MustNot")))))
+      whenReady(mustNotResultFuture) { resp =>
+        resp.sourceAsMap.exists(_.get("f1").contains("MustNot")) should be (false)
+      }
+    }
+
+    "Support MatchQuery" in {
+      val matchDoc = Document("matchDoc", Map("f1" -> "MatchQuery", "f2" -> 5))
+      val matchNotInsertionFuture = restClient.index(index, tpe, matchDoc)
+      whenReady(matchNotInsertionFuture) { _ => refresh() }
+
+      val matchResultFuture = restClient.query(index, tpe, QueryRoot(MatchQuery("f1", "MatchQuery")))
+      whenReady(matchResultFuture) { resp =>
+        resp.extractSource[DocType].head should be(DocType("MatchQuery", 5))
+      }
+    }
+
+    "Support PhraseQuery" in {
+      val phraseDoc = Document("matchDoc", Map("f1" -> "Phrase Query", "f2" -> 5))
+      val phraseNotInsertionFuture = restClient.index(index, tpe, phraseDoc)
+      whenReady(phraseNotInsertionFuture) { _ => refresh() }
+
+      val phraseResultFuture = restClient.query(index, tpe, QueryRoot(PhraseQuery("f1", "Phrase Query")))
+      whenReady(phraseResultFuture) { resp =>
+        resp.extractSource[DocType].head should be(DocType("Phrase Query", 5))
       }
     }
   }
