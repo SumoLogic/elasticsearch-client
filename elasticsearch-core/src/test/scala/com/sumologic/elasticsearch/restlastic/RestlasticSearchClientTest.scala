@@ -42,7 +42,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     new RestlasticSearchClient(new StaticEndpoint(new Endpoint(host, port)))
   }
 
-  override def refresh(): Unit = {
+  private def refreshWithClient(): Unit = {
     Await.result(restClient.refresh(index), 2.seconds)
   }
 
@@ -51,7 +51,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val analyzer = Analyzer(analyzerName, Keyword, Lowercase)
       val indexSetting = IndexSetting(12, 1, analyzer)
       val indexFut = restClient.createIndex(index, Some(indexSetting))
-      whenReady(indexFut) { _ => refresh() }
+      whenReady(indexFut) { _ => refreshWithClient() }
     }
 
     "Be able to setup document mapping" in {
