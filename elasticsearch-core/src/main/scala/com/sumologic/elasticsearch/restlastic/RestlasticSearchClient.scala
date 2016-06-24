@@ -123,6 +123,11 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     runEsCommand(mapping, s"/${index.name}/_mapping/${tpe.name}")
   }
 
+  def getMapping(index: Index, tpe: Type)
+                (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
+    runEsCommand(EmptyObject, s"/${index.name}/_mapping/${tpe.name}", GET)
+  }
+
   def createIndex(index: Index, settings: Option[IndexSetting] = None)
                  (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     runEsCommand(CreateIndex(settings), s"/${index.name}").recover {
@@ -156,6 +161,14 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       val sr = resp.mappedTo[SearchResponseWithScrollId]
       (ScrollId(sr._scroll_id), SearchResponse(RawSearchResponse(sr.hits), resp.jsonStr))
     }
+  }
+
+  def flush(index: Index)(implicit ec: ExecutionContext): Future[RawJsonResponse] = {
+    runEsCommand(EmptyObject, s"/${index.name}/_flush")
+  }
+
+  def refresh(index: Index)(implicit ec: ExecutionContext): Future[RawJsonResponse] = {
+    runEsCommand(EmptyObject, s"/${index.name}/_refresh")
   }
 
   private def runEsCommand(op: RootObject,
@@ -241,7 +254,7 @@ object RestlasticSearchClient {
       def sourceAsMap: Seq[Map[String, Any]] = hits.hits.map(_._source.values)
     }
 
-    case class Hits(hits: List[ElasticJsonDocument])
+    case class Hits(hits: List[ElasticJsonDocument], total: Int = 0)
     case class ElasticJsonDocument(_index: String,
                                    _type: String,
                                    _id: String,

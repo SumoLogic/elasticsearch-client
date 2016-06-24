@@ -20,17 +20,55 @@ package com.sumologic.elasticsearch.restlastic.dsl
 
 trait MappingDsl extends DslCommons {
 
+  // String datatype - https://www.elastic.co/guide/en/elasticsearch/reference/current/string.html
   case object StringType extends FieldType {
     val rep = "string"
   }
 
+
+  // Numeric datatypes - https://www.elastic.co/guide/en/elasticsearch/reference/current/number.html
   case object LongType extends FieldType {
     val rep = "long"
+  }
+
+  case object IntegerType extends FieldType {
+    val rep = "integer"
   }
 
   case object ShortType extends FieldType {
     val rep = "short"
   }
+
+  case object ByteType extends FieldType {
+    val rep = "byte"
+  }
+
+  case object DoubleType extends FieldType {
+    val rep = "double"
+  }
+
+  case object FloatType extends FieldType {
+    val rep = "float"
+  }
+
+
+  // Date datatype - https://www.elastic.co/guide/en/elasticsearch/reference/current/date.html
+  case object DateType extends FieldType {
+    val rep = "date"
+  }
+
+
+  // Boolean datatype - https://www.elastic.co/guide/en/elasticsearch/reference/current/boolean.html
+  case object BooleanType extends FieldType {
+    val rep = "boolean"
+  }
+
+
+  // Binary datatype - https://www.elastic.co/guide/en/elasticsearch/reference/current/binary.html
+  case object BinaryType extends FieldType {
+    val rep = "binary"
+  }
+
 
   sealed trait IndexType {
     val rep: String
@@ -66,9 +104,10 @@ trait MappingDsl extends DslCommons {
   val _type = "type"
   val _index = "index"
   val _analyzer = "analyzer"
+  val _ignoreAbove = "ignore_above"
 
-  case class BasicFieldMapping(tpe: FieldType, index: Option[IndexType], analyzer: Option[Name]) extends FieldMapping {
-    override def toJson: Map[String, Any] = Map(_type -> tpe.rep) ++ index.map(_index -> _.rep) ++ analyzer.map(_analyzer -> _.name).toList.toMap
+  case class BasicFieldMapping(tpe: FieldType, index: Option[IndexType], analyzer: Option[Name], ignoreAbove: Option[Int] = None) extends FieldMapping {
+    override def toJson: Map[String, Any] = Map(_type -> tpe.rep) ++ index.map(_index -> _.rep) ++ analyzer.map(_analyzer -> _.name) ++ ignoreAbove.map(_ignoreAbove -> _).toList.toMap
   }
 
   case class BasicObjectMapping(fields: Map[String, FieldMapping]) extends FieldMapping {

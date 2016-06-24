@@ -106,6 +106,14 @@ trait QueryDsl extends DslCommons {
     }
   }
 
+  case class MustNot(opts: Query*) extends BoolQuery {
+    val _mustnot = "must_not"
+
+    override def toJson: Map[String, Any] = {
+      Map(_mustnot -> opts.map(_.toJson))
+    }
+  }
+
   case class RangeQuery(key: String, bounds: RangeBound*) extends Query {
     val _range = "range"
     val boundsMap = Map(key -> (bounds :\ Map[String, Any]())(_.toJson ++ _))
@@ -152,6 +160,22 @@ trait QueryDsl extends DslCommons {
 
     override def toJson: Map[String, Any] = {
       Map(_term -> Map(key -> value))
+    }
+  }
+
+  case class MatchQuery(key: String, value: String) extends Query {
+    val _match = "match"
+
+    override def toJson: Map[String, Any] = {
+      Map(_match -> Map(key -> value))
+    }
+  }
+
+  case class PhraseQuery(key: String, value: String) extends Query {
+    val _matchPhrase = "match_phrase"
+
+    override def toJson: Map[String, Any] = {
+      Map(_matchPhrase -> Map(key -> value))
     }
   }
 
