@@ -106,6 +106,14 @@ trait QueryDsl extends DslCommons {
     }
   }
 
+  case class MustNot(opts: Query*) extends BoolQuery {
+    val _mustNot = "must_not"
+
+    def toJson: Map[String, Any] = {
+      Map(_mustNot -> opts.map(_.toJson))
+    }
+  }
+
   case class RangeQuery(key: String, bounds: RangeBound*) extends Query {
     val _range = "range"
     val boundsMap = Map(key -> (bounds :\ Map[String, Any]())(_.toJson ++ _))
