@@ -20,7 +20,7 @@ package com.sumologic.elasticsearch.restlastic.dsl
 
 trait CompletionDsl extends DslCommons with QueryDsl {
 
-  case class Suggest(text: String, completion: Completion) extends Query with RootObject {
+  case class Suggest(text: String, completion: CompletionWithContext) extends Query with RootObject {
     val _suggest = "suggest"
     val _text = "text"
     val _completion = "completion"
@@ -33,7 +33,35 @@ trait CompletionDsl extends DslCommons with QueryDsl {
     }
   }
 
-  case class Completion(field: String, size: Int, context: Map[String, String]) extends Query {
+  case class Completion(field: String, size: Int, context: Map[String, String])
+    extends Query with CompletionWithContext {
+
+    val _field = "field"
+    val _context = "context"
+    val _size = "size"
+
+    def withAdditionalContext(newContext: (String, String)*) = {
+      this.copy(context = context ++ newContext)
+    }
+
+    override def toJson: Map[String, Any] = Map(
+      _field -> field,
+      _context -> context,
+      _size -> size
+    )
+  }
+
+  trait CompletionWithContext {
+    def toJson: Map[String, Any]
+  }
+
+  /**
+   * Support context filters with same key and different values
+   * e.g. context: key->val1, key->val2
+   */
+  case class CompletionWithSeqContext(field: String, size: Int, context: Seq[(String, String)])
+    extends Query with CompletionWithContext {
+
     val _field = "field"
     val _context = "context"
     val _size = "size"
