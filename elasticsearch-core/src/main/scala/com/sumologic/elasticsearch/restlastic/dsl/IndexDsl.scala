@@ -73,8 +73,8 @@ trait IndexDsl extends DslCommons {
     override def toJson: Map[String, Any] = Map(
       _shards -> numberOfShards,
       _replicas -> numberOfReplicas,
-      _analysis -> analyzer.toJson),
-      _refreshInterval -> refreshInterval
+      _analysis -> analyzer.toJson,
+      _refreshInterval -> refreshInterval)
   }
 
   case class Analyzer(name: Name, tokenizer: FieldType, filter: FieldType) extends EsOperation {
