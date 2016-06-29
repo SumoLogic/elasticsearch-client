@@ -64,7 +64,7 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll {
     super.afterAll()
   }
 
-  def refresh() = esNode.client().admin().indices().prepareRefresh().execute().actionGet()
+  def refresh(): Unit = esNode.client().admin().indices().prepareRefresh().execute().actionGet()
 
   def delete(index: String) = Try(client.admin().indices().delete(new DeleteIndexRequest(index)).actionGet())
 }
