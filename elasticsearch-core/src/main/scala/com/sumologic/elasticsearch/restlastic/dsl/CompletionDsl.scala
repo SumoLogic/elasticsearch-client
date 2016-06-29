@@ -18,6 +18,9 @@
  */
 package com.sumologic.elasticsearch.restlastic.dsl
 
+import org.json4s.JsonAST.JObject
+import org.json4s.JsonDSL._
+
 trait CompletionDsl extends DslCommons with QueryDsl {
 
   case class Suggest(text: String, completion: CompletionWithContext) extends Query with RootObject {
@@ -33,26 +36,28 @@ trait CompletionDsl extends DslCommons with QueryDsl {
     }
   }
 
-  case class Completion(field: String, size: Int, context: Map[String, String])
-    extends Query with CompletionWithContext {
-
+  trait CompletionWithContext {
     val _field = "field"
     val _context = "context"
     val _size = "size"
 
-    def withAdditionalContext(newContext: (String, String)*) = {
-      this.copy(context = context ++ newContext)
-    }
+    val field: String
+    val size: Int
+    def context: Iterable[(String, String)]
 
-    override def toJson: Map[String, Any] = Map(
+    def toJson: Map[String, Any] = Map(
       _field -> field,
-      _context -> context,
+      _context -> context.foldLeft(JObject()) {(k, v) => k ~ v },
       _size -> size
     )
   }
 
-  trait CompletionWithContext {
-    def toJson: Map[String, Any]
+  case class Completion(field: String, size: Int, context: Map[String, String])
+    extends Query with CompletionWithContext {
+
+    def withAdditionalContext(newContext: (String, String)*) = {
+      this.copy(context = context ++ newContext)
+    }
   }
 
   /**
@@ -62,19 +67,9 @@ trait CompletionDsl extends DslCommons with QueryDsl {
   case class CompletionWithSeqContext(field: String, size: Int, context: Seq[(String, String)])
     extends Query with CompletionWithContext {
 
-    val _field = "field"
-    val _context = "context"
-    val _size = "size"
-
     def withAdditionalContext(newContext: (String, String)*) = {
       this.copy(context = context ++ newContext)
     }
-
-    override def toJson: Map[String, Any] = Map(
-      _field -> field,
-      _context -> context,
-      _size -> size
-    )
   }
 }
 
