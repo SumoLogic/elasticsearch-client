@@ -64,17 +64,15 @@ trait IndexDsl extends DslCommons {
     }
   }
 
-  case class IndexSetting(numberOfShards: Int, numberOfReplicas: Int, analyzer: Analyzer, refreshInterval: Int = 1) extends EsOperation {
+  case class IndexSetting(numberOfShards: Int, numberOfReplicas: Int, analyzer: Analyzer) extends EsOperation {
     val _shards = "number_of_shards"
     val _replicas = "number_of_replicas"
     val _analysis = "analysis"
-    val _refreshInterval = "refresh_interval"
 
     override def toJson: Map[String, Any] = Map(
       _shards -> numberOfShards,
       _replicas -> numberOfReplicas,
-      _analysis -> analyzer.toJson,
-      _refreshInterval -> refreshInterval)
+      _analysis -> analyzer.toJson)
   }
 
   case class Analyzer(name: Name, tokenizer: FieldType, filter: FieldType) extends EsOperation {
