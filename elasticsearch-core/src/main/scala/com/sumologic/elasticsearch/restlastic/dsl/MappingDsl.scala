@@ -145,15 +145,14 @@ trait MappingDsl extends DslCommons {
     }
   }
 
-  case class CompletionMappingWithoutPath(context: String, analyzer: Name = Name("keyword"))
+  case class CompletionMappingWithoutPath(context: Map[String, Unit], analyzer: Name = Name("keyword"))
     extends FieldMapping with Completion {
 
     override def toJson: Map[String, Any] = {
       super.toJson ++
-      Map(_context ->
-        Map(context ->
+        Map(_context -> context.mapValues { case cc =>
           Map("type" -> "category")
-        )
+         }
       )
     }
   }
