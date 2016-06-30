@@ -49,7 +49,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
   "RestlasticSearchClient" should {
     "Be able to create an index and setup index setting" in {
       val analyzer = Analyzer(analyzerName, Keyword, Lowercase)
-      val indexSetting = IndexSetting(12, 1, analyzer)
+      val indexSetting = IndexSetting(12, 1, analyzer, 30)
       val indexFut = restClient.createIndex(index, Some(indexSetting))
       whenReady(indexFut) { _ => refreshWithClient() }
     }
