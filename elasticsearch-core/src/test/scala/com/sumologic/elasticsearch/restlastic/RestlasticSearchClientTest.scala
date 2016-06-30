@@ -58,7 +58,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val basicFiledMapping = BasicFieldMapping(StringType, None, Some(analyzerName))
       val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
-        Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)),
+        Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMappingWithoutPath("f", analyzerName)),
         timestampMapping))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
@@ -69,7 +69,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val basicFiledMapping = BasicFieldMapping(StringType, None, Some(analyzerName), ignoreAbove = Some(10000))
       val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
-        Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)),
+        Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMappingWithoutPath("f", analyzerName)),
         timestampMapping))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
@@ -265,17 +265,21 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       whenReady(docFut) { _ => refresh() }
 
       // test lower case c
-      val autocompleteLower = restClient.suggest(index, tpe, Suggest("c", Completion("suggest", 50, Map("f" -> "test"))))
+      val autocompleteLower = restClient.suggest(index, tpe, Suggest("c",
+        Completion("suggest", 50, Map("f" -> "test"))))
       whenReady(autocompleteLower) {
         resp => resp should be(List("Case", "case"))
       }
       // test upper case C
-      val autocompleteUpper = restClient.suggest(index, tpe, Suggest("C", Completion("suggest", 50, Map("f" -> "test"))))
+      val autocompleteUpper = restClient.suggest(index, tpe, Suggest("C",
+        CompletionWithSeqContext("suggest", 50, Seq("f" -> "test"))))
       whenReady(autocompleteUpper) {
         resp => resp should be(List("Case", "case"))
       }
       // test special characters
-      val autocompleteSpecial = restClient.suggest(index, tpe, Suggest("#", Completion("suggest", 50, Map("f" -> "test"))))
+      val autocompleteSpecial = restClient.suggest(index, tpe, Suggest("#",
+        CompletionWithSeqContext("suggest", 50, Seq("f" -> "test")).
+          withAdditionalContext("f" -> "test")))
       whenReady(autocompleteSpecial) {
         resp => resp should be(List("#Case`case"))
       }
