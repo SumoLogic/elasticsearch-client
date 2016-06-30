@@ -49,7 +49,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
   "RestlasticSearchClient" should {
     "Be able to create an index and setup index setting" in {
       val analyzer = Analyzer(analyzerName, Keyword, Lowercase)
-      val indexSetting = IndexSetting(12, 1, analyzer)
+      val indexSetting = IndexSetting(12, 1, analyzer, 30)
       val indexFut = restClient.createIndex(index, Some(indexSetting))
       whenReady(indexFut) { _ => refreshWithClient() }
     }
@@ -58,7 +58,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val basicFiledMapping = BasicFieldMapping(StringType, None, Some(analyzerName))
       val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
-        Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMappingWithoutPath("f", analyzerName)),
+        Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)),
         timestampMapping))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
@@ -69,7 +69,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val basicFiledMapping = BasicFieldMapping(StringType, None, Some(analyzerName), ignoreAbove = Some(10000))
       val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
-        Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMappingWithoutPath("f", analyzerName)),
+        Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)),
         timestampMapping))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
