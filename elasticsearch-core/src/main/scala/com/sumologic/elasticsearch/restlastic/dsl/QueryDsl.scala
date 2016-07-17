@@ -179,6 +179,22 @@ trait QueryDsl extends DslCommons {
     }
   }
 
+  case class PhrasePrefixQuery(key: String, prefix: String, maxExpansions: Option[Int])
+    extends Query {
+
+    val _matchPhrasePrefix = "match_phrase_prefix"
+    val _query = "query"
+    val _maxExpansions = "max_expansions"
+
+    override def toJson: Map[String, Any] = {
+      Map(_matchPhrasePrefix ->
+        Map(key->
+          (Map(_query -> prefix) ++ maxExpansions.map(_maxExpansions -> _))
+        )
+      )
+    }
+  }
+
   case object MatchAll extends Query {
     val _matchAll = "match_all"
     override def toJson: Map[String, Any] = Map(_matchAll -> Map())

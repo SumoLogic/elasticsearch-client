@@ -18,7 +18,7 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
-import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.IndexAlreadyExistsException
+import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{Bucket, BucketAggregationResultBody, IndexAlreadyExistsException}
 import spray.http.HttpMethods._
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch_test.ElasticsearchIntegrationTest
@@ -401,6 +401,28 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val phraseResultFuture = restClient.query(index, tpe, QueryRoot(PhraseQuery("f1", "Phrase Query")))
       whenReady(phraseResultFuture) { resp =>
         resp.extractSource[DocType].head should be(DocType("Phrase Query", 5))
+      }
+    }
+
+    "Support Terms Aggregation Query" in {
+      val aggrDoc1 = Document("aggrDoc1", Map("f1" -> "aggr1", "f2" -> 1, "text" -> "text1"))
+      val aggrDoc2 = Document("aggrDoc2", Map("f1" -> "aggr2", "f2" -> 2, "text" -> "text2"))
+      val aggrDoc3 = Document("aggrDoc3", Map("f1" -> "aggr3", "f2" -> 1, "text" -> "text1"))
+      val bulkIndexFuture = restClient.bulkIndex(index, tpe, Seq(aggrDoc1, aggrDoc2, aggrDoc3))
+      whenReady(bulkIndexFuture) { _ => refresh() }
+
+      val phasePrefixQuery = PhrasePrefixQuery("f1", "aggr", Some(5))
+      val termf1 = TermFilter("f2", "1")
+      val termf2 = TermFilter("text", "text1")
+      val filteredQuery = MultiTermFilteredQuery(phasePrefixQuery, termf1, termf1)
+      val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some(5), Some(5))
+      val aggrQuery = AggregationQuery(filteredQuery, termsAggr)
+
+      val expected = BucketAggregationResultBody(0, 0, List(Bucket("aggr1", 1), Bucket("aggr3", 1)))
+
+      val aggrQueryFuture = restClient.bucketAggregation(index, tpe, aggrQuery)
+      whenReady(aggrQueryFuture) { resp =>
+        resp should be(expected)
       }
     }
   }
