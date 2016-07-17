@@ -23,5 +23,6 @@ trait Dsl extends DslCommons
   with QueryDsl
   with MappingDsl
   with CompletionDsl
+  with AggregationDsl
 
 object Dsl extends Dsl
