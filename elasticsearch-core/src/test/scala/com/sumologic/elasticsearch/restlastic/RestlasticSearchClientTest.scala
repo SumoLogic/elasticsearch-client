@@ -421,9 +421,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val expected = BucketAggregationResultBody(0, 0, List(Bucket("aggr1", 1), Bucket("aggr3", 1)))
 
       val aggrQueryFuture = restClient.bucketAggregation(index, tpe, aggrQuery)
-      whenReady(aggrQueryFuture) { resp =>
-        resp should be(expected)
-      }
+      aggrQueryFuture.futureValue should be (expected)
     }
   }
 }
