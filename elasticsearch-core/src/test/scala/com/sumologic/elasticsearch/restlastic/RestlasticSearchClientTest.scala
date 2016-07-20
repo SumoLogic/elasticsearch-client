@@ -415,7 +415,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val termf1 = TermFilter("f2", "1")
       val termf2 = TermFilter("text", "text1")
       val filteredQuery = MultiTermFilteredQuery(phasePrefixQuery, termf1, termf1)
-      val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some(5), Some(5))
+      val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some(5), Some(5), Some("map"))
       val aggrQuery = AggregationQuery(filteredQuery, termsAggr)
 
       val expected = BucketAggregationResultBody(0, 0, List(Bucket("aggr1", 1), Bucket("aggr3", 1)))
