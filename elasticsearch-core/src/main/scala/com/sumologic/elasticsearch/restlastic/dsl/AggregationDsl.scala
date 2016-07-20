@@ -37,7 +37,8 @@ trait AggregationDsl extends DslCommons with QueryDsl {
   }
 
   case class TermsAggregation(field: String, include: Option[String],
-                              size: Option[Int], shardSize: Option[Int], hint: Option[String] = None)
+                              size: Option[Int], shardSize: Option[Int],
+                              hint: Option[String] = None)
     extends Aggregation {
 
     val _aggsName = "aggs_name"
