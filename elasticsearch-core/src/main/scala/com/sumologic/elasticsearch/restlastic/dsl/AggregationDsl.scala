@@ -37,7 +37,8 @@ trait AggregationDsl extends DslCommons with QueryDsl {
   }
 
   case class TermsAggregation(field: String, include: Option[String],
-                              size: Option[Int], shardSize: Option[Int])
+                              size: Option[Int], shardSize: Option[Int],
+                              hint: Option[String] = None)
     extends Aggregation {
 
     val _aggsName = "aggs_name"
@@ -46,6 +47,7 @@ trait AggregationDsl extends DslCommons with QueryDsl {
     val _include = "include"
     val _size = "size"
     val _shardSize = "shard_size"
+    val _hint = "execution_hint"
 
     override def toJson: Map[String, Any] = {
       Map(_aggsName ->
@@ -53,7 +55,8 @@ trait AggregationDsl extends DslCommons with QueryDsl {
           (Map(_field -> field)
             ++ include.map(_include -> _)
             ++ size.map(_size -> _)
-            ++ shardSize.map(_shardSize -> _))
+            ++ shardSize.map(_shardSize -> _)
+            ++ hint.map(_hint -> _))
         )
       )
     }
