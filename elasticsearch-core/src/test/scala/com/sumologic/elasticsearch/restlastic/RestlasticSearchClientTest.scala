@@ -404,6 +404,21 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       }
     }
 
+    "Support PrefixQuery" in  {
+      val prefixDoc = Document("prefixDoc", Map("f1" -> "foo", "f2" -> 1))
+      val indexFuture = restClient.index(index, tpe, prefixDoc)
+      whenReady(indexFuture) { _ => refresh() }
+
+      val prefixQuery1 = PrefixQuery("f1", "fo")
+      val prefixQuery2 = PrefixQuery("f1", "fa")
+
+      val resultFuture1 = restClient.query(index, tpe, QueryRoot(prefixQuery1))
+      resultFuture1.futureValue.extractSource[DocType] should be (List(DocType("foo", 1)))
+
+      val resultFuture2 = restClient.query(index, tpe, QueryRoot(prefixQuery2))
+      resultFuture2.futureValue.extractSource[DocType] should be(List())
+    }
+
     "Support Terms Aggregation Query" in {
       val aggrDoc1 = Document("aggrDoc1", Map("f1" -> "aggr1", "f2" -> 1, "text" -> "text1"))
       val aggrDoc2 = Document("aggrDoc2", Map("f1" -> "aggr2", "f2" -> 2, "text" -> "text2"))
