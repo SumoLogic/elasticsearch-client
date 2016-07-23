@@ -188,7 +188,6 @@ trait QueryDsl extends DslCommons {
         Map(key-> prefix)
       )
     }
-
   }
 
   case class PhrasePrefixQuery(key: String, prefix: String, maxExpansions: Option[Int])
