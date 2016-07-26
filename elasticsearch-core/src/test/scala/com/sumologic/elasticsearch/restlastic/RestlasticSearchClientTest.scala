@@ -47,10 +47,20 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
   }
 
   "RestlasticSearchClient" should {
-    "Be able to create an index and setup index setting" in {
+    "Be able to create an index and setup index setting with keyword lowercase analyzer" in {
       val analyzer = Analyzer(analyzerName, Keyword, Lowercase)
       val indexSetting = IndexSetting(12, 1, analyzer, 30)
       val indexFut = restClient.createIndex(index, Some(indexSetting))
+      whenReady(indexFut) { _ => refreshWithClient() }
+    }
+
+    "Be able to create an index and setup index setting with keyword & edgengram lowercase analyzer" in {
+      val edgeNgram = EdgeNGramFilter(Name(EdgeNGram.rep), 1, 20)
+      val edgeNgramLowercaseAnalyzer = Analyzer(Name(s"${EdgeNGram.rep}_lowercase"), Keyword, Lowercase, EdgeNGram)
+      val keywordLowercaseAnalyzer = Analyzer(analyzerName, Keyword, Lowercase)
+      val analyzers = Analyzers(AnalyzerArray(keywordLowercaseAnalyzer, edgeNgramLowercaseAnalyzer), FilterArray(edgeNgram))
+      val indexSetting = IndexSetting(12, 1, analyzers, 30)
+      val indexFut = restClient.createIndex(Index(s"${index.name}_${EdgeNGram.rep}"), Some(indexSetting))
       whenReady(indexFut) { _ => refreshWithClient() }
     }
 
@@ -66,7 +76,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Be able to setup document mapping with ignoreAbove" in {
-      val basicFiledMapping = BasicFieldMapping(StringType, None, Some(analyzerName), ignoreAbove = Some(10000))
+      val basicFiledMapping = BasicFieldMapping(StringType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
       val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)),
@@ -431,7 +441,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val termf2 = TermFilter("text", "text1")
       val filteredQuery = MultiTermFilteredQuery(phasePrefixQuery, termf1, termf1)
       val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some(5), Some(5), Some("map"))
-      val aggrQuery = AggregationQuery(filteredQuery, termsAggr)
+      val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
 
       val expected = BucketAggregationResultBody(0, 0, List(Bucket("aggr1", 1), Bucket("aggr3", 1)))
 
