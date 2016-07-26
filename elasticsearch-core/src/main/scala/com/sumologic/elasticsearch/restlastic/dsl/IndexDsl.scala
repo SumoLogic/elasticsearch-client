@@ -64,7 +64,11 @@ trait IndexDsl extends DslCommons {
     }
   }
 
-  case class IndexSetting(numberOfShards: Int, numberOfReplicas: Int, analyzer: Analyzer, refreshInterval: Int = 1) extends EsOperation {
+  case class IndexSetting(numberOfShards: Int, numberOfReplicas: Int,
+                          analyzerMapping: Analysis,
+                          refreshInterval: Int = 1)
+    extends EsOperation {
+
     val _shards = "number_of_shards"
     val _replicas = "number_of_replicas"
     val _analysis = "analysis"
@@ -73,19 +77,76 @@ trait IndexDsl extends DslCommons {
     override def toJson: Map[String, Any] = Map(
       _shards -> numberOfShards,
       _replicas -> numberOfReplicas,
-      _analysis -> analyzer.toJson,
+      _analysis -> analyzerMapping.toJson,
       _interval -> s"${refreshInterval}s")
   }
 
-  case class Analyzer(name: Name, tokenizer: FieldType, filter: FieldType) extends EsOperation {
+  sealed trait Analysis extends EsOperation
+
+  case class Analyzers(analyzers: AnalyzerArray, filters: FilterArray)
+    extends Analysis with EsOperation {
+
+    override def toJson: Map[String, Any] = analyzers.toJson ++ filters.toJson
+  }
+
+  case class Analyzer(name: Name, tokenizer: FieldType, filter: FieldType*)
+    extends Analysis with EsOperation {
 
     val _analyzer = "analyzer"
     val _tokenizer = "tokenizer"
     val _filter = "filter"
 
-    override def toJson: Map[String, Any] = {
-      Map(_analyzer -> Map(name.name -> Map(_tokenizer -> tokenizer.rep, _filter -> filter.rep)))
-    }
+    override def toJson: Map[String, Any] = Map(
+      _analyzer -> Map(
+        name.name -> Map(
+          _tokenizer -> tokenizer.rep,
+          _filter -> filter.map(_.rep)
+        )
+      )
+    )
+  }
+
+  sealed trait Filter extends EsOperation{
+    val name: Name
+  }
+
+  case class EdgeNGramFilter(name: Name, minGram: Int, maxGram: Int) extends Filter with EsOperation {
+
+    val _filter = "filter"
+    val _type = "type"
+    val _edgeNGram ="edge_ngram"
+    val _minGram = "min_gram"
+    val _maxGramp = "max_gram"
+
+    override def toJson: Map[String, Any] = Map(
+      _filter -> Map(
+        name.name -> Map(
+          _type -> _edgeNGram,
+          _minGram -> minGram,
+          _maxGramp -> maxGram
+        )
+      )
+    )
+  }
+
+  case class AnalyzerArray(analyzers: Analyzer*) extends EsOperation {
+    val _analyzer = "analyzer"
+
+    override def toJson: Map[String, Any] = Map(
+      _analyzer -> analyzers.map(_
+        .toJson.getOrElse(_analyzer, Map())
+        .asInstanceOf[Map[String, Any]]).reduce(_ ++ _)
+    )
+  }
+
+  case class FilterArray(filters: Filter*) extends EsOperation {
+    val _filter = "filter"
+
+    override def toJson: Map[String, Any] = Map(
+      _filter -> filters.map(_
+        .toJson.getOrElse(_filter, Map())
+        .asInstanceOf[Map[String, Any]]).reduce(_ ++ _)
+    )
   }
 
   case object Keyword extends FieldType {
@@ -94,6 +155,10 @@ trait IndexDsl extends DslCommons {
 
   case object Lowercase extends FieldType {
     val rep = "lowercase"
+  }
+
+  case object EdgeNGram extends FieldType {
+    val rep = "edgengram"
   }
 }
 

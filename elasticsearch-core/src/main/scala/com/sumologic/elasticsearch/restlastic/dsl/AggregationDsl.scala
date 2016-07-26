@@ -22,17 +22,19 @@ trait AggregationDsl extends DslCommons with QueryDsl {
 
   sealed trait Aggregation extends EsOperation
 
-  case class AggregationQuery(query: Query, aggs: Aggregation)
+  case class AggregationQuery(query: Query, aggs: Aggregation, timeout: Option[Int] = None)
     extends Query with RootObject {
 
     val _query = "query"
     val _aggs = "aggs"
     val _size = "size"
+    val _timeout = "timeout"
 
     override def toJson: Map[String, Any] = {
       Map(_query -> query.toJson,
         _aggs -> aggs.toJson,
-        _size -> 0)
+        _size -> 0) ++
+      timeout.map(t => _timeout -> s"${t}ms")
     }
   }
 
