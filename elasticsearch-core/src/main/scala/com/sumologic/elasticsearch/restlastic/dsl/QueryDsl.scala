@@ -29,7 +29,8 @@ trait QueryDsl extends DslCommons {
   case class QueryRoot(query: Query,
                        fromOpt: Option[Int] = None,
                        sizeOpt: Option[Int] = None,
-                       sortOpt: Option[Seq[(String, String)]] = None)
+                       sortOpt: Option[Seq[(String, String)]] = None,
+                       timeout: Option[Int] = None)
     extends RootObject {
 
     val _query = "query"
@@ -37,11 +38,13 @@ trait QueryDsl extends DslCommons {
     val _sort = "sort"
     val _order = "order"
     val _from = "from"
+    val _timeout = "timeout"
 
     override def toJson: Map[String, Any] = {
       Map(_query -> query.toJson) ++
         fromOpt.map(_from -> _) ++
         sizeOpt.map(_size -> _) ++
+        timeout.map(t => _timeout -> s"${t}ms") ++
         sortOpt.map(_sort -> _.map {
           case (field, order) => field -> Map(_order -> order) })
     }
