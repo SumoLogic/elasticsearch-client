@@ -96,7 +96,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         ir.created should be(true)
       }
       refresh()
-      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here")))
+      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here"), timeout = Some(10)))
       whenReady(resFut) { res =>
         res.sourceAsMap.toList should be(List(Map("text" -> "here")))
       }
