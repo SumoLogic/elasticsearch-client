@@ -206,10 +206,12 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       signer.map(_.withAuthHeader(unauthed)).getOrElse(unauthed)
     }
 
+    logger.debug(f"Got Rs request: $request (op was $op)")
+
     val responseFuture: Future[HttpResponse] = (IO(Http) ? request).mapTo[HttpResponse]
 
     responseFuture.map { response =>
-      logger.debug(s"Got Es response: ${response.status}")
+      logger.debug(f"Got Es response: $response")
       if (response.status.isFailure) {
         logger.warn(s"Failure response: ${response.entity.asString.take(500)}")
         logger.warn(s"Failing request: ${op.take(5000)}")
