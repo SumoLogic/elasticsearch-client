@@ -69,7 +69,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)),
-        timestampMapping, Some(true)))
+        timestampMapping, Some(false)))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
