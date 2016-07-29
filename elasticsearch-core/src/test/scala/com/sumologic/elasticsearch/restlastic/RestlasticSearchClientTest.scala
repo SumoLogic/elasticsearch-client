@@ -69,7 +69,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFiledMapping, "f1" -> basicFiledMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)),
-        timestampMapping))
+        timestampMapping, Some(true)))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
@@ -447,6 +447,14 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
       val aggrQueryFuture = restClient.bucketAggregation(index, tpe, aggrQuery)
       aggrQueryFuture.futureValue should be (expected)
+    }
+
+    "Support query with source filtering" in {
+      val filterDoc1 = Document("filterDoc", Map("f1" -> "filter1", "f2" -> 1, "text" -> "text1"))
+      val intexFuture = restClient.index(index, tpe, filterDoc1)
+      whenReady(intexFuture) { _ => refresh() }
+      val filterFuture = restClient.query(index, tpe, QueryRoot(TermQuery("f1", "filter1"), sourceFilter = Some(Seq("f2", "text"))))
+      filterFuture.futureValue.sourceAsMap should be(List(Map("f2" -> 1, "text" -> "text1")))
     }
   }
 }
