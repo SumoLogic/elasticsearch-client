@@ -94,7 +94,7 @@ trait MappingDsl extends DslCommons {
   }
 
   case class IndexMapping(fields: Map[String, FieldMapping],
-                          enabled:EnabledFieldMapping,
+                          enabled: EnabledFieldMapping,
                           enableAllField: Option[Boolean] = None)
     extends EsOperation {
     val _all = "_all"
