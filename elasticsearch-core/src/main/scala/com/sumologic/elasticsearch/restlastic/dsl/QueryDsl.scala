@@ -24,7 +24,7 @@ trait QueryDsl extends DslCommons {
 
   sealed trait BoolQuery extends EsOperation
 
-  sealed trait Filter extends EsOperation
+  trait Filter extends EsOperation
 
   case class QueryRoot(query: Query,
                        fromOpt: Option[Int] = None,
@@ -106,6 +106,14 @@ trait QueryDsl extends DslCommons {
     }
   }
 
+  case class RegexFilter(field: String, regexp: String) extends Filter {
+    val _regexp = "regexp"
+
+    override def toJson: Map[String, Any] = {
+      Map(_regexp -> Map(field -> regexp))
+    }
+  }
+
   case class Bool(queries: BoolQuery*) extends Query {
     val _bool = "bool"
     val queryMap = queries.map(_.toJson).map(map => (map.keys.head, map(map.keys.head))).toMap
@@ -175,6 +183,14 @@ trait QueryDsl extends DslCommons {
 
     override def toJson: Map[String, Any] = {
       Map(_wildcard -> Map(key -> value))
+    }
+  }
+
+  case class RegexQuery(field: String, regexp: String) extends Query {
+    val _regexp = "regexp"
+
+    override def toJson: Map[String, Any] = {
+      Map(_regexp -> Map(field -> regexp))
     }
   }
 
