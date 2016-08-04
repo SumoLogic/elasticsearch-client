@@ -456,6 +456,34 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val filterFuture = restClient.query(index, tpe, QueryRoot(TermQuery("f1", "filter1"), sourceFilter = Some(Seq("f2", "text"))))
       filterFuture.futureValue.sourceAsMap should be(List(Map("f2" -> 1, "text" -> "text1")))
     }
+
+    "support regex query" in {
+      val regexDoc1 = Document("regexQueryDoc1", Map("f1" -> "regexQuery1", "f2" -> 1, "text" -> "text1"))
+      val regexDoc2 = Document("regexQueryDoc2", Map("f1" -> "regexQuery2", "f2" -> 1, "text" -> "text2"))
+      val regexFuture = restClient.bulkIndex(index, tpe, Seq(regexDoc1, regexDoc2))
+      whenReady(regexFuture) { _ => refresh() }
+
+      val regexQueryFuture = restClient.query(index, tpe, QueryRoot(RegexQuery("f1", "regexq.*1")))
+      regexQueryFuture.futureValue.sourceAsMap should be(List(Map("f1" -> "regexQuery1", "f2" -> 1, "text" -> "text1")))
+
+      val regexQueryFuture2 = restClient.query(index, tpe, QueryRoot(RegexQuery("f1", "regexq.*")))
+      regexQueryFuture2.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "regexQuery1", "f2" -> 1, "text" -> "text1"),  Map("f1" -> "regexQuery2", "f2" -> 1, "text" -> "text2")))
+    }
+
+    "support regex filter" in {
+      val regexDoc1 = Document("regexFilterDoc1", Map("f1" -> "regexFilter1", "f2" -> 1, "text" -> "text1"))
+      val regexDoc2 = Document("regexFilterfDoc2", Map("f1" -> "regexFilter2", "f2" -> 1, "text" -> "text2"))
+      val regexFuture = restClient.bulkIndex(index, tpe, Seq(regexDoc1, regexDoc2))
+      whenReady(regexFuture) { _ => refresh() }
+
+      val filteredQuery = MultiTermFilteredQuery(MatchAll, RegexFilter("f1", "regexf.*1"))
+      val regexQueryFuture = restClient.query(index, tpe, QueryRoot(filteredQuery))
+      regexQueryFuture.futureValue.sourceAsMap should be(List(Map("f1" -> "regexFilter1", "f2" -> 1, "text" -> "text1")))
+
+      val filteredQuery2 = MultiTermFilteredQuery(MatchAll, RegexFilter("f1", "regexf.*"))
+      val regexQueryFuture2 = restClient.query(index, tpe, QueryRoot(filteredQuery2))
+      regexQueryFuture2.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "regexFilter1", "f2" -> 1, "text" -> "text1"),  Map("f1" -> "regexFilter2", "f2" -> 1, "text" -> "text2")))
+    }
   }
 }
 
