@@ -24,7 +24,7 @@ trait QueryDsl extends DslCommons {
 
   sealed trait BoolQuery extends EsOperation
 
-  sealed trait Filter extends EsOperation
+  trait Filter extends EsOperation
 
   case class QueryRoot(query: Query,
                        fromOpt: Option[Int] = None,
