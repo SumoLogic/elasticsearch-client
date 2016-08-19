@@ -487,13 +487,13 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "Support NestedQuery" in {
       // https://www.elastic.co/guide/en/elasticsearch/reference/2.3/query-dsl-nested-query.html
-      val metadataMapping = Mapping(tpe, IndexMapping(Map("user" -> NestedFieldsMapping), EnabledFieldMapping(true), None))
+      val metadataMapping = Mapping(tpe, IndexMapping(Map("user" -> NestedFieldMapping), EnabledFieldMapping(true), None))
       val mappingFuture = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFuture) { _ => refresh() }
       val userDoc = List(Map("first" -> "john", "last" -> "Smith"), Map("first" -> "Alice", "last" -> "White"))
       val matchDoc = Document("matchDoc", Map("user" -> userDoc))
-      val matchNotInsertionFuture = restClient.index(index, tpe, matchDoc)
-      whenReady(matchNotInsertionFuture) { _ => refresh() }
+      val matchDocInsertionFuture = restClient.index(index, tpe, matchDoc)
+      whenReady(matchDocInsertionFuture) { _ => refresh() }
 
       val matchResultFuture = restClient.query(index, tpe, QueryRoot(NestedQuery("user", Some(AvgScoreMode), Bool(Must(MatchQuery("user.first", "Alice"))))))
       whenReady(matchResultFuture) { resp =>
