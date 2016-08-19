@@ -487,14 +487,14 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "support multi match query" in {
       // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-multi-match-query.html
-      val regexDoc1 = Document("multiMatchQueryDoc1", Map("f1" -> "multimatch1", "f2" -> 1, "text" -> "text1"))
-      val regexDoc2 = Document("multiMatchQueryDoc2", Map("f1" -> "text1", "f2" -> 1, "text" -> "multimatch1"))
-      val regexFuture = restClient.bulkIndex(index, tpe, Seq(regexDoc1, regexDoc2))
-      whenReady(regexFuture) { _ => refresh() }
+      val multiMatchDoc1 = Document("multiMatchDoc1", Map("f1" -> "multimatch1", "f2" -> 1, "text" -> "text1"))
+      val multiMatchDoc2 = Document("multiMatchDoc2", Map("f1" -> "text1", "f2" -> 1, "text" -> "multimatch1"))
+      val docsFuture = restClient.bulkIndex(index, tpe, Seq(multiMatchDoc1, multiMatchDoc2))
+      whenReady(docsFuture) { _ => refresh() }
 
-      val filteredQuery = MultiMatchQuery("multimatch1", "f1", "text")
-      val regexQueryFuture = restClient.query(index, tpe, QueryRoot(filteredQuery))
-      regexQueryFuture.futureValue.sourceAsMap should be(List(Map("f1" -> "text1", "f2" -> 1, "text" -> "multimatch1"), Map("f1" -> "multimatch1", "f2" -> 1, "text" -> "text1")))
+      val matchQuery = MultiMatchQuery("multimatch1", "f1", "text")
+      val matchQueryFuture = restClient.query(index, tpe, QueryRoot(matchQuery))
+      matchQueryFuture.futureValue.sourceAsMap should be(List(Map("f1" -> "text1", "f2" -> 1, "text" -> "multimatch1"), Map("f1" -> "multimatch1", "f2" -> 1, "text" -> "text1")))
     }
   }
 }
