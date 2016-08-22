@@ -443,7 +443,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some(5), Some(5), Some("map"))
       val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
 
-      val expected = BucketAggregationResultBody(0, 0, List(Bucket("aggr1", 1), Bucket("aggr3", 1)))
+      val expected = Bucket(Map("doc_count_error_upper_bound" -> 0, "sum_other_doc_count" -> 0, "buckets" -> List(Map("key" -> "aggr1", "doc_count" -> 1), Map("key" -> "aggr3", "doc_count" -> 1))))
 
       val aggrQueryFuture = restClient.bucketAggregation(index, tpe, aggrQuery)
       aggrQueryFuture.futureValue should be (expected)
@@ -483,6 +483,29 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val filteredQuery2 = MultiTermFilteredQuery(MatchAll, RegexFilter("f1", "regexf.*"))
       val regexQueryFuture2 = restClient.query(index, tpe, QueryRoot(filteredQuery2))
       regexQueryFuture2.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "regexFilter1", "f2" -> 1, "text" -> "text1"),  Map("f1" -> "regexFilter2", "f2" -> 1, "text" -> "text2")))
+    }
+
+    "support buckets inside buckets" in {
+      // https://www.elastic.co/guide/en/elasticsearch/guide/current/_buckets_inside_buckets.html
+      val doc1 = Document("agg_doc1", Map("make" -> "honda", "color" -> "red"))
+      val doc2 = Document("agg_doc2", Map("make" -> "honda", "color" -> "black"))
+      val doc3 = Document("agg_doc3", Map("make" -> "honda", "color" -> "black"))
+      val regexFuture = restClient.bulkIndex(index, tpe, Seq(doc1, doc2, doc3))
+      whenReady(regexFuture) { _ => refresh() }
+
+      val aggregations = TermsAggregation(name = Some("make"), field = "make", include = None, size = Some(0), shardSize = None, hint = None,
+        aggs = Some(TermsAggregation(name = Some("color"), field = "color", include = None, size = Some(0), shardSize = None, hint = None))
+      )
+
+      val aggregationsQuery =AggregationQuery(
+        query = MatchAll,
+        aggs = aggregations,
+        timeout = None
+      )
+
+      val expected = Bucket(Map("doc_count_error_upper_bound" -> 0, "sum_other_doc_count" -> 0, "buckets" -> List(Map("key" -> "honda", "doc_count" -> 3, "color" -> Map("doc_count_error_upper_bound" -> 0, "sum_other_doc_count" -> 0, "buckets" -> List(Map("key" -> "black", "doc_count" -> 2), Map("key" -> "red", "doc_count" -> 1)))))))
+      val aggregationsQueryFuture = restClient.bucketAggregation(index, tpe, aggregationsQuery)
+      aggregationsQueryFuture.futureValue should be(expected)
     }
   }
 }
