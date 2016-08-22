@@ -249,4 +249,26 @@ trait QueryDsl extends DslCommons {
     val _matchAll = "match_all"
     override def toJson: Map[String, Any] = Map(_matchAll -> Map())
   }
+
+  case class GeoLocation(lat: Double, lon: Double) extends Query {
+    val _lat = "lat"
+    val _lon = "lon"
+
+    override def toJson: Map[String, Any] = Map(
+      _lat -> lat,
+      _lon -> lon
+    )
+  }
+
+  case class GeoDistanceFilter(distance: String, field: String, location: GeoLocation) extends Filter {
+    val _geoDistance = "geo_distance"
+    val _distance = "distance"
+
+    override def toJson: Map[String, Any] = Map(
+      _geoDistance -> Map(
+        _distance -> distance,
+        field -> location.toJson
+      )
+    )
+  }
 }

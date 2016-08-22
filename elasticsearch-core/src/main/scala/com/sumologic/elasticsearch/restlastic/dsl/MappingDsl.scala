@@ -69,6 +69,10 @@ trait MappingDsl extends DslCommons {
     val rep = "binary"
   }
 
+  // Geo point -  https://www.elastic.co/guide/en/elasticsearch/guide/current/geopoints.html
+  case object GeoPointType extends FieldType {
+    val rep = "geo_point"
+  }
 
   sealed trait IndexType {
     val rep: String
