@@ -18,7 +18,7 @@
  */
 package com.sumologic.elasticsearch.restlastic.dsl
 
-trait QueryDsl extends DslCommons {
+trait QueryDsl extends DslCommons with SortDsl {
 
   trait Query extends EsOperation
 
@@ -27,11 +27,11 @@ trait QueryDsl extends DslCommons {
   trait Filter extends EsOperation
 
   case class QueryRoot(query: Query,
-                       fromOpt: Option[Int] = None,
-                       sizeOpt: Option[Int] = None,
-                       sortOpt: Option[Seq[(String, String)]] = None,
-                       timeout: Option[Int] = None,
-                       sourceFilter: Option[Seq[String]] = None)
+                       fromOpt: Option[Int],
+                       sizeOpt: Option[Int],
+                       sort: Seq[Sort],
+                       timeout: Option[Int],
+                       sourceFilter: Option[Seq[String]])
     extends RootObject {
 
     val _query = "query"
@@ -47,9 +47,23 @@ trait QueryDsl extends DslCommons {
         fromOpt.map(_from -> _) ++
         sizeOpt.map(_size -> _) ++
         timeout.map(t => _timeout -> s"${t}ms") ++
-        sortOpt.map(_sort -> _.map {
-          case (field, order) => field -> Map(_order -> order) }) ++
+        sort.map(_sort -> _.toJson) ++
         sourceFilter.map(_source -> _)
+    }
+  }
+
+  object QueryRoot {
+
+    def apply(query: Query,
+              fromOpt: Option[Int] = None,
+              sizeOpt: Option[Int] = None,
+              sortOpt: Option[Seq[(String, String)]] = None,
+              timeout: Option[Int] = None,
+              sourceFilter: Option[Seq[String]] = None): QueryRoot = {
+      val sorts = sortOpt
+        .map(_.foldLeft(Seq.empty[Sort])((sorts, value) => sorts :+ SimpleSort(value._1, SortOrder.fromString(value._2))))
+        .getOrElse(Nil)
+      new QueryRoot(query, fromOpt, sizeOpt, sorts, timeout, sourceFilter)
     }
   }
 
