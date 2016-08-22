@@ -249,4 +249,17 @@ trait QueryDsl extends DslCommons {
     val _matchAll = "match_all"
     override def toJson: Map[String, Any] = Map(_matchAll -> Map())
   }
+
+  case class MultiMatchQuery(query: String, fields: String*) extends Query {
+    val _multiMatch = "multi_match"
+    val _query = "query"
+    val _fields = "fields"
+
+    override def toJson: Map[String, Any] = Map(
+      _multiMatch -> Map(
+        _query -> query,
+        _fields -> fields.toList
+      )
+    )
+  }
 }

@@ -484,6 +484,18 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val regexQueryFuture2 = restClient.query(index, tpe, QueryRoot(filteredQuery2))
       regexQueryFuture2.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "regexFilter1", "f2" -> 1, "text" -> "text1"),  Map("f1" -> "regexFilter2", "f2" -> 1, "text" -> "text2")))
     }
+
+    "support multi match query" in {
+      // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-multi-match-query.html
+      val multiMatchDoc1 = Document("multiMatchDoc1", Map("f1" -> "multimatch1", "f2" -> 1, "text" -> "text1"))
+      val multiMatchDoc2 = Document("multiMatchDoc2", Map("f1" -> "text1", "f2" -> 1, "text" -> "multimatch1"))
+      val docsFuture = restClient.bulkIndex(index, tpe, Seq(multiMatchDoc1, multiMatchDoc2))
+      whenReady(docsFuture) { _ => refresh() }
+
+      val matchQuery = MultiMatchQuery("multimatch1", "f1", "text")
+      val matchQueryFuture = restClient.query(index, tpe, QueryRoot(matchQuery))
+      matchQueryFuture.futureValue.sourceAsMap should be(List(Map("f1" -> "text1", "f2" -> 1, "text" -> "multimatch1"), Map("f1" -> "multimatch1", "f2" -> 1, "text" -> "text1")))
+    }
   }
 }
 
