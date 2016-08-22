@@ -512,6 +512,26 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val matchQueryFuture = restClient.query(index, tpe, QueryRoot(matchQuery))
       matchQueryFuture.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "text1", "f2" -> 1, "text" -> "multimatch1"), Map("f1" -> "multimatch1", "f2" -> 1, "text" -> "text1")))
     }
+
+    "support geo distance filter" in {
+      // https://www.elastic.co/guide/en/elasticsearch/guide/current/geo-distance.html
+      val geoPointMapping = BasicFieldMapping(GeoPointType, None, None)
+      val metadataMapping = Mapping(tpe, IndexMapping(Map("location" -> geoPointMapping), EnabledFieldMapping(true), Some(false)))
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
+      val locationDoc1 = Document("locationDoc1", Map("category" -> "categoryName", "location" -> "40.715, -74.011"))
+      val locationDoc2 = Document("locationDoc2", Map("category" -> "categoryName", "location" -> "1, 1"))
+      val locDocsFuture = restClient.bulkIndex(index, tpe, Seq(locationDoc1, locationDoc2))
+      whenReady(locDocsFuture) { _ => refresh() }
+
+     val geoQuery =  MultiTermFilteredQuery(
+        query = MatchQuery("category", "categoryName"),
+        filter = GeoDistanceFilter(s"1km", "location", GeoLocation(40.715, -74.011))
+      )
+      val geoQueryFuture = restClient.query(index, tpe, QueryRoot(geoQuery))
+      geoQueryFuture.futureValue.sourceAsMap.toSet should be(Set(Map("category" -> "categoryName", "location" -> "40.715, -74.011")))
+    }
   }
 }
 
