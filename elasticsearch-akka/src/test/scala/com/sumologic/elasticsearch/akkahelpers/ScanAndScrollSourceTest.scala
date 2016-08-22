@@ -46,7 +46,7 @@ class ScanAndScrollSourceTest extends WordSpec with Matchers with ScalaFutures {
   "ScanAndScrollSource" should {
     val index = Index("index")
     val tpe = Type("tpe")
-    val queryRoot = QueryRoot(MatchAll, timeout = Some(10))
+    val queryRoot = QueryRoot(MatchAll)
 
     "Read to the end of a source" in {
       val searchResponses = resultMaps.map(searchResponseFromMap)

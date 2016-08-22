@@ -96,7 +96,8 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         ir.created should be(true)
       }
       refresh()
-      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here"), timeout = Some(10)))
+      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here"),
+        sortOpt = Some(Seq(("_timestamp", "desc"))), timeout = Some(10)))
       whenReady(resFut) { res =>
         res.sourceAsMap.toList should be(List(Map("text" -> "here")))
       }
@@ -515,6 +516,11 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "support geo distance filter" in {
       // https://www.elastic.co/guide/en/elasticsearch/guide/current/geo-distance.html
+      val geoPointMapping = BasicFieldMapping(GeoPointType, None, None)
+      val metadataMapping = Mapping(tpe, IndexMapping(Map("location" -> geoPointMapping), EnabledFieldMapping(true), Some(false)))
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
       val locationDoc1 = Document("locationDoc1", Map("category" -> "categoryName", "location" -> "40.715, -74.011"))
       val locationDoc2 = Document("locationDoc2", Map("category" -> "categoryName", "location" -> "1, 1"))
       val locDocsFuture = restClient.bulkIndex(index, tpe, Seq(locationDoc1, locationDoc2))
@@ -561,31 +567,30 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val metadataMapping = Mapping(tpe, IndexMapping(Map("location" -> geoPointMapping), EnabledFieldMapping(true), Some(false)))
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
-
-      val locationDoc1 = Document("locationDoc1", Map("f1" -> "locationDoc", "location" -> "40.715, -74.011"))
-      val locationDoc2 = Document("locationDoc2", Map("f1" -> "locationDoc", "location" -> "1, 1"))
+      val locationDoc1 = Document("distanceSortDoc1", Map("f1" -> "distanceSortDoc", "location" -> "40.715, -74.011"))
+      val locationDoc2 = Document("distanceSortDoc2", Map("f1" -> "distanceSortDoc", "location" -> "1, 1"))
       val locDocsFuture = restClient.bulkIndex(index, tpe, Seq(locationDoc1, locationDoc2))
       whenReady(locDocsFuture) { _ => refresh() }
 
       val sortQueryAscFuture = restClient.query(index, tpe, new QueryRoot(
-        MatchQuery("f1", "locationDoc"),
+        MatchQuery("f1", "distanceSortDoc"),
         fromOpt = None,
         sizeOpt = None,
         sort = Seq(GeoDistanceSort("location", GeoLocation(40.715, -74.011), AscSortOrder, "km", "plane")),
         timeout = None,
         sourceFilter = None)
       )
-      sortQueryAscFuture.futureValue.sourceAsMap should be(Seq(Map("f1" -> "locationDoc", "location" -> "40.715, -74.011"), Map("f1" -> "locationDoc", "location" -> "1, 1")))
+      sortQueryAscFuture.futureValue.sourceAsMap should be(Seq(Map("f1" -> "distanceSortDoc", "location" -> "40.715, -74.011"), Map("f1" -> "distanceSortDoc", "location" -> "1, 1")))
 
       val sortQueryDescFuture = restClient.query(index, tpe, new QueryRoot(
-        MatchQuery("f1", "locationDoc"),
+        MatchQuery("f1", "distanceSortDoc"),
         fromOpt = None,
         sizeOpt = None,
         sort = Seq(GeoDistanceSort("location", GeoLocation(40.715, -74.011), DescSortOrder, "km", "plane")),
         timeout = None,
         sourceFilter = None)
       )
-      sortQueryDescFuture.futureValue.sourceAsMap should be(Seq(Map("f1" -> "locationDoc", "location" ->  "1, 1"), Map("f1" -> "locationDoc", "location" -> "40.715, -74.011")))
+      sortQueryDescFuture.futureValue.sourceAsMap should be(Seq(Map("f1" -> "distanceSortDoc", "location" ->  "1, 1"), Map("f1" -> "distanceSortDoc", "location" -> "40.715, -74.011")))
     }
   }
 }
