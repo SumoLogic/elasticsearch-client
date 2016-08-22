@@ -249,4 +249,40 @@ trait QueryDsl extends DslCommons {
     val _matchAll = "match_all"
     override def toJson: Map[String, Any] = Map(_matchAll -> Map())
   }
+
+  case class NestedQuery(path: String, scoreMode: Option[ScoreMode] = None, query: Bool) extends Query {
+    val _nested = "nested"
+    val _path = "path"
+    val _scoreMode = "score_mode"
+    val _query = "query"
+
+    lazy val innerMap: Map[String, Any] = Map(
+      _path -> path,
+      _query -> query.toJson
+    ) ++ scoreMode.map(_scoreMode -> _.value)
+
+    override def toJson: Map[String, Any] = Map(
+      _nested -> innerMap
+    )
+  }
+
+  sealed trait ScoreMode {
+    def value: String
+  }
+
+  case object AvgScoreMode extends ScoreMode {
+    override def value: String = "avg"
+  }
+
+  case object MaxScoreMode extends ScoreMode {
+    override def value: String = "max"
+  }
+
+  case object SumScoreMode extends ScoreMode {
+    override def value: String = "sum"
+  }
+
+  case object NoneScoreMode extends ScoreMode {
+    override def value: String = "none"
+  }
 }

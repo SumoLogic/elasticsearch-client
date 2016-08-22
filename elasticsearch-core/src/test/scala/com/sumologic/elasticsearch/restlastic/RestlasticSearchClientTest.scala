@@ -484,8 +484,25 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val regexQueryFuture2 = restClient.query(index, tpe, QueryRoot(filteredQuery2))
       regexQueryFuture2.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "regexFilter1", "f2" -> 1, "text" -> "text1"),  Map("f1" -> "regexFilter2", "f2" -> 1, "text" -> "text2")))
     }
+
+    "Support NestedQuery" in {
+      // https://www.elastic.co/guide/en/elasticsearch/reference/2.3/query-dsl-nested-query.html
+      val metadataMapping = Mapping(tpe, IndexMapping(Map("user" -> NestedFieldMapping), EnabledFieldMapping(true), None))
+      val mappingFuture = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFuture) { _ => refresh() }
+      val userDoc = List(Map("first" -> "john", "last" -> "Smith"), Map("first" -> "Alice", "last" -> "White"))
+      val matchDoc = Document("matchDoc", Map("user" -> userDoc))
+      val matchDocInsertionFuture = restClient.index(index, tpe, matchDoc)
+      whenReady(matchDocInsertionFuture) { _ => refresh() }
+
+      val matchResultFuture = restClient.query(index, tpe, QueryRoot(NestedQuery("user", Some(AvgScoreMode), Bool(Must(MatchQuery("user.first", "Alice"))))))
+      whenReady(matchResultFuture) { resp =>
+        resp.extractSource[DocNestedType].head should be(DocNestedType(userDoc))
+      }
+    }
   }
 }
 
+case class DocNestedType(user: List[Map[String, String]])
 
 case class DocType(f1: String, f2: Int)

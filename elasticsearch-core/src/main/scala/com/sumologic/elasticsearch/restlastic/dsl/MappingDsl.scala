@@ -181,6 +181,11 @@ trait MappingDsl extends DslCommons {
   }
 
   case class CompletionContext(path: String)
+
+  case object NestedFieldMapping extends FieldMapping {
+    val _nested = "nested"
+    override def toJson: Map[String, Any] = Map(_type -> _nested)
+  }
 }
 
 
