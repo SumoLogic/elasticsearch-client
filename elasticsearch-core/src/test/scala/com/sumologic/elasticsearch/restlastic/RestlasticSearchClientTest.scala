@@ -18,7 +18,7 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
-import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{Bucket, BucketAggregationResultBody, IndexAlreadyExistsException}
+import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes._
 import spray.http.HttpMethods._
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch_test.ElasticsearchIntegrationTest
@@ -444,7 +444,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some(5), Some(5), Some("map"))
       val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
 
-      val expected = Bucket(Map("doc_count_error_upper_bound" -> 0, "sum_other_doc_count" -> 0, "buckets" -> List(Map("key" -> "aggr1", "doc_count" -> 1), Map("key" -> "aggr3", "doc_count" -> 1))))
+      val expected = BucketAggregationResultBody(0, 0, List(Bucket("aggr1", 1), Bucket("aggr3", 1)))
 
       val aggrQueryFuture = restClient.bucketAggregation(index, tpe, aggrQuery)
       aggrQueryFuture.futureValue should be (expected)
@@ -504,8 +504,8 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         timeout = None
       )
 
-      val expected = Bucket(Map("doc_count_error_upper_bound" -> 0, "sum_other_doc_count" -> 0, "buckets" -> List(Map("key" -> "honda", "doc_count" -> 3, "color" -> Map("doc_count_error_upper_bound" -> 0, "sum_other_doc_count" -> 0, "buckets" -> List(Map("key" -> "black", "doc_count" -> 2), Map("key" -> "red", "doc_count" -> 1)))))))
-      val aggregationsQueryFuture = restClient.bucketAggregation(index, tpe, aggregationsQuery)
+      val expected = BucketNested(Map("doc_count_error_upper_bound" -> 0, "sum_other_doc_count" -> 0, "buckets" -> List(Map("key" -> "honda", "doc_count" -> 3, "color" -> Map("doc_count_error_upper_bound" -> 0, "sum_other_doc_count" -> 0, "buckets" -> List(Map("key" -> "black", "doc_count" -> 2), Map("key" -> "red", "doc_count" -> 1)))))))
+      val aggregationsQueryFuture = restClient.bucketNestedAggregation(index, tpe, aggregationsQuery)
       aggregationsQueryFuture.futureValue should be(expected)
     }
 

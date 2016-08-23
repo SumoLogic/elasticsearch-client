@@ -83,10 +83,17 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     }
   }
 
-  def bucketAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[Bucket] = {
+  def bucketNestedAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketNested] = {
     implicit val ec = searchExecutionCtx
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
-      Bucket(rawJson.mappedTo[BucketAggregationResponse].aggregations._2)
+      BucketNested(rawJson.mappedTo[BucketNestedAggregationResponse].aggregations._2)
+    }
+  }
+
+  def bucketAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketAggregationResultBody] = {
+    implicit val ec = searchExecutionCtx
+    runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
+      rawJson.mappedTo[BucketAggregationResponse].aggregations.aggs_name
     }
   }
 
@@ -271,13 +278,21 @@ object RestlasticSearchClient {
       def sourceAsMap: Seq[Map[String, Any]] = hits.hits.map(_._source.values)
     }
 
-    case class Bucket(underlying: BucketMap)
-    type BucketMap = Map[String, Any]
-    type Aggregations = (String, BucketMap)
+    case class BucketNested(underlying: BucketNestedMap)
+    type BucketNestedMap = Map[String, Any]
+    type NestedAggregations = (String, BucketNestedMap)
+    case class BucketNestedAggregationResponse(aggregations: NestedAggregations)
+    case class BucketNestedAggregationResultBody(doc_count_error_upper_bound: Int,
+                                           sum_other_doc_count: Int,
+                                           buckets: List[BucketNestedMap])
+
+
     case class BucketAggregationResponse(aggregations: Aggregations)
+    case class Aggregations(aggs_name: BucketAggregationResultBody )
     case class BucketAggregationResultBody(doc_count_error_upper_bound: Int,
                                            sum_other_doc_count: Int,
-                                           buckets: List[BucketMap])
+                                           buckets: List[Bucket])
+    case class Bucket(key: String, doc_count: Int)
 
     case class Hits(hits: List[ElasticJsonDocument], total: Int = 0)
     case class ElasticJsonDocument(_index: String,

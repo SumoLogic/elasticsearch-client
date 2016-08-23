@@ -1,10 +1,10 @@
 package com.sumologic.elasticsearch.restlastic
 
-import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{BucketAggregationResponse, RawJsonResponse}
+import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{BucketNestedAggregationResponse, RawJsonResponse}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 
-class BucketAggregationResponseTest extends WordSpec with Matchers with ScalaFutures {
+class BucketNestedAggregationResponseTest extends WordSpec with Matchers with ScalaFutures {
 
   "BucketAggregationResponse" should {
     "parse buckets inside buckets" in {
@@ -23,7 +23,7 @@ class BucketAggregationResponseTest extends WordSpec with Matchers with ScalaFut
               "key" -> "red",
               "doc_count" -> 1)))))
       )
-      RawJsonResponse(aggregationsBucketsInsideBuckets).mappedTo[BucketAggregationResponse].aggregations._2 should be(expected)
+      RawJsonResponse(aggregationsBucketsInsideBuckets).mappedTo[BucketNestedAggregationResponse].aggregations._2 should be(expected)
     }
   }
 
