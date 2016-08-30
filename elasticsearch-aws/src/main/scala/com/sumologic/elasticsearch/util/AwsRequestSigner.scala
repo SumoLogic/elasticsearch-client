@@ -176,3 +176,25 @@ class AwsRequestSigner(awsCredentials: AWSCredentials, region: String, service: 
 
   private def hexOf(buf: Array[Byte]) = buf.map("%02X" format _).mkString.toLowerCase
 }
+
+/** Factory for [[com.sumologic.elasticsearch.util.AwsRequestSigner]] instances. */
+object AwsRequestSigner {
+
+  /**
+   * Some credentials needs to be refreshed like the credentials provided by [[com.amazonaws.auth.InstanceProfileCredentialsProvider]].
+   *
+   *
+   *{{{
+   *private val aWSCredentialsProvider =  new DefaultAWSCredentialsProviderChain()
+   *val awsCredentials: () => AWSCredentials = aWSCredentialsProvider.getCredentials _
+   *}}}
+   * @constructor create a new AwsRequestSigner with a function that returns the AWSCredentials.
+   * @param awsCredentialsFunction a function that return the AWSCredentials.
+   * @param region the location of the hosted AWS service. (eg. "us-east-1")
+   * @param service the service to connect to (eg. "es" for elasticsearch)
+   * @return a new AwsRequestSigner instance
+   */
+  def apply(awsCredentialsFunction:() => AWSCredentials, region: String, service: String): AwsRequestSigner = {
+      new AwsRequestSigner(awsCredentialsFunction(), region, service)
+  }
+}
