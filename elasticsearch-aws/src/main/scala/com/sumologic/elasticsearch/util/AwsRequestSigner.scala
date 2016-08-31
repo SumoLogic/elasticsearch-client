@@ -183,11 +183,13 @@ object AwsRequestSigner {
   /**
    * Some credentials needs to be refreshed like the credentials provided by [[com.amazonaws.auth.InstanceProfileCredentialsProvider]].
    *
+   *==Usage==
    *
-   *{{{
-   *private val aWSCredentialsProvider =  new DefaultAWSCredentialsProviderChain()
-   *val awsCredentials: () => AWSCredentials = aWSCredentialsProvider.getCredentials _
-   *}}}
+   * {{{
+   * private val aWSCredentialsProvider =  new DefaultAWSCredentialsProviderChain()
+   * val awsCredentials: () => AWSCredentials = aWSCredentialsProvider.getCredentials _
+   * val signer = AwsRequestSigner(awsCredentials, "us-east-1", "es")
+   * }}}
    * @constructor create a new AwsRequestSigner with a function that returns the AWSCredentials.
    * @param awsCredentialsFunction a function that return the AWSCredentials.
    * @param region the location of the hosted AWS service. (eg. "us-east-1")
