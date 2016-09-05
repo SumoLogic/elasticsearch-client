@@ -25,19 +25,33 @@ import java.util.{Calendar, TimeZone}
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-import com.amazonaws.auth.{AWSCredentials, AWSSessionCredentials}
+import com.amazonaws.auth.{AWSCredentials, AWSCredentialsProvider, AWSSessionCredentials}
+import com.amazonaws.internal.StaticCredentialsProvider
 import com.sumologic.elasticsearch.restlastic.RequestSigner
 import spray.http.HttpHeaders.{Host, RawHeader}
 import spray.http.HttpRequest
 
 /**
  * Sign AWS requests following the instructions at http://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html
- * @param awsCredentials AWS creds to sign with
+ * @param awsCredentialsProvider Interface for providing AWS credentials
  * @param region Region to connect to
  * @param service Service to connect to (eg. "es" for elasticsearch) [http://docs.aws.amazon.com/general/latest/gr/rande.html]
  */
-class AwsRequestSigner(awsCredentials: AWSCredentials, region: String, service: String) extends RequestSigner {
+class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: String, service: String) extends RequestSigner {
   val Algorithm = "AWS4-HMAC-SHA256"
+  require(Option(awsCredentialsProvider.getCredentials).isDefined, "awsCredentialsProvider must return non null awsCredentials.")
+
+  /**
+   * Sign AWS requests following the instructions at http://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html
+   * @param awsCredentials AWS creds to sign with
+   * @param region Region to connect to
+   * @param service Service to connect to (eg. "es" for elasticsearch) [http://docs.aws.amazon.com/general/latest/gr/rande.html]
+   */
+  def this(awsCredentials: AWSCredentials, region: String, service: String) = {
+    this(new StaticCredentialsProvider(awsCredentials), region, service)
+  }
+
+  private def awsCredentials: AWSCredentials = awsCredentialsProvider.getCredentials
 
   def withAuthHeader(httpRequest: HttpRequest): HttpRequest = {
     val (dateTimeStr, dateStr) = currentDateStrings
@@ -54,13 +68,14 @@ class AwsRequestSigner(awsCredentials: AWSCredentials, region: String, service: 
   }
 
   val xAmzSecurityToken = "X-Amz-Security-Token"
+
   def addSessionToken(httpRequest: HttpRequest): HttpRequest = awsCredentials match {
     case (sc: AWSSessionCredentials) =>
       httpRequest.withHeaders(RawHeader(xAmzSecurityToken, sc.getSessionToken) :: httpRequest.headers)
     case _ => httpRequest
   }
 
-  private [util] def completedRequest(httpRequest: HttpRequest, dateTimeStr: String): HttpRequest = {
+  private[util] def completedRequest(httpRequest: HttpRequest, dateTimeStr: String): HttpRequest = {
     // Add a date and host header, but only if they aren't already there
     val dateHeader = if (httpRequest.headers.exists(header => Set(xAmzDate.toLowerCase, "date").contains(header.name.toLowerCase))) {
       List()
@@ -75,7 +90,7 @@ class AwsRequestSigner(awsCredentials: AWSCredentials, region: String, service: 
       val hostHeader = Host(httpRequest.uri.authority.host.address)
       List(hostHeader)
     }
-    httpRequest.withHeaders(dateHeader ++ hostHeader ++  httpRequest.headers)
+    httpRequest.withHeaders(dateHeader ++ hostHeader ++ httpRequest.headers)
   }
 
   private[util] def stringToSign(httpRequest: HttpRequest, dateTimeStr: String, dateStr: String): String = {
@@ -108,6 +123,7 @@ class AwsRequestSigner(awsCredentials: AWSCredentials, region: String, service: 
   }
 
   val xAmzDate = "X-Amz-Date"
+
   private def signature(httpRequest: HttpRequest, dateTimeStr: String, dateStr: String): String = {
     val signature = hmacSHA256(stringToSign(httpRequest, dateTimeStr, dateStr), signingKey(dateStr))
     hexOf(signature)
@@ -142,7 +158,7 @@ class AwsRequestSigner(awsCredentials: AWSCredentials, region: String, service: 
 
   private def canonicalQueryString(httpRequest: HttpRequest): String = {
     val params = httpRequest.uri.query
-    val sortedEncoded = params.toList.map(kv => (urlEncode(kv._1), urlEncode(kv._2))) .sortBy(_._1)
+    val sortedEncoded = params.toList.map(kv => (urlEncode(kv._1), urlEncode(kv._2))).sortBy(_._1)
     sortedEncoded.map(kv => s"${kv._1}=${kv._2}").mkString("&")
   }
 
