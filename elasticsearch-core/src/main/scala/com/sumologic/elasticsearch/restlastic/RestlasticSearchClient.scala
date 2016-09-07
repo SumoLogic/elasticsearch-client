@@ -83,6 +83,13 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     }
   }
 
+  def bucketNestedAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketNested] = {
+    implicit val ec = searchExecutionCtx
+    runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
+      BucketNested(rawJson.mappedTo[BucketNestedAggregationResponse].aggregations._2)
+    }
+  }
+
   def bucketAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketAggregationResultBody] = {
     implicit val ec = searchExecutionCtx
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
@@ -270,6 +277,15 @@ object RestlasticSearchClient {
 
       def sourceAsMap: Seq[Map[String, Any]] = hits.hits.map(_._source.values)
     }
+
+    case class BucketNested(underlying: BucketNestedMap)
+    type BucketNestedMap = Map[String, Any]
+    type NestedAggregations = (String, BucketNestedMap)
+    case class BucketNestedAggregationResponse(aggregations: NestedAggregations)
+    case class BucketNestedAggregationResultBody(doc_count_error_upper_bound: Int,
+                                           sum_other_doc_count: Int,
+                                           buckets: List[BucketNestedMap])
+
 
     case class BucketAggregationResponse(aggregations: Aggregations)
     case class Aggregations(aggs_name: BucketAggregationResultBody )

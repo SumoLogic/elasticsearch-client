@@ -40,26 +40,46 @@ trait AggregationDsl extends DslCommons with QueryDsl {
 
   case class TermsAggregation(field: String, include: Option[String],
                               size: Option[Int], shardSize: Option[Int],
-                              hint: Option[String] = None)
+                              hint: Option[String] = None,
+                              name: Option[String] = None,
+                              aggs: Option[Aggregation] = None)
     extends Aggregation {
 
-    val _aggsName = "aggs_name"
+    val _aggsName = name.getOrElse("aggs_name")
     val _terms = "terms"
     val _field = "field"
     val _include = "include"
     val _size = "size"
     val _shardSize = "shard_size"
     val _hint = "execution_hint"
+    val _aggs = "aggs"
 
     override def toJson: Map[String, Any] = {
       Map(_aggsName ->
-        Map(_terms ->
+        (Map(_terms ->
           (Map(_field -> field)
             ++ include.map(_include -> _)
             ++ size.map(_size -> _)
             ++ shardSize.map(_shardSize -> _)
-            ++ hint.map(_hint -> _))
-        )
+            ++ hint.map(_hint -> _)))
+        ++ aggs.map(_aggs -> _.toJson))
+      )
+    }
+  }
+
+  case class NestedAggregation(path: String, name: Option[String] = None, aggs: Option[Aggregation] = None)
+    extends Aggregation {
+
+    val _aggsName = name.getOrElse("aggs_name")
+    val _nested = "nested"
+    val _path = "path"
+    val _aggs = "aggs"
+
+    override def toJson: Map[String, Any] = {
+      Map(_aggsName ->
+        (Map(_nested ->
+        Map(_path -> path))
+          ++ aggs.map(_aggs -> _.toJson))
       )
     }
   }
