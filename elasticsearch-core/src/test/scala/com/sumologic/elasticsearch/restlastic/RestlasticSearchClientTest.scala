@@ -539,14 +539,14 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "support multi match query with option" in {
       // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-multi-match-query.html
-      val multiMatchDoc1 = Document("multiMatchDoc1", Map("f1" -> "multimatch1 test", "f2" -> 1, "text" -> "text1"))
-      val multiMatchDoc2 = Document("multiMatchDoc2", Map("f1" -> "text1", "f2" -> 1, "text" -> "multimatch1"))
+      val multiMatchDoc1 = Document("multiMatchOptionDoc1", Map("f1" -> "multimatch1 test", "f2" -> 1, "text" -> "text1"))
+      val multiMatchDoc2 = Document("multiMatchOptionDoc2", Map("f1" -> "text1", "f2" -> 1, "text" -> "multimatch1"))
       val docsFuture = restClient.bulkIndex(index, tpe, Seq(multiMatchDoc1, multiMatchDoc2))
       whenReady(docsFuture) { _ => refresh() }
 
-      val matchQuery = MultiMatchQueryWithOptions("multimatch1", Map("operator" -> "and"), "f1", "text")
+      val matchQuery = MultiMatchQueryWithOptions("multimatch1 test", Map("operator" -> "and"), "f1", "text")
       val matchQueryFuture = restClient.query(index, tpe, QueryRoot(matchQuery))
-      matchQueryFuture.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "text1", "f2" -> 1, "text" -> "multimatch1")))
+      matchQueryFuture.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "multimatch1 test", "f2" -> 1, "text" -> "text1")))
     }
 
     "support geo distance filter" in {
