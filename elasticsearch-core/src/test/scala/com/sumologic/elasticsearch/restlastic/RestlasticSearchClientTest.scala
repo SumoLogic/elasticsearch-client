@@ -638,6 +638,12 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       )
       sortQueryDescFuture.futureValue.sourceAsMap should be(Seq(Map("f1" -> "distanceSortDoc", "location" ->  "1, 1"), Map("f1" -> "distanceSortDoc", "location" -> "40.715, -74.011")))
     }
+
+    "not return rawJsonStr if not required" in {
+      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here")), rawJsonStr = Some(false))
+      resFut.futureValue.jsonStr should be("")
+      resFut.futureValue.sourceAsMap.head should be(Map("text" -> "here"))
+    }
   }
 }
 
