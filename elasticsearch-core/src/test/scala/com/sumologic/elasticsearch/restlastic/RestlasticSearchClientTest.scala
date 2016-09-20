@@ -404,12 +404,12 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       }
     }
 
-    "Support MatchQueryWithBoost" in {
+    "Support MatchQuery with boost" in {
       val matchDoc = Document("matchDoc", Map("f1" -> "MatchQueryWithBoost", "f2" -> 5))
       val matchNotInsertionFuture = restClient.index(index, tpe, matchDoc)
       whenReady(matchNotInsertionFuture) { _ => refresh() }
 
-      val matchResultFuture = restClient.query(index, tpe, QueryRoot(MatchQueryWithBoost("f1", "MatchQueryWithBoost", 5)))
+      val matchResultFuture = restClient.query(index, tpe, QueryRoot(MatchQuery("f1", "MatchQueryWithBoost", 5)))
       whenReady(matchResultFuture) { resp =>
         resp.extractSource[DocType].head should be(DocType("MatchQueryWithBoost", 5))
       }
