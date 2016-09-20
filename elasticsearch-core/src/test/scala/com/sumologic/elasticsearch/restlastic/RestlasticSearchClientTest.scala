@@ -640,7 +640,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "not return rawJsonStr if not required" in {
-      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here")), rawJsonStr = Some(false))
+      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here")), rawJsonStr = false)
       resFut.futureValue.jsonStr should be("")
       resFut.futureValue.sourceAsMap.head should be(Map("text" -> "here"))
     }

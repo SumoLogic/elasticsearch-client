@@ -75,13 +75,10 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   import RestlasticSearchClient.ReturnTypes._
 
   def ready: Boolean = endpointProvider.ready
-  def query(index: Index, tpe: Type, query: QueryRoot, rawJsonStr: Option[Boolean] = Some(true)): Future[SearchResponse] = {
+  def query(index: Index, tpe: Type, query: QueryRoot, rawJsonStr: Boolean = true): Future[SearchResponse] = {
     implicit val ec = searchExecutionCtx
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
-      val jsonStr = rawJsonStr match {
-        case Some(true) => rawJson.jsonStr
-        case _ => ""
-      }
+      val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
       SearchResponse(rawJson.mappedTo[RawSearchResponse], jsonStr)
     }
   }
