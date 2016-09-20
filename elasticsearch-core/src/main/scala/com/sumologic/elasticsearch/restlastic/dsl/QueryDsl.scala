@@ -226,14 +226,13 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   case class MatchQueryWithBoost(key: String, value: String, boost: Double) extends Query {
     val _match = "match"
-    val _content = "content"
     val _query = "query"
     val _boost = "boost"
 
     override def toJson: Map[String, Any] = {
       Map(_match ->
-        Map(_content ->
-          Map(_query -> key,
+        Map(key ->
+          Map(_query -> value,
               _boost -> boost)))
     }
   }
