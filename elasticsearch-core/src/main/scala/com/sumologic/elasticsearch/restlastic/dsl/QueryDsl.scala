@@ -361,7 +361,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _boost = "_boost"
 
     lazy val innerMap: Map[String, Any] = Map(
-      _dis_max -> Map(_queries -> queries.map(_.toJson))
+      _queries -> queries.map(_.toJson)
     ) ++ tie_breaker.map(_tie_breaker -> _) ++ boost.map(_boost -> _)
 
     override def toJson: Map[String, Any] = Map(
