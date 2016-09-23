@@ -353,4 +353,19 @@ trait QueryDsl extends DslCommons with SortDsl {
       )
     )
   }
+
+  case class DisMaxQuery(queries: Seq[Query], tie_breaker: Option[Float] = None, boost: Option[Float] = None) extends Query {
+    val _dis_max = "dis_max"
+    val _queries = "queries"
+    val _tie_breaker = "tie_breaker"
+    val _boost = "boost"
+
+    lazy val innerMap: Map[String, Any] = Map(
+      _queries -> queries.map(_.toJson)
+    ) ++ tie_breaker.map(_tie_breaker -> _) ++ boost.map(_boost -> _)
+
+    override def toJson: Map[String, Any] = Map(
+      _dis_max -> innerMap
+    )
+  }
 }
