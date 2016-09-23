@@ -560,19 +560,31 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       matchQueryFuture.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "multimatch1 test", "f2" -> 1, "text" -> "text1")))
     }
 
-    "support disjuntion max query" in {
+    "support disjunction max query" in {
       // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-dis-max-query.html
-      val disMaxDoc1 = Document("disMaxDoc1", Map("title" -> "Quick brown rabbits", "body" -> "Brown rabbits are commonly seen"))
-      val disMaxDoc2 = Document("disMaxDoc2", Map("title" -> "Keeping pets healthy", "body" -> "My quick brown fox eats rabbits on a regular basis"))
+      val disMaxDoc1 = Document("disMaxDoc1", Map("title" -> "Quick brown rabbits", "body" -> "Brown rabbits are commonly seen."))
+      val disMaxDoc2 = Document("disMaxDoc2", Map("title" -> "Keeping pets healthy", "body" -> "My quick brown fox eats rabbits on a regular basis."))
       val docsFuture = restClient.bulkIndex(index, tpe, Seq(disMaxDoc1, disMaxDoc2))
       whenReady(docsFuture) { _ => refresh() }
 
-      val disMaxQuery = DisMaxQuery(queries = Seq(MatchQuery("title", "Brown fox"),MatchQuery("body", "Brown fox")))
+      val disMaxQuery = DisMaxQuery(queries = Seq(MatchQuery("title", "Brown fox"), MatchQuery("body", "Brown fox")))
       val disMaxQueryFuture = restClient.query(index, tpe, QueryRoot(disMaxQuery))
-      disMaxQueryFuture.futureValue.sourceAsMap.toSet should be(Set(
-        Map("title" -> "Keeping pets healthy", "body" -> "My quick brown fox eats rabbits on a regular basis"),
-        Map("title" -> "Quick brown rabbits", "body" -> "Brown rabbits are commonly seen")
-      ))
+      disMaxQueryFuture.futureValue.sourceAsMap should be(
+        Seq(
+          Map("title" -> "Keeping pets healthy", "body" -> "My quick brown fox eats rabbits on a regular basis."),
+          Map("title" -> "Quick brown rabbits", "body" -> "Brown rabbits are commonly seen.")
+        )
+      )
+
+      val disMaxQuery2 = DisMaxQuery(
+        queries = Seq(MatchQuery("title", "Brown fox"), MatchQuery("body", "Brown fox")), Some(0.3f), Some(1.0f))
+      val disMaxQueryFuture2 = restClient.query(index, tpe, QueryRoot(disMaxQuery2))
+      disMaxQueryFuture2.futureValue.sourceAsMap.toSet should be(
+        Set(
+          Map("title" -> "Keeping pets healthy", "body" -> "My quick brown fox eats rabbits on a regular basis."),
+          Map("title" -> "Quick brown rabbits", "body" -> "Brown rabbits are commonly seen.")
+        )
+      )
     }
 
     "support geo distance filter" in {
