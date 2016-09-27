@@ -32,6 +32,14 @@ trait DslCommons {
     val rep: String
   }
 
+  trait FieldIndexOption {
+    val option: String
+  }
+
+  trait HighlighterType {
+    val name: String
+  }
+
   object EsOperation {
     implicit val formats = org.json4s.DefaultFormats
     def compactJson(map: Map[String, Any]) = compact(render(decompose(map)))

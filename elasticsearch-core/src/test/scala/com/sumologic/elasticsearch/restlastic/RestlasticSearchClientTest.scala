@@ -86,6 +86,27 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       whenReady(mappingFut) { _ => refresh() }
     }
 
+    "Be able to setup document mapping with field index options" in {
+      val basicFieldDocsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+        Some(analyzerName), fieldIndexOption = Some(DocsIndexOption))
+      val basicFieldFreqsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+        Some(analyzerName), fieldIndexOption = Some(FreqsIndexOption))
+      val basicFieldPositionsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+        Some(analyzerName), fieldIndexOption = Some(PositionsIndexOption))
+      val basicFieldOffsetsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+        Some(analyzerName), fieldIndexOption = Some(OffsetsIndexOption))
+
+      val timestampMapping = EnabledFieldMapping(true)
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("name" -> basicFieldDocsMapping, "f1" -> basicFieldFreqsMapping,
+          "f2" -> basicFieldOffsetsMapping, "text" -> basicFieldOffsetsMapping,
+          "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")),
+            analyzerName)), timestampMapping))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+    }
+
     "Be able to create an index, index a document, and search it" in {
       val ir = for {
         ir <- restClient.index(index, tpe, Document("doc1", Map("text" -> "here")))
@@ -670,6 +691,12 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here")), rawJsonStr = false)
       resFut.futureValue.jsonStr should be("")
       resFut.futureValue.sourceAsMap.head should be(Map("text" -> "here"))
+    }
+
+    "support query with highlights" in  {
+      val highlights = Highlight(Seq(HighlightField("text", Some(PostingsHighlighter), None, Some(0)), HighlightField("f1", Some(PlainHighlighter))), Seq(""), Seq(""))
+      val resFut = restClient.query(index, tpe, HighlightRoot(QueryRoot(PrefixQuery("text", "h"), None, None, Seq(), None, Some(Seq("false"))), highlights))
+      resFut.futureValue.rawSearchResponse.highlightAsMaps.head should be(Map("text" -> List("here")))
     }
   }
 }

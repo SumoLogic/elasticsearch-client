@@ -93,6 +93,22 @@ trait MappingDsl extends DslCommons {
     }
   }
 
+  case object DocsIndexOption extends FieldIndexOption {
+    val option = "docs"
+  }
+
+  case object FreqsIndexOption extends FieldIndexOption {
+    val option = "freqs"
+  }
+
+  case object PositionsIndexOption extends FieldIndexOption {
+    val option = "positions"
+  }
+
+  case object OffsetsIndexOption extends FieldIndexOption {
+    val option = "offsets"
+  }
+
   case class Mapping(tpe: Type, mapping: IndexMapping) extends RootObject {
     override def toJson: Map[String, Any] = Map(tpe.name -> mapping.toJson)
   }
@@ -119,9 +135,11 @@ trait MappingDsl extends DslCommons {
   val _analyzer = "analyzer"
   val _searchAnalyzer = "search_analyzer"
   val _ignoreAbove = "ignore_above"
+  val _fieldIndexOpions = "index_options"
 
   case class BasicFieldMapping(tpe: FieldType, index: Option[IndexType], analyzer: Option[Name],
-                               ignoreAbove: Option[Int] = None, search_analyzer: Option[Name]= None)
+                               ignoreAbove: Option[Int] = None, search_analyzer: Option[Name]= None,
+                               fieldIndexOption: Option[FieldIndexOption] = None)
     extends FieldMapping {
 
     override def toJson: Map[String, Any] = Map(
@@ -129,6 +147,7 @@ trait MappingDsl extends DslCommons {
       index.map(_index -> _.rep) ++
       analyzer.map(_analyzer -> _.name) ++
       search_analyzer.map(_searchAnalyzer -> _.name) ++
+      fieldIndexOption.map(_fieldIndexOpions -> _.option)
       ignoreAbove.map(_ignoreAbove -> _).toList.toMap
   }
 
