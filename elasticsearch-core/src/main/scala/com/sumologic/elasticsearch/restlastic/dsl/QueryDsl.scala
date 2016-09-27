@@ -371,11 +371,11 @@ trait QueryDsl extends DslCommons with SortDsl {
     )
   }
 
-  case class HighlightRoot(queryRoot: QueryRoot, Highlight: Highlight)
+  case class HighlightRoot(queryRoot: QueryRoot, highlight: Highlight)
     extends QueryRootBase {
 
     override def toJson: Map[String, Any] = {
-      queryRoot.toJson ++ Highlight.toJson
+      queryRoot.toJson ++ highlight.toJson
     }
   }
 
@@ -398,7 +398,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     )
   }
 
-  case class HighlightField(field: String, Highlighter_type: Option[HighlighterType] = None, fragment_size: Option[Int] = None,
+  case class HighlightField(field: String, highlighter_type: Option[HighlighterType] = None, fragment_size: Option[Int] = None,
                             number_of_fragments: Option[Int] = None, no_match_size: Option[Int] = None, matched_fields: Seq[String] = Seq())
     extends EsOperation {
     val _type = "type"
@@ -410,7 +410,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     override def toJson: Map[String, Any] = Map(
       field -> {
         Map[String, Any]() ++
-          Highlighter_type.map(_type -> _.name) ++
+          highlighter_type.map(_type -> _.name) ++
           fragment_size.map(_fragment_size -> _) ++
           number_of_fragments.map(_number_of_fragments -> _) ++
           no_match_size.map(_no_match_size -> _) ++
