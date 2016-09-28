@@ -32,10 +32,6 @@ trait DslCommons {
     val rep: String
   }
 
-  trait FieldIndexOption {
-    val option: String
-  }
-
   trait HighlighterType {
     val name: String
   }

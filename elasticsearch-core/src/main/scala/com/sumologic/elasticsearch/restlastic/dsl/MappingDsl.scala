@@ -20,6 +20,10 @@ package com.sumologic.elasticsearch.restlastic.dsl
 
 trait MappingDsl extends DslCommons {
 
+  sealed trait IndexOption {
+    val option: String
+  }
+
   // String datatype - https://www.elastic.co/guide/en/elasticsearch/reference/current/string.html
   case object StringType extends FieldType {
     val rep = "string"
@@ -93,19 +97,22 @@ trait MappingDsl extends DslCommons {
     }
   }
 
-  case object DocsIndexOption extends FieldIndexOption {
+  // Supported in elasticsearch v2.4
+  case object DocsIndexOption extends IndexOption {
     val option = "docs"
   }
 
-  case object FreqsIndexOption extends FieldIndexOption {
+  // Supported in elasticsearch v2.4
+  case object FreqsIndexOption extends IndexOption {
     val option = "freqs"
   }
 
-  case object PositionsIndexOption extends FieldIndexOption {
+  // Supported in elasticsearch v2.4
+  case object PositionsIndexOption extends IndexOption {
     val option = "positions"
   }
 
-  case object OffsetsIndexOption extends FieldIndexOption {
+  case object OffsetsIndexOption extends IndexOption {
     val option = "offsets"
   }
 
@@ -139,7 +146,7 @@ trait MappingDsl extends DslCommons {
 
   case class BasicFieldMapping(tpe: FieldType, index: Option[IndexType], analyzer: Option[Name],
                                ignoreAbove: Option[Int] = None, search_analyzer: Option[Name]= None,
-                               fieldIndexOption: Option[FieldIndexOption] = None)
+                               indexOption: Option[IndexOption] = None)
     extends FieldMapping {
 
     override def toJson: Map[String, Any] = Map(
@@ -147,7 +154,7 @@ trait MappingDsl extends DslCommons {
       index.map(_index -> _.rep) ++
       analyzer.map(_analyzer -> _.name) ++
       search_analyzer.map(_searchAnalyzer -> _.name) ++
-      fieldIndexOption.map(_fieldIndexOpions -> _.option)
+      indexOption.map(_fieldIndexOpions -> _.option)
       ignoreAbove.map(_ignoreAbove -> _).toList.toMap
   }
 

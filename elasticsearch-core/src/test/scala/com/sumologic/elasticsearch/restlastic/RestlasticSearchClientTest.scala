@@ -88,13 +88,13 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "Be able to setup document mapping with field index options" in {
       val basicFieldDocsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
-        Some(analyzerName), fieldIndexOption = Some(DocsIndexOption))
+        Some(analyzerName), indexOption = Some(DocsIndexOption))
       val basicFieldFreqsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
-        Some(analyzerName), fieldIndexOption = Some(FreqsIndexOption))
+        Some(analyzerName), indexOption = Some(FreqsIndexOption))
       val basicFieldPositionsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
-        Some(analyzerName), fieldIndexOption = Some(PositionsIndexOption))
+        Some(analyzerName),  indexOption = Some(PositionsIndexOption))
       val basicFieldOffsetsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
-        Some(analyzerName), fieldIndexOption = Some(OffsetsIndexOption))
+        Some(analyzerName), indexOption = Some(OffsetsIndexOption))
 
       val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
@@ -105,6 +105,8 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
+      val mappingRes = restClient.getMapping(index, tpe)
+      mappingRes.futureValue.jsonStr.toString.contains(""""f2":{"type":"string","index_options":"offsets","analyzer":"keyword_lowercase"}""") should be(true)
     }
 
     "Be able to create an index, index a document, and search it" in {

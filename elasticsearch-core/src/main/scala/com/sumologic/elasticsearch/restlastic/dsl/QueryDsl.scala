@@ -392,7 +392,7 @@ trait QueryDsl extends DslCommons with SortDsl {
 
     override def toJson: Map[String, Any] = Map(
       _highlight -> {
-        Map( _fields -> fields.foldLeft(Map[String, Any]())((l, r) => l ++ r.toJson)) ++
+        Map( _fields -> fields.map(_.toJson).reduce(_ ++ _)) ++
           pre_tags ++ post_tags
       }
     )
