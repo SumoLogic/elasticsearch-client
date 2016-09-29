@@ -20,11 +20,17 @@ package com.sumologic.elasticsearch.restlastic.dsl
 
 trait QueryDsl extends DslCommons with SortDsl {
 
-  trait Query extends EsOperation
-
   sealed trait BoolQuery extends EsOperation
 
+  sealed trait HighlighterType {
+    val name: String
+  }
+
+  trait Query extends EsOperation
+
   trait Filter extends EsOperation
+
+  trait QueryRootLike extends RootObject
 
   case class QueryRoot(query: Query,
                        fromOpt: Option[Int],
@@ -32,7 +38,7 @@ trait QueryDsl extends DslCommons with SortDsl {
                        sort: Seq[Sort],
                        timeout: Option[Int],
                        sourceFilter: Option[Seq[String]])
-    extends RootObject {
+    extends QueryRootLike {
 
     val _query = "query"
     val _size = "size"
@@ -367,5 +373,65 @@ trait QueryDsl extends DslCommons with SortDsl {
     override def toJson: Map[String, Any] = Map(
       _dis_max -> innerMap
     )
+  }
+
+  case class HighlightRoot(queryRoot: QueryRoot, highlight: Highlight)
+    extends QueryRootLike {
+
+    override def toJson: Map[String, Any] = {
+      queryRoot.toJson ++ highlight.toJson
+    }
+  }
+
+  case class Highlight(fields: Seq[HighlightField], preTags: Seq[String] = Seq(), postTags: Seq[String] = Seq())
+    extends EsOperation {
+
+    val _pre_tags = "pre_tags"
+    val _post_tags = "post_tags"
+    val _fields = "fields"
+    val _highlight = "highlight"
+
+    val pre_tags = if (preTags.isEmpty) Map[String, Any]() else Map(_pre_tags -> preTags)
+    val post_tags = if (postTags.isEmpty) Map[String, Any]() else Map(_post_tags -> postTags)
+
+    override def toJson: Map[String, Any] = Map(
+      _highlight -> {
+        Map( _fields -> fields.map(_.toJson).reduce(_ ++ _)) ++
+          pre_tags ++ post_tags
+      }
+    )
+  }
+
+  case class HighlightField(field: String, highlighter_type: Option[HighlighterType] = None, fragment_size: Option[Int] = None,
+                            number_of_fragments: Option[Int] = None, no_match_size: Option[Int] = None, matched_fields: Seq[String] = Seq())
+    extends EsOperation {
+    val _type = "type"
+    val _fragment_size = "fragment_size"
+    val _number_of_fragments = "number_of_fragments"
+    val _no_match_size = "no_match_size"
+    val _matched_fields = "matched_fields"
+
+    override def toJson: Map[String, Any] = Map(
+      field -> {
+        Map[String, Any]() ++
+          highlighter_type.map(_type -> _.name) ++
+          fragment_size.map(_fragment_size -> _) ++
+          number_of_fragments.map(_number_of_fragments -> _) ++
+          no_match_size.map(_no_match_size -> _) ++
+          matched_fields.map(_matched_fields -> _)
+      }
+    )
+  }
+
+  case object PlainHighlighter extends HighlighterType {
+    val name = "plain"
+  }
+
+  case object PostingsHighlighter extends HighlighterType {
+    val name = "postings"
+  }
+
+  case object FastVectorHighlighter extends HighlighterType {
+    val name = "fvh"
   }
 }

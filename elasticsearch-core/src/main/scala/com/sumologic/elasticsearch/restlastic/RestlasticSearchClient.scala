@@ -75,7 +75,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   import RestlasticSearchClient.ReturnTypes._
 
   def ready: Boolean = endpointProvider.ready
-  def query(index: Index, tpe: Type, query: QueryRoot, rawJsonStr: Boolean = true): Future[SearchResponse] = {
+  def query(index: Index, tpe: Type, query: QueryRootLike, rawJsonStr: Boolean = true): Future[SearchResponse] = {
     implicit val ec = searchExecutionCtx
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
       val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
@@ -259,6 +259,7 @@ object RestlasticSearchClient {
       }
 
       def sourceAsMap: Seq[Map[String, Any]] = rawSearchResponse.sourceAsMap
+      def highlightAsMaps: Seq[Map[String, Any]] = rawSearchResponse.highlightAsMaps
       def length = rawSearchResponse.hits.hits.length
     }
 
@@ -276,6 +277,7 @@ object RestlasticSearchClient {
       }
 
       def sourceAsMap: Seq[Map[String, Any]] = hits.hits.map(_._source.values)
+      def highlightAsMaps: Seq[Map[String, Any]] = hits.hits.flatMap(_.highlight.map(_.values))
     }
 
     case class BucketNested(underlying: BucketNestedMap)
@@ -299,7 +301,8 @@ object RestlasticSearchClient {
                                    _type: String,
                                    _id: String,
                                     _score: Option[Float],
-                                   _source: JObject)
+                                   _source: JObject,
+                                   highlight: Option[JObject] = None)
 
     case class RawJsonResponse(jsonStr: String) {
       private implicit val formats = org.json4s.DefaultFormats
