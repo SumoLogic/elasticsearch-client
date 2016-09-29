@@ -20,13 +20,17 @@ package com.sumologic.elasticsearch.restlastic.dsl
 
 trait QueryDsl extends DslCommons with SortDsl {
 
-  trait Query extends EsOperation
-
   sealed trait BoolQuery extends EsOperation
+
+  sealed trait HighlighterType {
+    val name: String
+  }
+
+  trait Query extends EsOperation
 
   trait Filter extends EsOperation
 
-  trait QueryRootBase extends RootObject
+  trait QueryRootLike extends RootObject
 
   case class QueryRoot(query: Query,
                        fromOpt: Option[Int],
@@ -34,7 +38,7 @@ trait QueryDsl extends DslCommons with SortDsl {
                        sort: Seq[Sort],
                        timeout: Option[Int],
                        sourceFilter: Option[Seq[String]])
-    extends QueryRootBase {
+    extends QueryRootLike {
 
     val _query = "query"
     val _size = "size"
@@ -372,7 +376,7 @@ trait QueryDsl extends DslCommons with SortDsl {
   }
 
   case class HighlightRoot(queryRoot: QueryRoot, highlight: Highlight)
-    extends QueryRootBase {
+    extends QueryRootLike {
 
     override def toJson: Map[String, Any] = {
       queryRoot.toJson ++ highlight.toJson
