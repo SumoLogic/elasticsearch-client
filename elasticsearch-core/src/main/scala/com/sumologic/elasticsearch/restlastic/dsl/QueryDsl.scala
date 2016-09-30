@@ -72,6 +72,24 @@ trait QueryDsl extends DslCommons with SortDsl {
       new QueryRoot(query, fromOpt, sizeOpt, sorts, timeout, sourceFilter)
     }
   }
+  
+  // This api should be incorporated into QueryRoot in 2.0 when breaking changes are allowed.
+  // Before that, this api can serve to extend QueryRoot with backward compatibility.
+  class ExtendedQueryRoot(override val query: Query,
+                          override val fromOpt: Option[Int] = None,
+                          override val sizeOpt: Option[Int] = None,
+                          override val sort: Seq[Sort] = Seq(),
+                          override val timeout: Option[Int] = None,
+                          override val sourceFilter: Option[Seq[String]] = None,
+                          terminateAfter: Option[Int] = None)
+    extends QueryRoot(query, fromOpt, sizeOpt, sort, timeout, sourceFilter) {
+    
+    val _terminate_after = "terminate_after"
+
+    override def toJson: Map[String, Any] = {
+      super.toJson ++ terminateAfter.map(_terminate_after -> _)
+    }
+  }
 
   case class ConstantScore(filter: Filter) extends SingleField("constant_score", filter) with Filter
 
