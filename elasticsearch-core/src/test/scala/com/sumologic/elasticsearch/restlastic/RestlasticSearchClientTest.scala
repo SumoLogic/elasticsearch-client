@@ -695,9 +695,10 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       resFut.futureValue.sourceAsMap.head should be(Map("text" -> "here"))
     }
 
-    "support query with highlights" in  {
+    "support query with highlights with extended query root" in  {
       val highlights = Highlight(Seq(HighlightField("text", Some(PostingsHighlighter), None, Some(0)), HighlightField("f1", Some(PlainHighlighter))), Seq(""), Seq(""))
-      val resFut = restClient.query(index, tpe, HighlightRoot(QueryRoot(PrefixQuery("text", "h"), None, None, Seq(), None, Some(Seq("false"))), highlights))
+      val resFut = restClient.query(index, tpe, HighlightRoot(QueryRoot(
+        PrefixQuery("text", "h"), None, None, None, None, Some(Seq("false")), terminateAfter = Some(10)), highlights))
       resFut.futureValue.rawSearchResponse.highlightAsMaps.head should be(Map("text" -> List("here")))
     }
   }
