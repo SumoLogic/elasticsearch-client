@@ -70,11 +70,9 @@ trait QueryDsl extends DslCommons with SortDsl {
       val sorts = sortOpt
         .map(_.foldLeft(Seq.empty[Sort])((sorts, value) => sorts :+ SimpleSort(value._1, SortOrder.fromString(value._2))))
         .getOrElse(Nil)
-      if (terminateAfter.isDefined) {
-        new ExtendedQueryRoot(query, fromOpt, sizeOpt, sorts, timeout, sourceFilter, terminateAfter)
-      } else {
-        new QueryRoot(query, fromOpt, sizeOpt, sorts, timeout, sourceFilter) 
-      }
+      terminateAfter
+        .map(tA => new ExtendedQueryRoot(query, fromOpt, sizeOpt, sorts, timeout, sourceFilter, Some(tA)))
+        .getOrElse(new QueryRoot(query, fromOpt, sizeOpt, sorts, timeout, sourceFilter))
     }
   }
   
