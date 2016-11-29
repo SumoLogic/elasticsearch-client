@@ -209,14 +209,7 @@
             </plugin>
         </plugins>
     </build>
-    <distributionManagement>
-        <snapshotRepository>
-            <id>datlinq-snapshots</id>
-            <name>datlinq-snapshots</name>
-            <url>http://jfrog.datlinq.info:8081/artifactory/libs-snapshot-local</url>
-        </snapshotRepository>
-    </distributionManagement>
-    <parent>
+   <parent>
         <groupId>org.sonatype.oss</groupId>
         <artifactId>oss-parent</artifactId>
         <version>7</version>
