@@ -94,7 +94,7 @@ One common way to configure AWS Elasticsearch is with IAM roles. This requires y
 ```scala
 import com.sumologic.elasticsearch.util.AwsRequestSigner
 import com.amazonaws.auth.AWSCredentials
-val awsCredentials = _ // Credentials for the AWS use that has permissions to access Elasticsearch
+val awsCredentials = _ // Credentials for the AWS user that has permissions to access Elasticsearch
 val signer = new AwsRequestSigner(awsCredentials, "REGION", "es")
 // You can also create your own dynamic endpoint class based off runtime configuration or the AWS API.
 val endpoint = new StaticEndpoint(new Endpoint("es.blahblahblah.amazon.com", 443))
