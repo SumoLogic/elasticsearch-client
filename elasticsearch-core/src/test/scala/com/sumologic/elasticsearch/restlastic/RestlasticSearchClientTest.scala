@@ -484,6 +484,64 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       aggrQueryFuture.futureValue should be (expected)
     }
 
+    "Support Terms Aggregation Query with sort order" in {
+      val docs = Seq (
+        Document("sortOrderAggrDoc1", Map("f1" -> "sortOrderAggr1", "f2" -> 1, "text" -> "text1")),
+        Document("sortOrderAggrDoc2", Map("f1" -> "sortOrderAggr2", "f2" -> 2, "text" -> "text2")),
+        Document("sortOrderAggrDoc3", Map("f1" -> "sortOrderAggr3", "f2" -> 1, "text" -> "text1"))
+      )
+      val bulkIndexFuture = restClient.bulkIndex(index, tpe, docs)
+      whenReady(bulkIndexFuture) { _ => refresh() }
+
+      val phasePrefixQuery = PhrasePrefixQuery("f1", "sortOrderAggr", Some(5)) // filters out ES docs for other tests
+      val filteredQuery = MultiTermFilteredQuery(phasePrefixQuery, TermFilter("f2", "1"))
+      val termsAggr = TermsAggregation("f1", None, Some(5), Some(5), None, None, None, Some(DescSortOrder))
+      val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
+
+      val expected = BucketAggregationResultBody(0, 0, List(Bucket("sortorderaggr3", 1), Bucket("sortorderaggr1", 1)))
+
+      val aggrQueryFuture = restClient.bucketAggregation(index, tpe, aggrQuery)
+      aggrQueryFuture.futureValue should be (expected)
+    }
+
+    "Support Top Hits Aggregation Query" in {
+      val docs = Seq (
+        Document("topHitsAggrDoc1", Map("f1" -> "topHitsAggr1", "f2" -> 1, "text" -> "text1")),
+        Document("topHitsAggrDoc2", Map("f1" -> "topHitsAggr2", "f2" -> 1, "text" -> "text2")),
+        Document("topHitsAggrDoc3", Map("f1" -> "topHitsAggr3", "f2" -> 1, "text" -> "text1"))
+      )
+      val bulkIndexFuture = restClient.bulkIndex(index, tpe, docs)
+      whenReady(bulkIndexFuture) { _ => refresh() }
+
+      val phasePrefixQuery = PhrasePrefixQuery("f1", "topHitsAggr", Some(5)) // filters out ES docs for other tests
+      val filteredQuery = MultiTermFilteredQuery(phasePrefixQuery)
+      val termsAggr = TermsAggregation("text", None, Some(5), Some(5), None, None,
+        Some(TopHitsAggregation("thereCanBeOnlyOne", Some(1),
+          Some(Seq(
+            "f1",
+            "text")
+          ),
+          Some(Map("f1" -> DescSortOrder)
+          )
+        )),
+        Some(AscSortOrder)
+      )
+      val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
+
+      val expected = Seq(Map("f1" -> "topHitsAggr3", "text" -> "text1"), Map("f1" -> "topHitsAggr2", "text" -> "text2"))
+
+      val aggrQueryFuture = restClient.bucketNestedAggregation(index, tpe, aggrQuery)
+      val aggrResult = aggrQueryFuture.futureValue
+      val actual = aggrResult.underlying("buckets").
+        asInstanceOf[Seq[Map[String, Any]]].
+        flatMap(_ ("thereCanBeOnlyOne").
+          asInstanceOf[Map[String, Any]]("hits").
+          asInstanceOf[Map[String, Any]]("hits").
+          asInstanceOf[Seq[Map[String, Any]]].map(_ ("_source"))
+        )
+      actual should be(expected)
+    }
+
     "Support query with source filtering" in {
       val filterDoc1 = Document("filterDoc", Map("f1" -> "filter1", "f2" -> 1, "text" -> "text1"))
       val intexFuture = restClient.index(index, tpe, filterDoc1)

@@ -42,7 +42,8 @@ trait AggregationDsl extends DslCommons with QueryDsl {
                               size: Option[Int], shardSize: Option[Int],
                               hint: Option[String] = None,
                               name: Option[String] = None,
-                              aggs: Option[Aggregation] = None)
+                              aggs: Option[Aggregation] = None,
+                              order: Option[SortOrder] = None)
     extends Aggregation {
 
     val _aggsName = name.getOrElse("aggs_name")
@@ -52,6 +53,8 @@ trait AggregationDsl extends DslCommons with QueryDsl {
     val _size = "size"
     val _shardSize = "shard_size"
     val _hint = "execution_hint"
+    val _order = "order"
+    val _term = "_term"
     val _aggs = "aggs"
 
     override def toJson: Map[String, Any] = {
@@ -61,8 +64,9 @@ trait AggregationDsl extends DslCommons with QueryDsl {
             ++ include.map(_include -> _)
             ++ size.map(_size -> _)
             ++ shardSize.map(_shardSize -> _)
-            ++ hint.map(_hint -> _)))
-        ++ aggs.map(_aggs -> _.toJson))
+            ++ hint.map(_hint -> _)
+            ++ order.map(o =>_order -> Map(_term -> o.value))))
+          ++ aggs.map(_aggs -> _.toJson))
       )
     }
   }
@@ -80,6 +84,30 @@ trait AggregationDsl extends DslCommons with QueryDsl {
         (Map(_nested ->
         Map(_path -> path))
           ++ aggs.map(_aggs -> _.toJson))
+      )
+    }
+  }
+
+  case class TopHitsAggregation(name: String,
+                                size: Option[Int],
+                                source: Option[Seq[String]],
+                                sort: Option[Map[String, SortOrder]])
+    extends Aggregation {
+
+    val _topHits = "top_hits"
+    val _size = "size"
+    val _source = "_source"
+    val _sort = "sort"
+
+    override def toJson: Map[String, Any] = {
+      Map(name ->
+        Map(_topHits ->
+          (Map()
+            ++ size.map(_size -> _)
+            ++ source.map(_source -> _)
+            ++ sort.map(_sort -> _.map { case (field, order) => (field, order.value) })
+            )
+        )
       )
     }
   }
