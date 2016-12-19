@@ -270,7 +270,7 @@ trait QueryDsl extends DslCommons with SortDsl {
 
     override def toJson: Map[String, Any] = {
       Map(_prefix ->
-        Map(key-> prefix)
+        Map(key -> prefix)
       )
     }
   }
