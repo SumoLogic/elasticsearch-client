@@ -165,7 +165,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       whenReady(resFut) { res =>
         res.jsonStr should include("doc3")
         res.jsonStr should include("doc4")
-        res.jsonStr should not include ("doc5")
+        res.jsonStr should not include("doc5")
       }
     }
 
@@ -180,12 +180,12 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       }
       val fut = restClient.startScrollRequest(index, tpe, QueryRoot(MatchAll, Some(1)))
       val scrollId = whenReady(fut) { resp =>
-        resp.id should not be ('empty)
+        resp.id should not be('empty)
         resp
       }
       whenReady(restClient.scroll(scrollId)) { resp =>
-        resp._2.sourceAsMap should not be ('empty)
-        resp._2.sourceAsMap.head should not be ('empty)
+        resp._2.sourceAsMap should not be('empty)
+        resp._2.sourceAsMap.head should not be('empty)
       }
     }
 
@@ -774,7 +774,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       whenReady(mappingFut) { _ => refresh() }
       indexDocs(Seq(Document("doc1", Map("f1" -> "text", "text" -> "here"))))
       val resp = restClient.query(index, tpe, QueryRoot(PrefixQuery("text", "h"))).futureValue
-      resp.sourceAsMap should not be ('empty)
+      resp.sourceAsMap should not be('empty)
       val highlights = Highlight(Seq(HighlightField("text", Some(PostingsHighlighter), None, Some(0)),
         HighlightField("f1", Some(PlainHighlighter))), Seq(""), Seq(""))
       val resFut = restClient.query(index, tpe, HighlightRoot(QueryRoot(
