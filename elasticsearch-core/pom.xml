@@ -68,23 +68,9 @@
     </dependency>
 
     <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-core</artifactId>
-      <version>4.10.4</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-analyzers-common</artifactId>
-      <version>4.10.4</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>1.6.2</version>
+      <version>2.4.3</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
