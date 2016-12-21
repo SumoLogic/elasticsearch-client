@@ -223,9 +223,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       if (response.status.isFailure) {
         logger.warn(s"Failure response: ${response.entity.asString.take(500)}")
         logger.warn(s"Failing request: ${op.take(5000)}")
-
-        val jsonTree = parse(response.entity.asString)
-        throw jsonTree.extract[ElasticErrorResponse]
+        throw ElasticErrorResponse(response.entity.asString, response.status.intValue)
       }
       RawJsonResponse(response.entity.asString)
     }
