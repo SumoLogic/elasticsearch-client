@@ -18,7 +18,7 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
-import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes._
+import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ElasticErrorResponse, _}
 import spray.http.HttpMethods._
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch_test.ElasticsearchIntegrationTest
@@ -210,6 +210,15 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val future = restClient.runRawEsRequest(op = "", endpoint = "/_stats/indices", GET)
       whenReady(future) { res =>
         res.jsonStr should include(IndexName)
+      }
+    }
+
+    "Return error on failed raw requests" in {
+      val future = restClient.runRawEsRequest(op = "", endpoint = "/does/not/exist", GET)
+      whenReady(future.failed) { e =>
+        e shouldBe a [ElasticErrorResponse]
+        val elasticErrorResponse = e.asInstanceOf[ElasticErrorResponse]
+        elasticErrorResponse.status should be(404)
       }
     }
 
