@@ -87,7 +87,7 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
     val hostHeader = if (httpRequest.headers.exists(_.name.toLowerCase == "host")) {
       List()
     } else {
-      val hostHeader = Host(httpRequest.uri.authority.host.address)
+      val hostHeader = Host(httpRequest.uri.authority.host.address, httpRequest.uri.authority.port)
       List(hostHeader)
     }
     httpRequest.withHeaders(dateHeader ++ hostHeader ++ httpRequest.headers)

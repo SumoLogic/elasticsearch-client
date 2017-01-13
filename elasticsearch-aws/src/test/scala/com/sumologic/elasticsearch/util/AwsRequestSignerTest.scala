@@ -21,9 +21,9 @@ package com.sumologic.elasticsearch.util
 import com.amazonaws.auth.{AWSCredentials, AWSSessionCredentials}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.scalatest.{Matchers, WordSpec}
-import spray.http.HttpHeaders.RawHeader
+import spray.http.HttpHeaders.{Host, RawHeader}
 import spray.http.Uri.Query
-import spray.http._
+import spray.http.{HttpEntity, _}
 
 class AwsRequestSignerTest extends WordSpec with Matchers {
   val dummyCredentials = new AWSCredentials {
@@ -98,6 +98,24 @@ class AwsRequestSignerTest extends WordSpec with Matchers {
 
     signer.createCanonicalRequest(signer.completedRequest(req, realDateTimeStr)) should be(expectedCanonical)
 
+  }
+
+  "sign with missing host header and specified host:port url creates valid host header" in {
+    val signer = new TestSigner("", "", dummyCredentials, region, "es")
+    val req = signer.withAuthHeader(HttpRequest(uri = Uri("http://0.0.0.0:9200/some/path"),headers = Nil))
+    req.headers.find(_.is("host")).map(_.value).getOrElse("") should be("0.0.0.0:9200")
+  }
+
+  "sign with missing host header and specified host, but no port, creates valid host header" in {
+    val signer = new TestSigner("", "", dummyCredentials, region, "es")
+    val req = signer.withAuthHeader(HttpRequest(uri = Uri("http://0.0.0.0/some/path"),headers = Nil))
+    req.headers.find(_.is("host")).map(_.value).getOrElse("") should be("0.0.0.0")
+  }
+
+  "sign with host header AND specified host:port url, host header wins" in {
+    val signer = new TestSigner("", "", dummyCredentials, region, "es")
+    val req = signer.withAuthHeader(HttpRequest(uri = Uri("http://somehost:9200/some/path"),headers = List(HttpHeaders.Host("0.0.0.0"))))
+    req.headers.find(_.is("host")).map(_.value).getOrElse("") should be("0.0.0.0")
   }
 
   "sign this put request" in {
