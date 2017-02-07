@@ -35,7 +35,7 @@ trait QueryDsl extends DslCommons with SortDsl {
   case class QueryRoot(query: Query,
                        fromOpt: Option[Int],
                        sizeOpt: Option[Int],
-                       sort: Seq[Sort],
+                       sortOpt: Option[Seq[Sort]],
                        timeout: Option[Int],
                        sourceFilter: Option[Seq[String]])
     extends QueryRootLike {
@@ -53,7 +53,7 @@ trait QueryDsl extends DslCommons with SortDsl {
         fromOpt.map(_from -> _) ++
         sizeOpt.map(_size -> _) ++
         timeout.map(t => _timeout -> s"${t}ms") ++
-        sort.map(_sort -> _.toJson) ++
+        sortOpt.map(_sort -> _.map(_.toJson)) ++
         sourceFilter.map(_source -> _)
     }
   }
@@ -69,7 +69,6 @@ trait QueryDsl extends DslCommons with SortDsl {
               terminateAfter: Option[Int] = None): QueryRoot = {
       val sorts = sortOpt
         .map(_.foldLeft(Seq.empty[Sort])((sorts, value) => sorts :+ SimpleSort(value._1, SortOrder.fromString(value._2))))
-        .getOrElse(Nil)
       terminateAfter
         .map(tA => new ExtendedQueryRoot(query, fromOpt, sizeOpt, sorts, timeout, sourceFilter, Some(tA)))
         .getOrElse(new QueryRoot(query, fromOpt, sizeOpt, sorts, timeout, sourceFilter))
@@ -81,11 +80,11 @@ trait QueryDsl extends DslCommons with SortDsl {
   class ExtendedQueryRoot(override val query: Query,
                           override val fromOpt: Option[Int] = None,
                           override val sizeOpt: Option[Int] = None,
-                          override val sort: Seq[Sort] = Seq(),
+                          override val sortOpt: Option[Seq[Sort]] = None,
                           override val timeout: Option[Int] = None,
                           override val sourceFilter: Option[Seq[String]] = None,
                           terminateAfter: Option[Int] = None)
-    extends QueryRoot(query, fromOpt, sizeOpt, sort, timeout, sourceFilter) {
+    extends QueryRoot(query, fromOpt, sizeOpt, sortOpt, timeout, sourceFilter) {
     
     val _terminate_after = "terminate_after"
 
