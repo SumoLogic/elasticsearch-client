@@ -53,7 +53,7 @@ trait QueryDsl extends DslCommons with SortDsl {
         fromOpt.map(_from -> _) ++
         sizeOpt.map(_size -> _) ++
         timeout.map(t => _timeout -> s"${t}ms") ++
-        sort.map(_sort -> _.toJson) ++
+        (if(sort.isEmpty) None else Some(sort)).map(_sort -> _.map(_.toJson)) ++
         sourceFilter.map(_source -> _)
     }
   }

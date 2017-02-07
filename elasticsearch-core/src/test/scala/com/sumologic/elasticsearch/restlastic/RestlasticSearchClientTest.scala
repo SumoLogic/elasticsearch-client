@@ -731,6 +731,70 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       sortQueryDescFuture.futureValue.sourceAsMap should be(Seq(Map("f1" -> "simpleSort", "cat" -> "aab"), Map("f1" -> "simpleSort", "cat" -> "aaa")))
     }
 
+    "support multiple simple sorting" in {
+      // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-sort.html
+      val sortDoc1 = Document("multiSimpleSortDoc1", Map("f2" -> "multiSimpleSort", "cat" -> "aaa", "dog" -> "ccd"))
+      val sortDoc2 = Document("multiSimpleSortDoc2", Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccd"))
+      val sortDoc3 = Document("multiSimpleSortDoc3", Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccc"))
+      val sortFuture = restClient.bulkIndex(index, tpe, Seq(sortDoc1, sortDoc2, sortDoc3))
+      whenReady(sortFuture) { ok => refresh() }
+      val sortQueryAscDescFuture = restClient.query(index, tpe, new QueryRoot(
+        query = MatchQuery("f2", "multiSimpleSort"),
+        fromOpt = None,
+        sizeOpt = None,
+        sort = Seq(SimpleSort("cat", AscSortOrder), SimpleSort("dog", DescSortOrder)),
+        timeout = None,
+        sourceFilter = None)
+      )
+      sortQueryAscDescFuture.futureValue.sourceAsMap should be(Seq(
+        Map("f2" -> "multiSimpleSort", "cat" -> "aaa", "dog" -> "ccd"),
+        Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccd"),
+        Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccc"))
+      )
+
+      val sortQueryAscAscFuture = restClient.query(index, tpe, new QueryRoot(
+        query = MatchQuery("f2", "multiSimpleSort"),
+        fromOpt = None,
+        sizeOpt = None,
+        sort = Seq(SimpleSort("cat", AscSortOrder), SimpleSort("dog", AscSortOrder)),
+        timeout = None,
+        sourceFilter = None)
+      )
+      sortQueryAscAscFuture.futureValue.sourceAsMap should be(Seq(
+        Map("f2" -> "multiSimpleSort", "cat" -> "aaa", "dog" -> "ccd"),
+        Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccc"),
+        Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccd"))
+      )
+
+      val sortQueryDescDescFuture = restClient.query(index, tpe, new QueryRoot(
+        query = MatchQuery("f2", "multiSimpleSort"),
+        fromOpt = None,
+        sizeOpt = None,
+        sort = Seq(SimpleSort("cat", DescSortOrder), SimpleSort("dog", DescSortOrder)),
+        timeout = None,
+        sourceFilter = None)
+      )
+      sortQueryDescDescFuture.futureValue.sourceAsMap should be(Seq(
+        Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccd"),
+        Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccc"),
+        Map("f2" -> "multiSimpleSort", "cat" -> "aaa", "dog" -> "ccd"))
+      )
+
+      val sortQueryDescAscFuture = restClient.query(index, tpe, new QueryRoot(
+        query = MatchQuery("f2", "multiSimpleSort"),
+        fromOpt = None,
+        sizeOpt = None,
+        sort = Seq(SimpleSort("cat", DescSortOrder), SimpleSort("dog", AscSortOrder)),
+        timeout = None,
+        sourceFilter = None)
+      )
+      sortQueryDescAscFuture.futureValue.sourceAsMap should be(Seq(
+        Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccc"),
+        Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccd"),
+        Map("f2" -> "multiSimpleSort", "cat" -> "aaa", "dog" -> "ccd"))
+      )
+    }
+
     "support sorting by Distance" in {
       // https://www.elastic.co/guide/en/elasticsearch/guide/current/sorting-by-distance.html
       val geoPointMapping = BasicFieldMapping(GeoPointType, None, None)
