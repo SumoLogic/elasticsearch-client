@@ -19,25 +19,25 @@ The library components are offered a la carte:
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-core</artifactId>
-      <version>1.0.27</version>
+      <version>1.0.29</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-aws</artifactId>
-      <version>1.0.27</version>
+      <version>1.0.29</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-akka</artifactId>
-      <version>1.0.27</version>
+      <version>1.0.29</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-test</artifactId>
-      <version>1.0.27</version>
+      <version>1.0.29</version>
       <scope>test</scope>
     </dependency>
   ```
@@ -94,7 +94,7 @@ One common way to configure AWS Elasticsearch is with IAM roles. This requires y
 ```scala
 import com.sumologic.elasticsearch.util.AwsRequestSigner
 import com.amazonaws.auth.AWSCredentials
-val awsCredentials = _ // Credentials for the AWS use that has permissions to access Elasticsearch
+val awsCredentials = _ // Credentials for the AWS user that has permissions to access Elasticsearch
 val signer = new AwsRequestSigner(awsCredentials, "REGION", "es")
 // You can also create your own dynamic endpoint class based off runtime configuration or the AWS API.
 val endpoint = new StaticEndpoint(new Endpoint("es.blahblahblah.amazon.com", 443))

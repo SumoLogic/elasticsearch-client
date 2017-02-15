@@ -65,9 +65,9 @@ trait RequestSigner {
 class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
                              indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
                              searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
+                            (implicit val system: ActorSystem = ActorSystem())
   extends ScrollClient {
 
-  implicit val system: ActorSystem = ActorSystem()
   implicit val timeout: Timeout = Timeout(30.seconds)
   private implicit val formats = org.json4s.DefaultFormats
   private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
@@ -75,9 +75,9 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   import RestlasticSearchClient.ReturnTypes._
 
   def ready: Boolean = endpointProvider.ready
-  def query(index: Index, tpe: Type, query: QueryRootLike, rawJsonStr: Boolean = true): Future[SearchResponse] = {
+  def query(index: Index, tpe: Type, query: QueryRootLike, rawJsonStr: Boolean = true, uriQuery: UriQuery = UriQuery.Empty): Future[SearchResponse] = {
     implicit val ec = searchExecutionCtx
-    runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
+    runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query=uriQuery).map { rawJson =>
       val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
       SearchResponse(rawJson.mappedTo[RawSearchResponse], jsonStr)
     }
@@ -223,9 +223,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       if (response.status.isFailure) {
         logger.warn(s"Failure response: ${response.entity.asString.take(500)}")
         logger.warn(s"Failing request: ${op.take(5000)}")
-
-        val jsonTree = parse(response.entity.asString)
-        throw jsonTree.extract[ElasticErrorResponse]
+        throw ElasticErrorResponse(response.entity.asString, response.status.intValue)
       }
       RawJsonResponse(response.entity.asString)
     }
