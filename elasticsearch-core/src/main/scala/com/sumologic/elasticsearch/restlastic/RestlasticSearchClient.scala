@@ -65,10 +65,9 @@ trait RequestSigner {
 class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
                              indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
                              searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
-                            (implicit val system: ActorSystem = ActorSystem())
+                            (implicit val system: ActorSystem = ActorSystem(), val timeout: Timeout = Timeout(30.seconds))
   extends ScrollClient {
 
-  implicit val timeout: Timeout = Timeout(30.seconds)
   private implicit val formats = org.json4s.DefaultFormats
   private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
   import Dsl._
