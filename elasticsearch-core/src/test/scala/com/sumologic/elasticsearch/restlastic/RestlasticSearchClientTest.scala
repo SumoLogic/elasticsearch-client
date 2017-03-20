@@ -168,6 +168,52 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         res.jsonStr should not include("doc5")
       }
     }
+    
+    "Support bulk deletion" in {
+
+      val doc3 = Document("doc3", Map("text" -> "here"))
+      val doc4 = Document("doc4", Map("text" -> "here"))
+      val doc5 = Document("doc5", Map("text" -> "nowhere"))
+
+      // doc3 is inserted twice, so when it is inserted in bulk, it should have already been created
+      val fut = for {
+        _ <- restClient.index(index, tpe, doc3)
+        bulk <- restClient.bulkIndex(index, tpe, Seq(doc3, doc4, doc5))
+      } yield {
+        bulk
+      }
+      whenReady(fut) { resp =>
+        resp.length should be(3)
+        resp(0).created should be(false)
+        resp(0).alreadyExists should be(true)
+        resp(1).created should be(true)
+        resp(2).created should be(true)
+      }
+
+      refresh()
+      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here")))
+      whenReady(resFut) { res =>
+        res.jsonStr should include("doc3")
+        res.jsonStr should include("doc4")
+        res.jsonStr should not include("doc5")
+      }
+      
+      val delFut = restClient.bulkDelete(index, tpe, (Seq(doc3, doc4, doc5)))
+      whenReady(delFut){ resp =>
+        resp.length should be(3)
+        resp(0).deleted should be(true)
+        resp(1).deleted should be(true)
+        resp(2).deleted should be(true)
+      }
+      
+      refresh()
+      val resFut2 = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here")))
+      whenReady(resFut2) { res =>
+        res.jsonStr should not include("doc3")
+        res.jsonStr should not include("doc4")
+        res.jsonStr should not include("doc5")
+      }
+    }
 
     "Support scroll requests" in {
       val docFutures = (1 to 10).map { n =>

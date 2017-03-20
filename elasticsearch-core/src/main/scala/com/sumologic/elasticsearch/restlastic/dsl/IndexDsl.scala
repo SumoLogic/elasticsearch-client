@@ -42,6 +42,9 @@ trait IndexDsl extends DslCommons {
   case object update extends OperationType {
     override val jsonStr: String = "update"
   }
+  case object delete extends OperationType {
+    override val jsonStr: String = "delete"
+  }
 
   case class Bulk(operations: Seq[BulkOperation]) extends EsOperation with RootObject {
     override def toJson: Map[String, Any] = throw new UnsupportedOperationException
@@ -60,7 +63,10 @@ trait IndexDsl extends DslCommons {
       val jsonObjects = Map(operation.jsonStr ->
         (Map("_id" -> doc.id) ++ location.map { case (index, tpe) => Map("_index" -> index.name, "_type" -> tpe.name)}.getOrElse(Map()))
       )
-      s"${compactJson(jsonObjects)}\n${doc.toJsonStr}"
+      operation match {
+        case `delete` => s"${compactJson(jsonObjects)}"
+        case _ => s"${compactJson(jsonObjects)}\n${doc.toJsonStr}"
+      }
     }
   }
 

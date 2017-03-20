@@ -103,3 +103,7 @@ val endpoint = new StaticEndpoint(new Endpoint("es.blahblahblah.amazon.com", 443
 val restClient = new RestlasticSearchClient(endpoint, Some(signer))
 ```
 `restClient` will now sign every request automatically with your AWS credentials.
+
+## Contributing
+
+Sumo Logic Elasticsearch uses Maven and the Maven GPG Plug-in for builds and testing. After cloning the repository make sure you have a GPG key created.  Then run `maven clean install`.

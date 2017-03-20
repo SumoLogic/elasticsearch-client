@@ -135,6 +135,11 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     val bulkOperation = Bulk(documents.map(BulkOperation(update, Some(index -> tpe), _)))
     bulkIndex(bulkOperation)
   }
+  
+  def bulkDelete(index: Index, tpe: Type, documents: Seq[Document]): Future[Seq[BulkItem]] = {
+    val bulkOperation = Bulk(documents.map(BulkOperation(delete, Some(index -> tpe), _)))
+    bulkIndex(bulkOperation)
+  }
 
   def putMapping(index: Index, tpe: Type, mapping: Mapping): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
@@ -248,6 +253,7 @@ object RestlasticSearchClient {
     case class BulkItem(_index: String, _type: String, _id: String, status: Int, error: Option[String]) {
       def created = status > 200 && status < 299 && !alreadyExists
       def alreadyExists = error.exists(_.contains("DocumentAlreadyExists"))
+      def deleted = status == 200
     }
 
     case class SearchResponse(rawSearchResponse: RawSearchResponse, jsonStr: String) {
