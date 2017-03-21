@@ -118,6 +118,11 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
   }
 
+  def deleteById(index: Index, tpe: Type, id: String): Future[DeleteResponse] = {
+    implicit val ec = indexExecutionCtx
+    runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", DELETE).map(_.mappedTo[DeleteResponse])
+  }
+
   def bulkIndex(bulk: Bulk): Future[Seq[BulkItem]] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(bulk, s"/_bulk").map { resp =>
@@ -318,6 +323,8 @@ object RestlasticSearchClient {
     case class SuggestOption(text: String, score: Float)
 
     case class IndexResponse(created: Boolean)
+
+    case class DeleteResponse(found: Boolean)
 
     case class IndexAlreadyExistsException(message: String) extends Exception(message)
 
