@@ -253,7 +253,7 @@ object RestlasticSearchClient {
     case class BulkItem(_index: String, _type: String, _id: String, status: Int, error: Option[String]) {
       def created = status > 200 && status < 299 && !alreadyExists
       def alreadyExists = error.exists(_.contains("DocumentAlreadyExists"))
-      def deleted = status == 200
+      def success = status >= 200 && status <= 299
     }
 
     case class SearchResponse(rawSearchResponse: RawSearchResponse, jsonStr: String) {
