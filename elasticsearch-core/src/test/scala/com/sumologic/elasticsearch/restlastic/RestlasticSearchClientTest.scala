@@ -139,7 +139,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       }
     }
 
-    "Support bulk indexing" in {
+    "Support bulk indexing and deletion" in {
 
       val doc3 = Document("doc3", Map("text" -> "here"))
       val doc4 = Document("doc4", Map("text" -> "here"))
@@ -165,6 +165,22 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       whenReady(resFut) { res =>
         res.jsonStr should include("doc3")
         res.jsonStr should include("doc4")
+        res.jsonStr should not include("doc5")
+      }
+      
+      val delFut = restClient.bulkDelete(index, tpe, (Seq(doc3, doc4, doc5)))
+      whenReady(delFut){ resp =>
+        resp.length should be(3)
+        resp(0).success should be(true)
+        resp(1).success should be(true)
+        resp(2).success should be(true)
+      }
+      
+      refresh()
+      val resFut2 = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here")))
+      whenReady(resFut2) { res =>
+        res.jsonStr should not include("doc3")
+        res.jsonStr should not include("doc4")
         res.jsonStr should not include("doc5")
       }
     }
