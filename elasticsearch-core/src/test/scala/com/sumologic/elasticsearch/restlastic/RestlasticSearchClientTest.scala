@@ -122,27 +122,22 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here"),
         sortOpt = Some(Seq(("_timestamp", "desc"))), timeout = Some(10)))
 
-      var foundDoc: Option[ElasticJsonDocument] = None
-      whenReady(resFut){res =>
-        foundDoc = Some(res.rawSearchResponse.hits.hits(0))
+      val foundDoc: ElasticJsonDocument = whenReady(resFut){ res =>
+        res.rawSearchResponse.hits.hits(0)
+      }
+      
+      val delFut = restClient.deleteById(index, tpe, foundDoc._id)
+
+      whenReady(delFut) { res =>
+        res.found should be(true)
       }
 
-      if(foundDoc.isDefined){
-        val delFut = restClient.deleteById(index, tpe, foundDoc.get._id)
+      refresh()
 
-        whenReady(delFut){res =>
-          res.found should be(true)
-        }
-
-        refresh()
-
-        val resFut2 = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here"),
-          sortOpt = Some(Seq(("_timestamp", "desc"))), timeout = Some(10)))
-        whenReady(resFut2){res =>
-          res.rawSearchResponse.hits.hits.size should be(0)
-        }
-      } else {
-        fail("indexed document not found")
+      val resFut2 = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here"),
+        sortOpt = Some(Seq(("_timestamp", "desc"))), timeout = Some(10)))
+      whenReady(resFut2){ res =>
+        res.rawSearchResponse.hits.hits.size should be(0)
       }
     }
 
@@ -150,9 +145,10 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val delFut = restClient.deleteById(index, tpe, "fakeId")
 
       whenReady(delFut.failed) { e =>
-        e shouldBe a [ElasticErrorResponse]
-        val elasticErrorResponse = e.asInstanceOf[ElasticErrorResponse]
-        elasticErrorResponse.status should be(404)
+        e match {
+          case e: ElasticErrorResponse => e.status should be(404)
+          case other => fail(s"Error expected, got ${other}")
+        }
       }
     }
 
