@@ -117,6 +117,41 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       }
     }
 
+    "Be able to delete a document that exists" in {
+      indexDocs(Seq(Document("doc1", Map("text" -> "here"))))
+      val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here"),
+        sortOpt = Some(Seq(("_timestamp", "desc"))), timeout = Some(10)))
+
+      val foundDoc: ElasticJsonDocument = whenReady(resFut){ res =>
+        res.rawSearchResponse.hits.hits(0)
+      }
+      
+      val delFut = restClient.deleteById(index, tpe, foundDoc._id)
+
+      whenReady(delFut) { res =>
+        res.found should be(true)
+      }
+
+      refresh()
+
+      val resFut2 = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here"),
+        sortOpt = Some(Seq(("_timestamp", "desc"))), timeout = Some(10)))
+      whenReady(resFut2){ res =>
+        res.rawSearchResponse.hits.hits.size should be(0)
+      }
+    }
+
+    "Not delete a document that does not exist" in {
+      val delFut = restClient.deleteById(index, tpe, "fakeId")
+
+      whenReady(delFut.failed) { e =>
+        e match {
+          case e: ElasticErrorResponse => e.status should be(404)
+          case other => fail(s"Error expected, got ${other}")
+        }
+      }
+    }
+
     "Throw IndexAlreadyExists exception" in {
       val res = for {
         _ <- restClient.createIndex(index)
