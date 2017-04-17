@@ -25,9 +25,6 @@ import com.amazonaws.auth.{AWSCredentials, AWSSessionCredentials}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.apache.http.HttpHeaders
 import org.scalatest.{Matchers, WordSpec}
-//import spray.http.HttpHeaders.{Host, RawHeader}
-//import spray.http.Uri.Query
-//import spray.http.{HttpEntity, _}
 
 class AwsRequestSignerTest extends WordSpec with Matchers {
   val dummyCredentials = new AWSCredentials {
