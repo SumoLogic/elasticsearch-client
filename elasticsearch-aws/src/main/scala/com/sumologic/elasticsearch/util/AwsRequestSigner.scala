@@ -25,11 +25,16 @@ import java.util.{Calendar, TimeZone}
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
+import akka.actor.ActorSystem
+import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.model.headers.{Host, RawHeader}
+import akka.stream.ActorMaterializer
 import com.amazonaws.auth.{AWSCredentials, AWSCredentialsProvider, AWSSessionCredentials}
 import com.amazonaws.internal.StaticCredentialsProvider
 import com.sumologic.elasticsearch.restlastic.RequestSigner
-import spray.http.HttpHeaders.{Host, RawHeader}
-import spray.http.HttpRequest
 
 /**
  * Sign AWS requests following the instructions at http://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html
@@ -61,7 +66,7 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
     val headerValue = s"$Algorithm Credential=${awsCredentials.getAWSAccessKeyId}/${credentialScope(dateStr)}, SignedHeaders=${signedHeaders(withDateAndHost)}" +
       s", Signature=${signature(withDateAndHost, dateTimeStr, dateStr)}"
 
-    val withAuth = withDateAndHost.withHeaders(RawHeader("Authorization", headerValue) :: withDateAndHost.headers)
+    val withAuth = withDateAndHost.withHeaders(RawHeader("Authorization", headerValue) +: withDateAndHost.headers)
 
     // Append the session key, if session credentials were provided
     addSessionToken(withAuth)
@@ -71,7 +76,7 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
 
   def addSessionToken(httpRequest: HttpRequest): HttpRequest = awsCredentials match {
     case (sc: AWSSessionCredentials) =>
-      httpRequest.withHeaders(RawHeader(xAmzSecurityToken, sc.getSessionToken) :: httpRequest.headers)
+      httpRequest.withHeaders(RawHeader(xAmzSecurityToken, sc.getSessionToken) +: httpRequest.headers)
     case _ => httpRequest
   }
 
@@ -157,7 +162,7 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
   private def urlEncode(s: String): String = URLEncoder.encode(s, "utf-8")
 
   private def canonicalQueryString(httpRequest: HttpRequest): String = {
-    val params = httpRequest.uri.query
+    val params = httpRequest.uri.query()
     val sortedEncoded = params.toList.map(kv => (urlEncode(kv._1), urlEncode(kv._2))).sortBy(_._1)
     sortedEncoded.map(kv => s"${kv._1}=${kv._2}").mkString("&")
   }
@@ -171,7 +176,10 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
   }
 
   private def hashedPayloadByteArray(httpRequest: HttpRequest): Array[Byte] = {
-    val data = httpRequest.entity.asString
+    implicit val system = ActorSystem()
+    implicit val materializer = ActorMaterializer()
+    val dataFuture = AkkaHttpResponseUtil.entityToString(httpRequest.entity)(materializer = materializer)
+    val data = Await.result(dataFuture, 1.second)
     hashSha256(data)
   }
 
