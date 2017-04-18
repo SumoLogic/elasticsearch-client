@@ -43,6 +43,9 @@ import com.sumologic.elasticsearch.restlastic.RequestSigner
  * @param service Service to connect to (eg. "es" for elasticsearch) [http://docs.aws.amazon.com/general/latest/gr/rande.html]
  */
 class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: String, service: String) extends RequestSigner {
+  private implicit val system = ActorSystem()
+  private implicit val materializer = ActorMaterializer()
+
   val Algorithm = "AWS4-HMAC-SHA256"
   require(awsCredentialsProvider.getCredentials != null, "awsCredentialsProvider must return non null awsCredentials.")
 
@@ -176,9 +179,7 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
   }
 
   private def hashedPayloadByteArray(httpRequest: HttpRequest): Array[Byte] = {
-    implicit val system = ActorSystem()
-    implicit val materializer = ActorMaterializer()
-    val dataFuture = AkkaHttpUtil.entityToString(httpRequest.entity)(materializer = materializer)
+    val dataFuture = AkkaHttpUtil.entityToString(httpRequest.entity)
     val data = Await.result(dataFuture, 1.second)
     hashSha256(data)
   }
