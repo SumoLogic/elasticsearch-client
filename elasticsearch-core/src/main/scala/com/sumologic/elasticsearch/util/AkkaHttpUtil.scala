@@ -19,7 +19,7 @@
 package com.sumologic.elasticsearch.util
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext}
 
 import akka.http.scaladsl.model.ResponseEntity
 import akka.stream.ActorMaterializer
@@ -35,7 +35,8 @@ object AkkaHttpUtil {
   def entityToString(entity: ResponseEntity,
                      streamTimeout: FiniteDuration = 1000.millis)
                     (implicit ec: ExecutionContext = ExecutionContext.global,
-                     materializer: ActorMaterializer): Future[String] = {
-    entity.toStrict(streamTimeout).map(_.data.utf8String)
+                     materializer: ActorMaterializer): String = {
+    val stringFuture = entity.toStrict(streamTimeout).map(_.data.utf8String)
+    Await.result(stringFuture, streamTimeout)
   }
 }

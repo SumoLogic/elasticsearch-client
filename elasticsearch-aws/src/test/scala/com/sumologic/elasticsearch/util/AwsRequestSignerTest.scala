@@ -44,7 +44,7 @@ class AwsRequestSignerTest extends WordSpec with Matchers {
       uri = Uri.from(
         host = "host.foo.com",
         path = "/",
-        queryString = Option(Query("foo" -> "Zoo", "foo" -> "aha").toString())
+        queryString = Option(Query("foo" -> "Zoo", "foo" -> "aha").toString)
       ),
       headers = List(
         RawHeader("Date", "Mon, 09 Sep 2011 23:36:00 GMT"),

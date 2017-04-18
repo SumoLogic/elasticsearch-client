@@ -179,8 +179,7 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
   }
 
   private def hashedPayloadByteArray(httpRequest: HttpRequest): Array[Byte] = {
-    val dataFuture = AkkaHttpUtil.entityToString(httpRequest.entity)
-    val data = Await.result(dataFuture, 1.second)
+    val data = AkkaHttpUtil.entityToString(httpRequest.entity)
     hashSha256(data)
   }
 

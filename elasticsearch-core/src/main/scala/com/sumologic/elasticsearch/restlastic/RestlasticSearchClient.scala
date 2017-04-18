@@ -228,16 +228,15 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
     val responseFuture: Future[HttpResponse] = Http().singleRequest(request)
 
-    responseFuture.flatMap { response =>
+    responseFuture.map { response =>
       logger.debug(f"Got Es response: $response")
-      val entityFuture = AkkaHttpUtil.entityToString(response.entity)
+      val entityString = AkkaHttpUtil.entityToString(response.entity)
       if (response.status.isFailure) {
-        val entityString = Await.result(entityFuture, 100.millis)
         logger.warn(s"Failure response: ${entityString.take(500)}")
         logger.warn(s"Failing request: ${op.take(5000)}")
         throw ElasticErrorResponse(entityString, response.status.intValue)
       }
-      entityFuture.map(RawJsonResponse)
+      RawJsonResponse(entityString)
     }
   }
 
@@ -247,7 +246,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       case 443 => "https"
       case _ => "http"
     }
-    Uri.from(scheme = scheme, host = ep.host, port = ep.port, path = path, queryString = Option(query.toString()))
+    Uri.from(scheme = scheme, host = ep.host, port = ep.port, path = path, queryString = Option(query.toString))
   }
 }
 
