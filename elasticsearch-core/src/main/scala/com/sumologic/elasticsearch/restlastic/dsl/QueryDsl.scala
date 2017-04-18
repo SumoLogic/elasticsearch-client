@@ -31,12 +31,12 @@ trait QueryDsl extends DslCommons with SortDsl {
   trait Filter extends EsOperation
 
   class QueryRoot(query: Query,
-                       fromOpt: Option[Int],
-                       sizeOpt: Option[Int],
-                       sortOpt: Option[Seq[Sort]],
-                       timeoutOpt: Option[Int],
-                       sourceFilterOpt: Option[Seq[String]],
-                       terminateAfterOpt: Option[Int])
+                  fromOpt: Option[Int],
+                  sizeOpt: Option[Int],
+                  sortOpt: Option[Seq[Sort]],
+                  timeoutOpt: Option[Int],
+                  sourceFilterOpt: Option[Seq[String]],
+                  terminateAfterOpt: Option[Int])
     extends RootObject {
 
     val _query = "query"
