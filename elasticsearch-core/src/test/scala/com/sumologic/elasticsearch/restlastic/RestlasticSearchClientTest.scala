@@ -111,7 +111,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     "Be able to create an index, index a document, and search it" in {
       indexDocs(Seq(Document("doc1", Map("text" -> "here"))))
       val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here"),
-        sortOpt = Some(Seq(("_timestamp", "desc"))), timeout = Some(10)))
+        sortOpt = Some(Seq(("_timestamp", "desc"))), timeoutOpt = Some(10)))
       whenReady(resFut) { res =>
         res.sourceAsMap.toList should be(List(Map("text" -> "here")))
       }
@@ -120,7 +120,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     "Be able to delete a document that exists" in {
       indexDocs(Seq(Document("doc1", Map("text" -> "here"))))
       val resFut = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here"),
-        sortOpt = Some(Seq(("_timestamp", "desc"))), timeout = Some(10)))
+        sortOpt = Some(Seq(("_timestamp", "desc"))), timeoutOpt = Some(10)))
 
       val foundDoc: ElasticJsonDocument = whenReady(resFut){ res =>
         res.rawSearchResponse.hits.hits(0)
@@ -135,7 +135,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       refresh()
 
       val resFut2 = restClient.query(index, tpe, QueryRoot(TermQuery("text", "here"),
-        sortOpt = Some(Seq(("_timestamp", "desc"))), timeout = Some(10)))
+        sortOpt = Some(Seq(("_timestamp", "desc"))), timeoutOpt = Some(10)))
       whenReady(resFut2){ res =>
         res.rawSearchResponse.hits.hits.size should be(0)
       }
@@ -613,7 +613,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val filterDoc1 = Document("filterDoc", Map("f1" -> "filter1", "f2" -> 1, "text" -> "text1"))
       val intexFuture = restClient.index(index, tpe, filterDoc1)
       whenReady(intexFuture) { _ => refresh() }
-      val filterFuture = restClient.query(index, tpe, QueryRoot(TermQuery("f1", "filter1"), sourceFilter = Some(Seq("f2", "text"))))
+      val filterFuture = restClient.query(index, tpe, QueryRoot(TermQuery("f1", "filter1"), sourceFilterOpt = Some(Seq("f2", "text"))))
       filterFuture.futureValue.sourceAsMap should be(List(Map("f2" -> 1, "text" -> "text1")))
     }
 
@@ -766,8 +766,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         fromOpt = None,
         sizeOpt = None,
         sort = Seq(SimpleSort("cat", AscSortOrder)),
-        timeout = None,
-        sourceFilter = None)
+        timeoutOpt = None,
+        sourceFilterOpt = None,
+        terminateAfterOpt = None)
       )
       sortQueryAscFuture.futureValue.sourceAsMap should be(Seq(Map("f1" -> "simpleSort", "cat" -> "aaa"), Map("f1" -> "simpleSort", "cat" -> "aab")))
 
@@ -776,8 +777,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         fromOpt = None,
         sizeOpt = None,
         sort = Seq(SimpleSort("cat", DescSortOrder)),
-        timeout = None,
-        sourceFilter = None)
+        timeoutOpt = None,
+        sourceFilterOpt = None,
+        terminateAfterOpt = None)
       )
       sortQueryDescFuture.futureValue.sourceAsMap should be(Seq(Map("f1" -> "simpleSort", "cat" -> "aab"), Map("f1" -> "simpleSort", "cat" -> "aaa")))
     }
@@ -794,8 +796,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         fromOpt = None,
         sizeOpt = None,
         sort = Seq(SimpleSort("cat", AscSortOrder), SimpleSort("dog", DescSortOrder)),
-        timeout = None,
-        sourceFilter = None)
+        timeoutOpt = None,
+        sourceFilterOpt = None,
+        terminateAfterOpt = None)
       )
       sortQueryAscDescFuture.futureValue.sourceAsMap should be(Seq(
         Map("f2" -> "multiSimpleSort", "cat" -> "aaa", "dog" -> "ccd"),
@@ -808,8 +811,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         fromOpt = None,
         sizeOpt = None,
         sort = Seq(SimpleSort("cat", AscSortOrder), SimpleSort("dog", AscSortOrder)),
-        timeout = None,
-        sourceFilter = None)
+        timeoutOpt = None,
+        sourceFilterOpt = None,
+        terminateAfterOpt = None)
       )
       sortQueryAscAscFuture.futureValue.sourceAsMap should be(Seq(
         Map("f2" -> "multiSimpleSort", "cat" -> "aaa", "dog" -> "ccd"),
@@ -822,8 +826,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         fromOpt = None,
         sizeOpt = None,
         sort = Seq(SimpleSort("cat", DescSortOrder), SimpleSort("dog", DescSortOrder)),
-        timeout = None,
-        sourceFilter = None)
+        timeoutOpt = None,
+        sourceFilterOpt = None,
+        terminateAfterOpt = None)
       )
       sortQueryDescDescFuture.futureValue.sourceAsMap should be(Seq(
         Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccd"),
@@ -836,8 +841,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         fromOpt = None,
         sizeOpt = None,
         sort = Seq(SimpleSort("cat", DescSortOrder), SimpleSort("dog", AscSortOrder)),
-        timeout = None,
-        sourceFilter = None)
+        timeoutOpt = None,
+        sourceFilterOpt = None,
+        terminateAfterOpt = None)
       )
       sortQueryDescAscFuture.futureValue.sourceAsMap should be(Seq(
         Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccc"),
@@ -862,8 +868,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         fromOpt = None,
         sizeOpt = None,
         sort = Seq(GeoDistanceSort("location", GeoLocation(40.715, -74.011), AscSortOrder, "km", "plane")),
-        timeout = None,
-        sourceFilter = None)
+        timeoutOpt = None,
+        sourceFilterOpt = None,
+        terminateAfterOpt = None)
       )
       sortQueryAscFuture.futureValue.sourceAsMap should be(Seq(Map("f1" -> "distanceSortDoc", "location" -> "40.715, -74.011"), Map("f1" -> "distanceSortDoc", "location" -> "1, 1")))
 
@@ -872,8 +879,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         fromOpt = None,
         sizeOpt = None,
         sort = Seq(GeoDistanceSort("location", GeoLocation(40.715, -74.011), DescSortOrder, "km", "plane")),
-        timeout = None,
-        sourceFilter = None)
+        timeoutOpt = None,
+        sourceFilterOpt = None,
+        terminateAfterOpt = None)
       )
       sortQueryDescFuture.futureValue.sourceAsMap should be(Seq(Map("f1" -> "distanceSortDoc", "location" -> "1, 1"), Map("f1" -> "distanceSortDoc", "location" -> "40.715, -74.011")))
     }
@@ -901,8 +909,16 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       resp.sourceAsMap should not be('empty)
       val highlights = Highlight(Seq(HighlightField("text", Some(PostingsHighlighter), None, Some(0)),
         HighlightField("f1", Some(PlainHighlighter))), Seq(""), Seq(""))
-      val resFut = restClient.query(index, tpe, HighlightRoot(QueryRoot(
-        PrefixQuery("text", "h"), None, None, None, None, Some(Seq("false")), terminateAfter = Some(10)), highlights))
+      val resFut = restClient.query(index, tpe,
+        HighlightRoot(QueryRoot(
+          PrefixQuery("text", "h"),
+          fromOpt = None,
+          sizeOpt = None,
+          sortOpt = None,
+          timeoutOpt = None,
+          sourceFilterOpt = Some(Seq("false")),
+          terminateAfterOpt = Some(10)),
+          highlights))
       resFut.futureValue.rawSearchResponse.highlightAsMaps.head should be(Map("text" -> List("here")))
     }
 
