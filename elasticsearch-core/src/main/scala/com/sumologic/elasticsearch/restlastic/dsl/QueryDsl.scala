@@ -30,10 +30,10 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   trait Filter extends EsOperation
 
-  case class QueryRoot(query: Query,
+  class QueryRoot(query: Query,
                        fromOpt: Option[Int],
                        sizeOpt: Option[Int],
-                       sort: Seq[Sort],
+                       sortOpt: Option[Seq[Sort]],
                        timeoutOpt: Option[Int],
                        sourceFilterOpt: Option[Seq[String]],
                        terminateAfterOpt: Option[Int])
@@ -53,7 +53,7 @@ trait QueryDsl extends DslCommons with SortDsl {
         fromOpt.map(_from -> _) ++
         sizeOpt.map(_size -> _) ++
         timeoutOpt.map(t => _timeout -> s"${t}ms") ++
-        (if(sort.isEmpty) None else Some(sort)).map(_sort -> _.map(_.toJson)) ++
+        sortOpt.map(_sort -> _.map(_.toJson)) ++
         sourceFilterOpt.map(_source -> _) ++
         terminateAfterOpt.map(_terminate_after -> _)
     }
@@ -64,15 +64,12 @@ trait QueryDsl extends DslCommons with SortDsl {
     def apply(query: Query,
               fromOpt: Option[Int] = None,
               sizeOpt: Option[Int] = None,
-              sortOpt: Option[Seq[(String, String)]] = None,
+              sortOpt: Option[Seq[Sort]] = None,
               timeoutOpt: Option[Int] = None,
               sourceFilterOpt: Option[Seq[String]] = None,
               terminateAfterOpt: Option[Int] = None): QueryRoot = {
-      val sorts = sortOpt
-        .map(_.foldLeft(Seq.empty[Sort])((sorts, value) => sorts :+ SimpleSort(value._1, SortOrder.fromString(value._2))))
-        .getOrElse(Nil)
 
-      new QueryRoot(query, fromOpt, sizeOpt, sorts, timeoutOpt, sourceFilterOpt, terminateAfterOpt)
+      new QueryRoot(query, fromOpt, sizeOpt, sortOpt, timeoutOpt, sourceFilterOpt, terminateAfterOpt)
     }
   }
 
