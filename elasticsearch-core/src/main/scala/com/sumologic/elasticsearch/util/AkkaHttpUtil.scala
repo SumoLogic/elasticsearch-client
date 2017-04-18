@@ -24,7 +24,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import akka.http.scaladsl.model.ResponseEntity
 import akka.stream.ActorMaterializer
 
-object AkkaHttpResponseUtil {
+object AkkaHttpUtil {
 
   /**
     * Helper method for getting string out of Akka HTTP Entity

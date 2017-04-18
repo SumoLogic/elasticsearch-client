@@ -19,7 +19,7 @@
 package com.sumologic.elasticsearch.restlastic
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -30,7 +30,7 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ScrollId, SearchResponse}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl
-import com.sumologic.elasticsearch.util.AkkaHttpResponseUtil
+import com.sumologic.elasticsearch.util.AkkaHttpUtil
 import org.json4s._
 import org.json4s.native.JsonMethods._
 import org.slf4j.LoggerFactory
@@ -230,14 +230,14 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
     responseFuture.flatMap { response =>
       logger.debug(f"Got Es response: $response")
+      val entityFuture = AkkaHttpUtil.entityToString(response.entity)
       if (response.status.isFailure) {
-        AkkaHttpResponseUtil.entityToString(response.entity).foreach { entityString =>
-          logger.warn(s"Failure response: ${entityString.take(500)}")
-          logger.warn(s"Failing request: ${op.take(5000)}")
-          throw ElasticErrorResponse(entityString, response.status.intValue)
-        }
+        val entityString = Await.result(entityFuture, 100.millis)
+        logger.warn(s"Failure response: ${entityString.take(500)}")
+        logger.warn(s"Failing request: ${op.take(5000)}")
+        throw ElasticErrorResponse(entityString, response.status.intValue)
       }
-      AkkaHttpResponseUtil.entityToString(response.entity).map(RawJsonResponse)
+      entityFuture.map(RawJsonResponse)
     }
   }
 
