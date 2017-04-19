@@ -31,12 +31,12 @@ trait QueryDsl extends DslCommons with SortDsl {
   trait Filter extends EsOperation
 
   class QueryRoot(query: Query,
-                  fromOpt: Option[Int],
-                  sizeOpt: Option[Int],
-                  sortOpt: Option[Seq[Sort]],
-                  timeoutOpt: Option[Int],
-                  sourceFilterOpt: Option[Seq[String]],
-                  terminateAfterOpt: Option[Int])
+                  fromOpt: Option[Int] = None,
+                  sizeOpt: Option[Int] = None,
+                  sortOpt: Option[Seq[Sort]] = None,
+                  timeoutOpt: Option[Int] = None,
+                  sourceFilterOpt: Option[Seq[String]] = None,
+                  terminateAfterOpt: Option[Int] = None)
     extends RootObject {
 
     val _query = "query"
@@ -56,20 +56,6 @@ trait QueryDsl extends DslCommons with SortDsl {
         sortOpt.map(_sort -> _.map(_.toJson)) ++
         sourceFilterOpt.map(_source -> _) ++
         terminateAfterOpt.map(_terminate_after -> _)
-    }
-  }
-
-  object QueryRoot {
-
-    def apply(query: Query,
-              fromOpt: Option[Int] = None,
-              sizeOpt: Option[Int] = None,
-              sortOpt: Option[Seq[Sort]] = None,
-              timeoutOpt: Option[Int] = None,
-              sourceFilterOpt: Option[Seq[String]] = None,
-              terminateAfterOpt: Option[Int] = None): QueryRoot = {
-
-      new QueryRoot(query, fromOpt, sizeOpt, sortOpt, timeoutOpt, sourceFilterOpt, terminateAfterOpt)
     }
   }
 
