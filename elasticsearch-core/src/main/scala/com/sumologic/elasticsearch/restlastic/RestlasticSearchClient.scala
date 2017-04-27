@@ -312,7 +312,7 @@ object RestlasticSearchClient {
                                    _id: String,
                                     _score: Option[Float],
                                    _source: JObject,
-                                   highlight: Option[JObject] = None)
+                                   highlight: Option[JObject])
 
     case class RawJsonResponse(jsonStr: String) {
       private implicit val formats = org.json4s.DefaultFormats
