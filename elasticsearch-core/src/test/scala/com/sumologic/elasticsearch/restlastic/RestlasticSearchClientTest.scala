@@ -67,10 +67,8 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "Be able to setup document mapping" in {
       val basicFieldMapping = BasicFieldMapping(StringType, None, Some(analyzerName))
-      val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
-        Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)),
-        timestampMapping, Some(false)))
+        Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)), Some(false)))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
@@ -78,10 +76,8 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "Be able to setup document mapping with ignoreAbove" in {
       val basicFieldMapping = BasicFieldMapping(StringType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
-      val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
-        Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)),
-        timestampMapping))
+        Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName))))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
@@ -95,12 +91,11 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val basicFieldOffsetsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(OffsetsIndexOption))
 
-      val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFieldDocsMapping, "f1" -> basicFieldFreqsMapping,
           "f2" -> basicFieldOffsetsMapping, "text" -> basicFieldOffsetsMapping,
           "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")),
-            analyzerName)), timestampMapping))
+            analyzerName))))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
@@ -345,10 +340,8 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     "Support case insensitive autocomplete" in {
 
       val basicFieldMapping = BasicFieldMapping(StringType, None, Some(analyzerName))
-      val timestampMapping = EnabledFieldMapping(true)
       val metadataMapping = Mapping(tpe, IndexMapping(
-        Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)),
-        timestampMapping, Some(false)))
+        Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)), Some(false)))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
@@ -667,7 +660,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "Support NestedQuery" in {
       // https://www.elastic.co/guide/en/elasticsearch/reference/2.3/query-dsl-nested-query.html
-      val metadataMapping = Mapping(tpe, IndexMapping(Map("user" -> NestedFieldMapping), EnabledFieldMapping(true), None))
+      val metadataMapping = Mapping(tpe, IndexMapping(Map("user" -> NestedFieldMapping), None))
       val mappingFuture = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFuture) { _ => refresh() }
       val userDoc = List(Map("first" -> "john", "last" -> "Smith"), Map("first" -> "Alice", "last" -> "White"))
@@ -735,7 +728,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     "support geo distance filter" in {
       // https://www.elastic.co/guide/en/elasticsearch/guide/current/geo-distance.html
       val geoPointMapping = BasicFieldMapping(GeoPointType, None, None)
-      val metadataMapping = Mapping(tpe, IndexMapping(Map("location" -> geoPointMapping), EnabledFieldMapping(true), Some(false)))
+      val metadataMapping = Mapping(tpe, IndexMapping(Map("location" -> geoPointMapping), Some(false)))
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
 
@@ -852,7 +845,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     "support sorting by Distance" in {
       // https://www.elastic.co/guide/en/elasticsearch/guide/current/sorting-by-distance.html
       val geoPointMapping = BasicFieldMapping(GeoPointType, None, None)
-      val metadataMapping = Mapping(tpe, IndexMapping(Map("location" -> geoPointMapping), EnabledFieldMapping(true), Some(false)))
+      val metadataMapping = Mapping(tpe, IndexMapping(Map("location" -> geoPointMapping), Some(false)))
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
       val locationDoc1 = Document("distanceSortDoc1", Map("f1" -> "distanceSortDoc", "location" -> "40.715, -74.011"))
@@ -897,7 +890,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         Some(analyzerName), indexOption = Some(OffsetsIndexOption))
 
       val metadataMapping = Mapping(tpe, IndexMapping(
-        Map("f1" -> basicFieldFreqsMapping, "text" -> basicFieldOffsetsMapping), EnabledFieldMapping(true)))
+        Map("f1" -> basicFieldFreqsMapping, "text" -> basicFieldOffsetsMapping)))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
