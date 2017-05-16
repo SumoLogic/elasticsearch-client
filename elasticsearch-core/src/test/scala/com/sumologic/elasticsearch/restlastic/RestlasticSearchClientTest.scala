@@ -105,8 +105,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "Be able to create an index, index a document, and search it" in {
       indexDocs(Seq(Document("doc1", Map("text" -> "here"))))
-      val resFut = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here"),
-        sortOpt = Some(Seq(SimpleSort("_timestamp", DescSortOrder))), timeoutOpt = Some(10)))
+      val resFut = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here"), timeoutOpt = Some(10)))
       whenReady(resFut) { res =>
         res.sourceAsMap.toList should be(List(Map("text" -> "here")))
       }
@@ -114,8 +113,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "Be able to delete a document that exists" in {
       indexDocs(Seq(Document("doc1", Map("text" -> "here"))))
-      val resFut = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here"),
-        sortOpt = Some(Seq(SimpleSort("_timestamp", DescSortOrder))), timeoutOpt = Some(10)))
+      val resFut = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here"), timeoutOpt = Some(10)))
 
       val foundDoc: ElasticJsonDocument = whenReady(resFut){ res =>
         res.rawSearchResponse.hits.hits.head
@@ -129,8 +127,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
       refresh()
 
-      val resFut2 = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here"),
-        sortOpt = Some(Seq(SimpleSort("_timestamp", DescSortOrder))), timeoutOpt = Some(10)))
+      val resFut2 = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here"), timeoutOpt = Some(10)))
       whenReady(resFut2){ res =>
         res.rawSearchResponse.hits.hits.size should be(0)
       }
