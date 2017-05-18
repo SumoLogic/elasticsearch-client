@@ -30,15 +30,14 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   trait Filter extends EsOperation
 
-  trait QueryRootLike extends RootObject
-
-  case class QueryRoot(query: Query,
-                       fromOpt: Option[Int],
-                       sizeOpt: Option[Int],
-                       sort: Seq[Sort],
-                       timeout: Option[Int],
-                       sourceFilter: Option[Seq[String]])
-    extends QueryRootLike {
+  class QueryRoot(query: Query,
+                  fromOpt: Option[Int] = None,
+                  sizeOpt: Option[Int] = None,
+                  sortOpt: Option[Seq[Sort]] = None,
+                  timeoutOpt: Option[Int] = None,
+                  sourceFilterOpt: Option[Seq[String]] = None,
+                  terminateAfterOpt: Option[Int] = None)
+    extends RootObject {
 
     val _query = "query"
     val _size = "size"
@@ -47,50 +46,16 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _from = "from"
     val _timeout = "timeout"
     val _source = "_source"
+    val _terminate_after = "terminate_after"
 
     override def toJson: Map[String, Any] = {
       Map(_query -> query.toJson) ++
         fromOpt.map(_from -> _) ++
         sizeOpt.map(_size -> _) ++
-        timeout.map(t => _timeout -> s"${t}ms") ++
-        (if(sort.isEmpty) None else Some(sort)).map(_sort -> _.map(_.toJson)) ++
-        sourceFilter.map(_source -> _)
-    }
-  }
-
-  object QueryRoot {
-
-    def apply(query: Query,
-              fromOpt: Option[Int] = None,
-              sizeOpt: Option[Int] = None,
-              sortOpt: Option[Seq[(String, String)]] = None,
-              timeout: Option[Int] = None,
-              sourceFilter: Option[Seq[String]] = None,
-              terminateAfter: Option[Int] = None): QueryRoot = {
-      val sorts = sortOpt
-        .map(_.foldLeft(Seq.empty[Sort])((sorts, value) => sorts :+ SimpleSort(value._1, SortOrder.fromString(value._2))))
-        .getOrElse(Nil)
-      terminateAfter
-        .map(tA => new ExtendedQueryRoot(query, fromOpt, sizeOpt, sorts, timeout, sourceFilter, Some(tA)))
-        .getOrElse(new QueryRoot(query, fromOpt, sizeOpt, sorts, timeout, sourceFilter))
-    }
-  }
-  
-  // This api should be incorporated into QueryRoot in 2.0 when breaking changes are allowed.
-  // Before that, this api can serve to extend QueryRoot with backward compatibility.
-  class ExtendedQueryRoot(override val query: Query,
-                          override val fromOpt: Option[Int] = None,
-                          override val sizeOpt: Option[Int] = None,
-                          override val sort: Seq[Sort] = Seq(),
-                          override val timeout: Option[Int] = None,
-                          override val sourceFilter: Option[Seq[String]] = None,
-                          terminateAfter: Option[Int] = None)
-    extends QueryRoot(query, fromOpt, sizeOpt, sort, timeout, sourceFilter) {
-    
-    val _terminate_after = "terminate_after"
-
-    override def toJson: Map[String, Any] = {
-      super.toJson ++ terminateAfter.map(_terminate_after -> _)
+        timeoutOpt.map(t => _timeout -> s"${t}ms") ++
+        sortOpt.map(_sort -> _.map(_.toJson)) ++
+        sourceFilterOpt.map(_source -> _) ++
+        terminateAfterOpt.map(_terminate_after -> _)
     }
   }
 
@@ -397,7 +362,7 @@ trait QueryDsl extends DslCommons with SortDsl {
   }
 
   case class HighlightRoot(queryRoot: QueryRoot, highlight: Highlight)
-    extends QueryRootLike {
+    extends RootObject {
 
     override def toJson: Map[String, Any] = {
       queryRoot.toJson ++ highlight.toJson

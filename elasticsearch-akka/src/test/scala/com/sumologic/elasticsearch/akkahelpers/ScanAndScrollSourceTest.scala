@@ -39,14 +39,14 @@ class ScanAndScrollSourceTest extends WordSpec with Matchers with ScalaFutures {
   implicit val materializer = ActorMaterializer()
 
   def searchResponseFromMap(map: Map[String, AnyRef]) = {
-    val raw = RawSearchResponse(Hits(List(ElasticJsonDocument("index", "type", "id", Some(0.1f), decompose(map).asInstanceOf[JObject], None)), 1))
+    val raw = RawSearchResponse(Hits(List(ElasticJsonDocument("index", "type", "id", Some(0.1f), decompose(map).asInstanceOf[JObject], highlight = None)), 1))
     SearchResponse(raw, "{}")
   }
 
   "ScanAndScrollSource" should {
     val index = Index("index")
     val tpe = Type("tpe")
-    val queryRoot = QueryRoot(MatchAll)
+    val queryRoot = new QueryRoot(MatchAll)
 
     "Read to the end of a source" in {
       val searchResponses = resultMaps.map(searchResponseFromMap)
@@ -69,28 +69,32 @@ class MockScrollClient(results: List[SearchResponse]) extends ScrollClient {
   var started = false
   var resultsQueue = results
   override def startScrollRequest(index: Dsl.Index, tpe: Dsl.Type, query: Dsl.QueryRoot,
-                                  resultWindow: String): Future[ScrollId] = {
+                                  resultWindowOpt: Option[String] = None, fromOpt: Option[Int] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)] = {
     if (!started) {
       started = true
-      Future.successful(ScrollId(id.toString))
+      processRequest()
     } else {
       Future.failed(new RuntimeException("Scroll already started"))
     }
   }
 
-  override def scroll(scrollId: ScrollId, resultWindow: String): Future[(ScrollId, SearchResponse)] = {
+  override def scroll(scrollId: ScrollId, resultWindowOpt: Option[String] = None): Future[(ScrollId, SearchResponse)] = {
     if (scrollId.id.toInt == id) {
-      id += 1
-      resultsQueue match {
-        case head :: rest =>
-          resultsQueue = rest
-          Future.successful((ScrollId(id.toString), head))
-        case Nil =>
-          Future.successful((ScrollId(id.toString), SearchResponse.empty))
-      }
+      processRequest()
     } else {
       Future.failed(new RuntimeException("Invalid id"))
     }
 
+  }
+
+  private def processRequest(): Future[(ScrollId, SearchResponse)] = {
+    id += 1
+    resultsQueue match {
+      case head :: rest =>
+        resultsQueue = rest
+        Future.successful((ScrollId(id.toString), head))
+      case Nil =>
+        Future.successful((ScrollId(id.toString), SearchResponse.empty))
+    }
   }
 }
