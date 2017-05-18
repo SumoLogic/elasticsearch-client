@@ -27,3 +27,18 @@ ElasticJsonDocument api has changed to
     _source: JObject,
     highlight: Option[JObject])
 ```
+
+### MultiMatchQueryWithOptions and MultiMatchQuery
+MultiMatchQueryWithOptions and MultiMatchQuery are unified into MultiMatchQuery with the following api
+```
+MultiMatchQuery(query: String, 
+    options: Map[String, String], 
+    fields: String*)
+```
+
+### ElasticErrorResponse api
+ElasticErrorResponse api has changed to 
+```
+ElasticErrorResponse(error: JValue, 
+    status: Int)
+```
