@@ -53,18 +53,23 @@ class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSourc
 
   val logger = LoggerFactory.getLogger(ScanAndScrollSource.getClass)
   override def preStart(): Unit = {
-    scrollSource.startScrollRequest(index, tpe, query).map { scrollResult =>
-      ScrollStarted(scrollResult)
+    scrollSource.startScrollRequest(index, tpe, query).map { case (scrollId, newData) =>
+      GotData(scrollId, newData)
     }.recover(recovery).pipeTo(self)
-    startWith(Starting, NotReady)
+    startWith(Starting, FirstScroll)
   }
 
   when(Starting) {
     case Event(ActorPublisherMessage.Request(_), _) => stay()
     case Event(ActorPublisherMessage.Cancel, _) => stop()
 
-    case Event(ScrollStarted(scrollId), NotReady) =>
-      requestMore(scrollId)
+    case Event(GotData(nextId, data), FirstScroll) =>
+      if (data.length == 0) {
+        onComplete()
+        stop()
+      } else {
+        consumeIfPossible(nextId, data)
+      }
 
     case Event(ScrollFailure(ex), _) =>
       onError(ScrollFailureException("Failed to start the scroll", ex))
@@ -137,11 +142,10 @@ object ScanAndScrollSource {
   case object Running extends ScanState
 
   sealed trait ScanData
-  case object NotReady extends ScanData
+  case object FirstScroll extends ScanData
   case class WaitingForDataWithId(scrollId: ScrollId) extends ScanData
   case class WithIdAndData(scrollId: ScrollId, data: SearchResponse) extends ScanData
 
-  case class ScrollStarted(scrollId: ScrollId)
   case class GotData(nextScrollId: ScrollId, data: SearchResponse)
   case class ScrollFailure(cause: Throwable)
 
