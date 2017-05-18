@@ -688,7 +688,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val docsFuture = restClient.bulkIndex(index, tpe, Seq(multiMatchDoc1, multiMatchDoc2))
       whenReady(docsFuture) { _ => refresh() }
 
-      val matchQuery = MultiMatchQueryWithOptions("multimatch1", Map(), "f1", "text")
+      val matchQuery = MultiMatchQuery("multimatch1", Map(), "f1", "text")
       val matchQueryFuture = restClient.query(index, tpe, new QueryRoot(matchQuery))
       matchQueryFuture.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "text1", "f2" -> 1, "text" -> "multimatch1"), Map("f1" -> "multimatch1", "f2" -> 1, "text" -> "text1")))
     }
@@ -700,7 +700,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val docsFuture = restClient.bulkIndex(index, tpe, Seq(multiMatchDoc1, multiMatchDoc2))
       whenReady(docsFuture) { _ => refresh() }
 
-      val matchQuery = MultiMatchQueryWithOptions("multimatch1 test", Map("operator" -> "and"), "f1", "text")
+      val matchQuery = MultiMatchQuery("multimatch1 test", Map("operator" -> "and"), "f1", "text")
       val matchQueryFuture = restClient.query(index, tpe, new QueryRoot(matchQuery))
       matchQueryFuture.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "multimatch1 test", "f2" -> 1, "text" -> "text1")))
     }
