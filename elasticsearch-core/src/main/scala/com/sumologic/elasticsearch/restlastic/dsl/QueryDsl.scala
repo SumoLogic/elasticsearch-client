@@ -297,19 +297,6 @@ trait QueryDsl extends DslCommons with SortDsl {
     override def value: String = "none"
   }
 
-  case class MultiMatchQuery(query: String, fields: String*) extends Query {
-    val _multiMatch = "multi_match"
-    val _query = "query"
-    val _fields = "fields"
-
-    override def toJson: Map[String, Any] = Map(
-      _multiMatch -> Map(
-        _query -> query,
-        _fields -> fields.toList
-      )
-    )
-  }
-
   case class MultiMatchQueryWithOptions(query: String, options: Map[String, String], fields: String*) extends Query {
     val _multiMatch = "multi_match"
     val _query = "query"
