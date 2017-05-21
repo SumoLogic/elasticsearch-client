@@ -27,6 +27,7 @@
     <properties>
         <scala.version.major>2.11</scala.version.major>
         <akka.version>2.3.11</akka.version>
+        <elasticsearch.version>1.6.2</elasticsearch.version>
     </properties>
     <dependencies>
         <dependency>

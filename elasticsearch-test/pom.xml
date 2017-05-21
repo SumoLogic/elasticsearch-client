@@ -39,13 +39,13 @@
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>1.6.2</version>
+      <version>${elasticsearch.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>1.6.2</version>
+      <version>${elasticsearch.version}</version>
       <type>test-jar</type>
     </dependency>
 
