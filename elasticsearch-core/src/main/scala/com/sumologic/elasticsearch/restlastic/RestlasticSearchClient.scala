@@ -170,9 +170,14 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     runEsCommand(EmptyObject, s"/${index.name}", DELETE)
   }
 
-  def deleteDocument(index: Index, tpe: Type, query: QueryRoot): Future[RawJsonResponse] = {
+  def deleteDocument(index: Index, tpe: Type, deleteQuery: QueryRoot, pluginEnabled: Boolean = false): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(query, s"/${index.name}/${tpe.name}/_query", DELETE)
+    if (pluginEnabled) {
+      runEsCommand(deleteQuery, s"/${index.name}/${tpe.name}/_query", DELETE)
+    } else {
+      val documents = Await.result(query(index, tpe, deleteQuery, rawJsonStr = false), 10.seconds).rawSearchResponse.hits.hits.map(_._id)
+      bulkDelete(index, tpe, documents.map(Document(_, Map()))).map(res => RawJsonResponse(res.toString))
+    }
   }
 
   def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindow: String = "1m"): Future[ScrollId] = {
