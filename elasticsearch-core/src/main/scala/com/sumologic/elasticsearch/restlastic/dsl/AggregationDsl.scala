@@ -31,10 +31,9 @@ trait AggregationDsl extends DslCommons with QueryDsl {
     val _timeout = "timeout"
 
     override def toJson: Map[String, Any] = {
-      Map(_query -> query.toJson,
-        _aggs -> aggs.toJson,
-        _size -> 0) ++
-      timeout.map(t => _timeout -> s"${t}ms")
+      query.toJson ++
+        Map(_aggs -> aggs.toJson, _size -> 0) ++
+        timeout.map(t => _timeout -> s"${t}ms")
     }
   }
 

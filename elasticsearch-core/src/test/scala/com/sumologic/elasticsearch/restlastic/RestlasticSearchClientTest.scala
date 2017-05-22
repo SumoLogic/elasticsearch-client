@@ -523,6 +523,11 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Support Terms Aggregation Query" in {
+
+      val basicFieldMapping = BasicFieldMapping(TextType, analyzer = Some(analyzerName), search_analyzer = Some(analyzerName))
+      val mappingFut = restClient.putMapping(index, tpe, Mapping(tpe, IndexMapping(Map("f1" -> basicFieldMapping))))
+      whenReady(mappingFut) { _ => refresh() }
+
       val aggrDoc1 = Document("aggrDoc1", Map("f1" -> "aggr1", "f2" -> 1, "text" -> "text1"))
       val aggrDoc2 = Document("aggrDoc2", Map("f1" -> "aggr2", "f2" -> 2, "text" -> "text2"))
       val aggrDoc3 = Document("aggrDoc3", Map("f1" -> "aggr3", "f2" -> 1, "text" -> "text1"))
