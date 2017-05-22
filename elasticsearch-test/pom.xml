@@ -24,17 +24,6 @@
 
     <!-- ATTN: If you need elasticsearch-test you need to also add these dependencies to your pom directly
          with <scope>test</scope>! -->
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-core</artifactId>
-      <version>${lucene.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-analyzers-common</artifactId>
-      <version>${lucene.version}</version>
-    </dependency>
 
     <dependency>
       <groupId>org.elasticsearch</groupId>

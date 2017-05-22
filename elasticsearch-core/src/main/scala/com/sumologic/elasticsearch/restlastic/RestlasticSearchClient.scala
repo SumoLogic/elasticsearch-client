@@ -33,7 +33,7 @@ import com.sumologic.elasticsearch.restlastic.dsl.Dsl
 import com.sumologic.elasticsearch.util.AkkaHttpUtil
 import org.json4s._
 import org.json4s.native.JsonMethods._
-import org.slf4j.LoggerFactory
+import org.apache.log4j.Logger
 
 trait ScrollClient {
   import Dsl._
@@ -70,7 +70,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
   private implicit val materializer = ActorMaterializer()
   private implicit val formats = org.json4s.DefaultFormats
-  private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
+  private val logger = Logger.getLogger(RestlasticSearchClient.getClass)
   import Dsl._
   import RestlasticSearchClient.ReturnTypes._
 
@@ -159,7 +159,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
   def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(CreateIndex(settings), s"/${index.name}").recover {
+    runEsCommand(CreateIndex(settings), s"/${index.name}", PUT).recover {
       case ElasticErrorResponse(message, status) if message contains "index_already_exists_exception" =>
         throw new IndexAlreadyExistsException(message)
     }
