@@ -61,23 +61,7 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   case class ConstantScore(filter: Filter) extends SingleField("constant_score", filter) with Filter
 
-
-  case class FilteredQuery(filter: Filter, query: Query) extends Query {
-    val _filter = "filter"
-    val _query = "query"
-    val _bool = "bool"
-    val _must = "must"
-    val _searchType = "search-type"
-
-    override def toJson: Map[String, Any] = {
-      Map(_query ->
-        Map(_bool ->
-          Map(_must -> query.toJson,
-            _filter -> filter.toJson)))
-    }
-  }
-
-  case class MultiTermFilteredQuery(query: Query, filter: Filter*) extends Query {
+  case class FilteredQuery(query: Query, filter: Filter*) extends Query {
     val _filter = "filter"
     val _query = "query"
     val _searchType = "search-type"

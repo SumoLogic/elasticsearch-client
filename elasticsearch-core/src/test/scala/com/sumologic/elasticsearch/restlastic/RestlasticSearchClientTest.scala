@@ -441,9 +441,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val termf1 = TermFilter("filter1", "val1")
       val termf2 = TermFilter("filter2", "val2")
       val termf3 = TermFilter("filter1", "val2")
-      val validQuery = MultiTermFilteredQuery(MatchAll, termf1, termf2)
-      val invalidQuery = MultiTermFilteredQuery(MatchAll, termf1, termf3)
-      val invalidQuery2 = MultiTermFilteredQuery(MatchAll, termf3, termf1)
+      val validQuery = FilteredQuery(MatchAll, termf1, termf2)
+      val invalidQuery = FilteredQuery(MatchAll, termf1, termf3)
+      val invalidQuery2 = FilteredQuery(MatchAll, termf3, termf1)
       val resFut = restClient.query(index, tpe, new QueryRoot(validQuery))
       whenReady(resFut) { res =>
         res.sourceAsMap.toList should be(List(Map("filter1" -> "val1", "filter2" -> "val2")))
@@ -531,7 +531,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
       val phasePrefixQuery = PhrasePrefixQuery("f1", "aggr", Some(5))
       val termf = TermFilter("f2", "1")
-      val filteredQuery = MultiTermFilteredQuery(phasePrefixQuery, termf, termf)
+      val filteredQuery = FilteredQuery(phasePrefixQuery, termf, termf)
       val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some(5), Some(5), Some("map"))
       val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
 
@@ -551,7 +551,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       whenReady(bulkIndexFuture) { _ => refresh() }
 
       val phasePrefixQuery = PhrasePrefixQuery("f1", "sortOrderAggr", Some(5)) // filters out ES docs for other tests
-      val filteredQuery = MultiTermFilteredQuery(phasePrefixQuery, TermFilter("f2", "1"))
+      val filteredQuery = FilteredQuery(phasePrefixQuery, TermFilter("f2", "1"))
       val termsAggr = TermsAggregation("f1", None, Some(5), Some(5), None, None, None, Some(DescSortOrder))
       val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
 
@@ -571,7 +571,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       whenReady(bulkIndexFuture) { _ => refresh() }
 
       val phasePrefixQuery = PhrasePrefixQuery("f1", "topHitsAggr", Some(5)) // filters out ES docs for other tests
-      val filteredQuery = MultiTermFilteredQuery(phasePrefixQuery)
+      val filteredQuery = FilteredQuery(phasePrefixQuery)
       val termsAggr = TermsAggregation("text", None, Some(5), Some(5), None, None,
         Some(TopHitsAggregation("thereCanBeOnlyOne", Some(1),
           Some(Seq(
@@ -626,11 +626,11 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val regexFuture = restClient.bulkIndex(index, tpe, Seq(regexDoc1, regexDoc2))
       whenReady(regexFuture) { _ => refresh() }
 
-      val filteredQuery = MultiTermFilteredQuery(MatchAll, RegexFilter("f1", "regexf.*1"))
+      val filteredQuery = FilteredQuery(MatchAll, RegexFilter("f1", "regexf.*1"))
       val regexQueryFuture = restClient.query(index, tpe, new QueryRoot(filteredQuery))
       regexQueryFuture.futureValue.sourceAsMap should be(List(Map("f1" -> "regexFilter1", "f2" -> 1, "text" -> "text1")))
 
-      val filteredQuery2 = MultiTermFilteredQuery(MatchAll, RegexFilter("f1", "regexf.*"))
+      val filteredQuery2 = FilteredQuery(MatchAll, RegexFilter("f1", "regexf.*"))
       val regexQueryFuture2 = restClient.query(index, tpe, new QueryRoot(filteredQuery2))
       regexQueryFuture2.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "regexFilter1", "f2" -> 1, "text" -> "text1"), Map("f1" -> "regexFilter2", "f2" -> 1, "text" -> "text2")))
     }
@@ -737,7 +737,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val locDocsFuture = restClient.bulkIndex(index, tpe, Seq(locationDoc1, locationDoc2))
       whenReady(locDocsFuture) { _ => refresh() }
 
-      val geoQuery = MultiTermFilteredQuery(
+      val geoQuery = FilteredQuery(
         query = MatchQuery("category", "categoryName"),
         filter = GeoDistanceFilter(s"1km", "location", GeoLocation(40.715, -74.011))
       )
