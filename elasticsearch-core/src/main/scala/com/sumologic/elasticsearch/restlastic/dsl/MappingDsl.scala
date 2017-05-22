@@ -162,7 +162,7 @@ trait MappingDsl extends DslCommons {
 
   trait Completion {
     val _type = "type" -> "completion"
-    val _context = "context"
+    val _context = "contexts"
     val _analzyer = "analyzer" -> analyzer.name
     val _sanalyzer = "search_analyzer" -> analyzer.name
 
@@ -181,24 +181,13 @@ trait MappingDsl extends DslCommons {
 
     override def toJson: Map[String, Any] = {
       super.toJson ++
-      Map(_context -> context.mapValues { case cc =>
+      Map(_context -> context.map { case (name, cc) =>
           Map(
             "type" -> "category",
-            "path" -> cc.path
+            "path" -> cc.path,
+            "name" -> name
           )
         }
-      )
-    }
-  }
-
-  case class CompletionMappingWithoutPath(context: Map[String, Unit], analyzer: Name = Name("keyword"))
-    extends FieldMapping with Completion {
-
-    override def toJson: Map[String, Any] = {
-      super.toJson ++
-        Map(_context -> context.mapValues { case cc =>
-          Map("type" -> "category")
-         }
       )
     }
   }
