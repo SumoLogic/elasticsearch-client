@@ -66,7 +66,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Be able to setup document mapping" in {
-      val basicFieldMapping = BasicFieldMapping(StringType, None, Some(analyzerName))
+      val basicFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName))
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)), Some(false)))
 
@@ -75,7 +75,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Be able to setup document mapping with ignoreAbove" in {
-      val basicFieldMapping = BasicFieldMapping(StringType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
+      val basicFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName))))
 
@@ -84,11 +84,11 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Be able to setup document mapping with field index options" in {
-      val basicFieldDocsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+      val basicFieldDocsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(DocsIndexOption))
-      val basicFieldFreqsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+      val basicFieldFreqsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(FreqsIndexOption))
-      val basicFieldOffsetsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+      val basicFieldOffsetsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(OffsetsIndexOption))
 
       val metadataMapping = Mapping(tpe, IndexMapping(
@@ -336,7 +336,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "Support case insensitive autocomplete" in {
 
-      val basicFieldMapping = BasicFieldMapping(StringType, None, Some(analyzerName))
+      val basicFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName))
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)), Some(false)))
 
@@ -881,9 +881,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "support query with highlights with extended query root" in {
-      val basicFieldFreqsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+      val basicFieldFreqsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(FreqsIndexOption))
-      val basicFieldOffsetsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+      val basicFieldOffsetsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(OffsetsIndexOption))
 
       val metadataMapping = Mapping(tpe, IndexMapping(
