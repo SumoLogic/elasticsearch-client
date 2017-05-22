@@ -92,15 +92,18 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         Some(analyzerName), indexOption = Some(OffsetsIndexOption))
 
       val metadataMapping = Mapping(tpe, IndexMapping(
-        Map("name" -> basicFieldDocsMapping, "f1" -> basicFieldFreqsMapping,
+        Map("f0" -> basicFieldDocsMapping, "f1" -> basicFieldFreqsMapping,
           "f2" -> basicFieldOffsetsMapping, "text" -> basicFieldOffsetsMapping,
-          "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")),
+          "suggest" -> CompletionMapping(Map("f" -> CompletionContext("text")),
             analyzerName))))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
-      val mappingRes = restClient.getMapping(index, tpe)
-      mappingRes.futureValue.jsonStr.toString.contains(""""f2":{"type":"string","index_options":"offsets","analyzer":"keyword_lowercase"}""") should be(true)
+
+      val mappingRes = restClient.getMapping(index, tpe).futureValue.jsonStr.toString
+      mappingRes.contains(""""f0":{"type":"text","index_options":"docs","analyzer":"keyword_lowercase"}""") should be(true)
+      mappingRes.contains(""""f1":{"type":"text","index_options":"freqs","analyzer":"keyword_lowercase"}""") should be(true)
+      mappingRes.contains(""""f2":{"type":"text","index_options":"offsets","analyzer":"keyword_lowercase"}""") should be(true)
     }
 
     "Be able to create an index, index a document, and search it" in {
