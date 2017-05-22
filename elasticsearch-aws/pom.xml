@@ -40,12 +40,6 @@
       <version>1.10.62</version>
     </dependency>
 
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.7.14</version>
-    </dependency>
-
     <!-- Non-Sumo Dependencies. -->
     <dependency>
       <groupId>com.typesafe.akka</groupId>

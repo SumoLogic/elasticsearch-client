@@ -59,7 +59,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class ConstantScore(filter: Filter) extends SingleField("constant_score", filter) with Filter
+  case class ConstantScore(filter: Filter) extends StringleField("constant_score", filter) with Filter
 
 
   case class FilteredQuery(filter: Filter, query: Query) extends Query {

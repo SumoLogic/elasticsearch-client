@@ -51,7 +51,7 @@ trait DslCommons {
     override def toJsonStr = ""
   }
 
-  abstract class SingleField(field: String, value: EsOperation) extends EsOperation {
+  abstract class StringleField(field: String, value: EsOperation) extends EsOperation {
     override def toJson: Map[String, Any] = Map(
       field -> value.toJson
     )

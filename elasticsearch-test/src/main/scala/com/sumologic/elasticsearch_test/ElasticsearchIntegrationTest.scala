@@ -21,13 +21,17 @@ package com.sumologic.elasticsearch_test
 import java.io.File
 
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest
-import org.elasticsearch.client.transport.TransportClient
-import org.elasticsearch.common.settings.ImmutableSettings
-import org.elasticsearch.common.transport.{InetSocketTransportAddress, LocalTransportAddress}
-import org.elasticsearch.node.NodeBuilder
+import org.elasticsearch.common.transport.InetSocketTransportAddress
 import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.elasticsearch.common.settings.Settings
+import org.elasticsearch.node.Node
+import java.util.Collections
+
+import org.elasticsearch.node.internal.InternalSettingsPreparer
+import org.elasticsearch.transport.Netty4Plugin
 
 import scala.util.{Random, Try}
+import scala.collection.JavaConversions._
 
 /**
  * Created by Russell Cohen on 11/2/15.
@@ -62,6 +66,8 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll {
   override def afterAll(): Unit = {
     Try(delete(IndexName))
     super.afterAll()
+    esNode.close()
+    client.close()
   }
 
   def refresh(): Unit = esNode.client().admin().indices().prepareRefresh().execute().actionGet()
@@ -71,10 +77,14 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll {
 
 object ElasticsearchIntegrationTest {
   private val r = new Random()
-  private lazy val esNodeSettings = ImmutableSettings.settingsBuilder().put("path.data", createTempDir("elasticsearch-test")).build()
-  private lazy val esNode = NodeBuilder.nodeBuilder().local(true).settings(esNodeSettings).node()
-  private lazy val settings = ImmutableSettings.settingsBuilder().put("node.local", "true").build()
-  lazy val client = new TransportClient(settings).addTransportAddress(new LocalTransportAddress("1"))
+  private lazy val esNodeSettings = Settings.builder().
+    put("path.home", createTempDir("elasticsearch-test")).
+    put("transport.type", "netty4").
+    put("http.type", "netty4").
+    put("http.enabled", "true").
+    build()
+  private lazy val esNode = new PluginNode(esNodeSettings).start()
+  lazy val client = esNode.client()
   lazy val globalEndpoint = {
     val nodeInfos = client.admin().cluster().prepareNodesInfo().clear().setSettings(true).setHttp(true).get()
     val nodeAddress =
@@ -98,4 +108,8 @@ object ElasticsearchIntegrationTest {
     tempDir
   }
 }
+
+class PluginNode(settings: Settings)
+  extends Node(InternalSettingsPreparer.prepareEnvironment(settings, null),
+    Collections.singletonList(classOf[Netty4Plugin]))
 

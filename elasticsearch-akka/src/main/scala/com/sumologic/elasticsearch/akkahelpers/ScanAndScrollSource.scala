@@ -26,7 +26,7 @@ import com.sumologic.elasticsearch.akkahelpers.ScanAndScrollSource.{ScanState, S
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ScrollId, SearchResponse}
 import com.sumologic.elasticsearch.restlastic.ScrollClient
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
-import org.slf4j.LoggerFactory
+import org.apache.log4j.Logger
 
 /**
  * ScanAndScrollSource wraps Elasticsearch's Scroll API as a akka-streams source. By creating and subscribing to this source,
@@ -51,7 +51,7 @@ class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSourc
   import ScanAndScrollSource._
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val logger = LoggerFactory.getLogger(ScanAndScrollSource.getClass)
+  val logger = Logger.getLogger(ScanAndScrollSource.getClass)
   override def preStart(): Unit = {
     scrollSource.startScrollRequest(index, tpe, query).map { scrollResult =>
       ScrollStarted(scrollResult)

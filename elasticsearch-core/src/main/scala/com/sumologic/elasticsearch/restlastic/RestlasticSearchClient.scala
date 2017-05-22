@@ -33,7 +33,7 @@ import com.sumologic.elasticsearch.restlastic.dsl.Dsl
 import com.sumologic.elasticsearch.util.AkkaHttpUtil
 import org.json4s._
 import org.json4s.native.JsonMethods._
-import org.slf4j.LoggerFactory
+import org.apache.log4j.Logger
 
 trait ScrollClient {
   import Dsl._
@@ -70,7 +70,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
   private implicit val materializer = ActorMaterializer()
   private implicit val formats = org.json4s.DefaultFormats
-  private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
+  private val logger = Logger.getLogger(RestlasticSearchClient.getClass)
   import Dsl._
   import RestlasticSearchClient.ReturnTypes._
 
@@ -127,6 +127,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   def bulkIndex(bulk: Bulk): Future[Seq[BulkItem]] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(bulk, s"/_bulk").map { resp =>
+      println(s"BulkIndexResponse $resp")
       val bulkResp = resp.mappedTo[BulkIndexResponse]
       bulkResp.items.map(_.values.head)
     }
@@ -160,7 +161,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(CreateIndex(settings), s"/${index.name}", PUT).recover {
-      case ElasticErrorResponse(message, status) if message contains "IndexAlreadyExistsException" =>
+      case ElasticErrorResponse(message, status) if message contains "index_already_exists_exception" =>
         throw new IndexAlreadyExistsException(message)
     }
   }
@@ -257,9 +258,9 @@ object RestlasticSearchClient {
     case class ScrollId(id: String)
 
     case class BulkIndexResponse(items: List[Map[String, BulkItem]])
-    case class BulkItem(_index: String, _type: String, _id: String, status: Int, error: Option[String]) {
+    case class BulkItem(_index: String, _type: String, _id: String, status: Int) {
       def created = status > 200 && status < 299 && !alreadyExists
-      def alreadyExists = error.exists(_.contains("DocumentAlreadyExists"))
+      def alreadyExists = true //error.exists(_.reason.toString.contains("document already exists"))
       def success = status >= 200 && status <= 299
     }
 

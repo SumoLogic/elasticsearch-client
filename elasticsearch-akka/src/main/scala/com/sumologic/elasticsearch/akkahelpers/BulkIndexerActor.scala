@@ -24,7 +24,7 @@ import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.BulkItem
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch.util.InstrumentationContext
-import org.slf4j.LoggerFactory
+import org.apache.log4j.Logger
 
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Random
@@ -44,7 +44,7 @@ case class BulkConfig(flushDuration: () => FiniteDuration, maxDocuments: () => I
 class BulkIndexerActor(restlasticSearchClient: RestlasticSearchClient, bulkConfig: BulkConfig) extends Actor {
   import BulkIndexerActor._
 
-  val logger = LoggerFactory.getLogger(BulkIndexerActor.getClass)
+  val logger = Logger.getLogger(BulkIndexerActor.getClass)
 
   case class OpWithTarget(operation: BulkOperation, target: ActorRef, sessionId: BulkSession)
   var queue = List.empty[OpWithTarget]
