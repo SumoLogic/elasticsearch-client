@@ -257,9 +257,10 @@ object RestlasticSearchClient {
     case class ScrollId(id: String)
 
     case class BulkIndexResponse(items: List[Map[String, BulkItem]])
-    case class BulkItem(_index: String, _type: String, _id: String, status: Int, error: Option[String]) {
+    case class BulkIndexError(reason: String)
+    case class BulkItem(_index: String, _type: String, _id: String, status: Int, error: Option[BulkIndexError]) {
       def created = status > 200 && status < 299 && !alreadyExists
-      def alreadyExists = error.exists(_.contains("DocumentAlreadyExists"))
+      def alreadyExists = error.exists(_.reason.contains("document already exists"))
       def success = status >= 200 && status <= 299
     }
 
