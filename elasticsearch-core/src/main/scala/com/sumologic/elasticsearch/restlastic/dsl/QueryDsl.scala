@@ -63,23 +63,21 @@ trait QueryDsl extends DslCommons with SortDsl {
 
 
   case class FilteredQuery(filter: Filter, query: Query) extends Query {
-    val _filtered = "filtered"
     val _filter = "filter"
     val _query = "query"
+    val _bool = "bool"
+    val _must = "must"
     val _searchType = "search-type"
 
     override def toJson: Map[String, Any] = {
-      Map(
-        _filtered -> Map(
-          _query -> query.toJson,
-          _filter -> filter.toJson
-        )
-      )
+      Map(_query ->
+        Map(_bool ->
+          Map(_must -> query.toJson,
+            _filter -> filter.toJson)))
     }
   }
 
   case class MultiTermFilteredQuery(query: Query, filter: Filter*) extends Query {
-    val _filtered = "filtered"
     val _filter = "filter"
     val _query = "query"
     val _searchType = "search-type"
@@ -87,11 +85,12 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _must = "must"
 
     override def toJson: Map[String, Any] = {
-      Map(
-        _filtered -> Map(
-          _query -> query.toJson,
-          _filter -> Map(_bool -> Map(_must -> filter.map(_.toJson)))
-        )
+      Map(_query ->
+        Map(_bool ->
+          Map(_must -> query.toJson,
+            _filter ->
+              Map(_bool ->
+                Map(_must -> filter.map(_.toJson)))))
       )
     }
   }
