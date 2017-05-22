@@ -251,7 +251,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Support raw requests" in {
-      val future = restClient.runRawEsRequest(op = "", endpoint = "/_stats/indices", GET)
+      val future = restClient.runRawEsRequest(op = "", endpoint = "/_stats", GET)
       whenReady(future) { res =>
         res.jsonStr should include(IndexName)
       }
