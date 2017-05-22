@@ -19,14 +19,17 @@
 package com.sumologic.elasticsearch_test
 
 import java.io.File
+import java.util.Collections
 
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest
-import org.elasticsearch.client.transport.TransportClient
+import org.elasticsearch.common.transport.InetSocketTransportAddress
 import org.elasticsearch.common.settings.Settings
-import org.elasticsearch.common.transport.{InetSocketTransportAddress, LocalTransportAddress}
-import org.elasticsearch.node.NodeBuilder
+import org.elasticsearch.node.Node
+import org.elasticsearch.node.internal.InternalSettingsPreparer
+import org.elasticsearch.transport.Netty4Plugin
 import org.scalatest.{BeforeAndAfterAll, Suite}
 
+import scala.collection.JavaConversions._
 import scala.util.{Random, Try}
 
 /**
@@ -71,9 +74,13 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll {
 
 object ElasticsearchIntegrationTest {
   private val r = new Random()
-  private lazy val esNodeSettings = Settings.builder().put("path.home", createTempDir("elasticsearch-test")).build()
-  private lazy val esNode = NodeBuilder.nodeBuilder().local(true).settings(esNodeSettings).node()
-  private lazy val settings = Settings.builder().put("node.local", "true").build()
+  private lazy val esNodeSettings = Settings.builder().
+    put("path.home", createTempDir("elasticsearch-test")).
+    put("transport.type", "netty4").
+    put("http.type", "netty4").
+    put("http.enabled", "true").build()
+
+  private lazy val esNode = new PluginNode(esNodeSettings).start()
   lazy val client = esNode.client()
   lazy val globalEndpoint = {
     val nodeInfos = client.admin().cluster().prepareNodesInfo().clear().setSettings(true).setHttp(true).get()
@@ -99,3 +106,5 @@ object ElasticsearchIntegrationTest {
   }
 }
 
+class PluginNode(settings: Settings) extends Node(InternalSettingsPreparer.prepareEnvironment(settings, null),
+  Collections.singletonList(classOf[Netty4Plugin]))

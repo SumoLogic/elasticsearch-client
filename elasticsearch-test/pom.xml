@@ -43,10 +43,9 @@
     </dependency>
 
     <dependency>
-      <groupId>org.elasticsearch</groupId>
-      <artifactId>elasticsearch</artifactId>
+      <groupId>org.elasticsearch.plugin</groupId>
+      <artifactId>transport-netty4-client</artifactId>
       <version>${elasticsearch.version}</version>
-      <type>test-jar</type>
     </dependency>
 
     <!-- Non-Sumo Test Dependencies. -->
