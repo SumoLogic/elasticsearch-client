@@ -221,14 +221,14 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       whenReady(Future.sequence(docFutures)) { _ =>
         refresh()
       }
-      val fut = restClient.startScrollRequest(index, tpe, new QueryRoot(MatchAll, Some(1)))
-      val scrollId = whenReady(fut) { resp =>
-        resp.id should not be empty
-        resp
+      val query = new QueryRoot(MatchAll, sortOpt = Some(Seq(SimpleSort("id", AscSortOrder))))
+      val fut = restClient.startScrollRequest(index, tpe, query, fromOpt = Some(1), sizeOpt = Some(5))
+      val scrollId = whenReady(fut) { case (id, data) =>
+        data.sourceAsMap.flatMap(_.values).filter(_ != "ct") should be(List(1, 2, 3, 4, 5))
+        id
       }
-      whenReady(restClient.scroll(scrollId)) { resp =>
-        resp._2.sourceAsMap should not be empty
-        resp._2.sourceAsMap.head should not be empty
+      whenReady(restClient.scroll(scrollId)) { case (id, data) =>
+        data.sourceAsMap.flatMap(_.values).filter(_ != "ct") should be(List(6, 7, 8, 9, 10))
       }
     }
 
