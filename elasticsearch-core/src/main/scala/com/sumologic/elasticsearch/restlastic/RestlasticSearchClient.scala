@@ -37,8 +37,9 @@ import org.slf4j.LoggerFactory
 
 trait ScrollClient {
   import Dsl._
-  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindow: String = "1m"): Future[ScrollId]
-  def scroll(scrollId: ScrollId, resultWindow: String = "1m"): Future[(ScrollId, SearchResponse)]
+  val defaultResultWindow = "1m"
+  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, fromOpt: Option[Int] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)]
+  def scroll(scrollId: ScrollId, resultWindowOpt: Option[String] = None): Future[(ScrollId, SearchResponse)]
 }
 
 case class Endpoint(host: String, port: Int)
@@ -180,18 +181,21 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     }
   }
 
-  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindow: String = "1m"): Future[ScrollId] = {
+  // Scroll requests have optimizations that make them faster when the sort order is _doc.
+  // Put sort by _doc in query as described in the the following document
+  // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html
+  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, fromOpt: Option[Int] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)] = {
     implicit val ec = searchExecutionCtx
-    val uriQuery = UriQuery("scroll" -> resultWindow, "search_type" -> "scan")
-    runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = uriQuery).map { resp =>
-      val parsed = resp.mappedTo[ScrollResponse]
-      ScrollId(parsed._scroll_id)
+    val params = Map("scroll" -> resultWindowOpt.getOrElse(defaultResultWindow)) ++ fromOpt.map("from" -> _.toString) ++ sizeOpt.map("size" -> _.toString)
+    runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = UriQuery(params)).map { resp =>
+      val sr = resp.mappedTo[SearchResponseWithScrollId]
+      (ScrollId(sr._scroll_id), SearchResponse(RawSearchResponse(sr.hits), resp.jsonStr))
     }
   }
 
-  def scroll(scrollId: ScrollId, resultWindow: String = "1m"): Future[(ScrollId, SearchResponse)] = {
+  def scroll(scrollId: ScrollId, resultWindowOpt: Option[String] = None): Future[(ScrollId, SearchResponse)] = {
     implicit val ec = searchExecutionCtx
-    val uriQuery = UriQuery("scroll_id" -> scrollId.id, "scroll" -> resultWindow)
+    val uriQuery = UriQuery("scroll_id" -> scrollId.id, "scroll" -> resultWindowOpt.getOrElse(defaultResultWindow))
     runEsCommand(NoOp, s"/_search/scroll", query = uriQuery).map { resp =>
       val sr = resp.mappedTo[SearchResponseWithScrollId]
       (ScrollId(sr._scroll_id), SearchResponse(RawSearchResponse(sr.hits), resp.jsonStr))
@@ -343,8 +347,6 @@ object RestlasticSearchClient {
     case class IndexAlreadyExistsException(message: String) extends Exception(message)
 
     case class ElasticErrorResponse(error: JValue, status: Int) extends Exception(s"ElasticsearchError(status=$status): ${error.toString}")
-
-    case class ScrollResponse(_scroll_id: String)
 
   }
 
