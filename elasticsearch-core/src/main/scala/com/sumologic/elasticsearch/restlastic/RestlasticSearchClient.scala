@@ -160,8 +160,8 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(CreateIndex(settings), s"/${index.name}").recover {
-      case ElasticErrorResponse(message, status) if message contains "index_already_exists_exception" =>
-        throw new IndexAlreadyExistsException(message)
+      case ElasticErrorResponse(message, status) if message.toString contains "index_already_exists_exception" =>
+        throw IndexAlreadyExistsException(message.toString)
     }
   }
 
@@ -239,7 +239,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       if (response.status.isFailure) {
         logger.warn(s"Failure response: ${entityString.take(500)}")
         logger.warn(s"Failing request: ${op.take(5000)}")
-        throw ElasticErrorResponse(entityString, response.status.intValue)
+        throw ElasticErrorResponse(JString(entityString), response.status.intValue)
       }
       RawJsonResponse(entityString)
     }
@@ -342,7 +342,7 @@ object RestlasticSearchClient {
 
     case class IndexAlreadyExistsException(message: String) extends Exception(message)
 
-    case class ElasticErrorResponse(error: String, status: Int) extends Exception(s"ElasticsearchError(status=$status): $error")
+    case class ElasticErrorResponse(error: JValue, status: Int) extends Exception(s"ElasticsearchError(status=$status): ${error.toString}")
 
     case class ScrollResponse(_scroll_id: String)
 
