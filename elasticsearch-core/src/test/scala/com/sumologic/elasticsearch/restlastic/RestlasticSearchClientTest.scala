@@ -105,7 +105,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "Be able to create an index, index a document, and search it" in {
       indexDocs(Seq(Document("doc1", Map("text" -> "here"))))
-      val resFut = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here"), timeoutOpt = Some(50000)))
+      val resFut = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here"), timeoutOpt = Some(5000)))
 
       whenReady(resFut) { res =>
         res.sourceAsMap.toList should be(List(Map("text" -> "here")))
