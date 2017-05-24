@@ -64,13 +64,7 @@ class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSourc
     case Event(ActorPublisherMessage.Cancel, _) => stop()
 
     case Event(GotData(nextId, data), FirstScroll) =>
-      if (data.length == 0) {
-        onComplete()
-        stop()
-      } else {
-        consumeIfPossible(nextId, data)
-      }
-
+      consumeIfNotComplete(nextId, data)
     case Event(ScrollFailure(ex), _) =>
       onError(ScrollFailureException("Failed to start the scroll", ex))
       stop(Failure(ex))
@@ -93,12 +87,7 @@ class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSourc
       stop(Failure(ex))
 
     case Event(GotData(nextId, data), WaitingForDataWithId(currentId)) =>
-      if (data.length == 0) {
-        onComplete()
-        stop()
-      } else {
-        consumeIfPossible(nextId, data)
-      }
+      consumeIfNotComplete(nextId, data)
   }
 
   whenUnhandled {
@@ -106,6 +95,15 @@ class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSourc
       logger.warn(s"Unhandled event: $otherEvent, $otherData")
       stay()
 
+  }
+
+  private def consumeIfNotComplete(nextId: ScrollId, data: SearchResponse) = {
+    if (data.length == 0) {
+      onComplete()
+      stop()
+    } else {
+      consumeIfPossible(nextId, data)
+    }
   }
 
   private def consumeIfPossible(id: ScrollId, data: SearchResponse) = {
