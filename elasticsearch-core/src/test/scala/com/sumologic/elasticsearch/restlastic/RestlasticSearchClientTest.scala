@@ -28,6 +28,8 @@ import com.sumologic.elasticsearch_test.ElasticsearchIntegrationTest
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
+import org.json4s._
+import org.json4s.native.JsonMethods._
 
 class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFutures with BeforeAndAfterAll
   with ElasticsearchIntegrationTest with OneInstancePerTest {
@@ -261,6 +263,21 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         val elasticErrorResponse = e.asInstanceOf[ElasticErrorResponse]
         elasticErrorResponse.status should be(404)
       }
+    }
+
+    "Be able to parse error in response as a json object" in {
+      implicit val formats = org.json4s.DefaultFormats
+      val errorDocumentMissing =
+        """{"error":{"root_cause":[{"type":"document_missing_exception",
+          |"reason":"[engine_product][37035513]: document missing","shard":"1","index":"product"}],
+          |"type":"document_missing_exception",
+          |"reason":"[engine_product][37035513]: document missing",
+          |"shard":"1",
+          |"index":"product"},
+          |"status":404} """.stripMargin
+      val jsonTree = parse(errorDocumentMissing)
+      val errorMessage = jsonTree.extract[ElasticErrorResponse]
+      errorMessage.error should be(jsonTree \\ "error")
     }
 
     "Support delete documents" in {
