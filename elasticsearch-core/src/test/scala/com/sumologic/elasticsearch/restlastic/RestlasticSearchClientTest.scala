@@ -293,6 +293,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       }
       val delFut = restClient.deleteDocument(index, tpe, new QueryRoot(TermQuery("text7", "here7")))
       Await.result(delFut, 10.seconds)
+      refresh()
       val resFut1 = restClient.query(index, tpe, new QueryRoot(TermQuery("text7", "here7")))
       whenReady(resFut1) { res =>
         res.sourceAsMap.toList should be(List())

@@ -161,7 +161,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(CreateIndex(settings), s"/${index.name}").recover {
-      case ElasticErrorResponse(message, status) if message.toString contains "IndexAlreadyExistsException" =>
+      case ElasticErrorResponse(message, status) if message.toString contains "index_already_exists_exception" =>
         throw IndexAlreadyExistsException(message.toString)
     }
   }
@@ -171,9 +171,14 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     runEsCommand(EmptyObject, s"/${index.name}", DELETE)
   }
 
-  def deleteDocument(index: Index, tpe: Type, query: QueryRoot): Future[RawJsonResponse] = {
+  def deleteDocument(index: Index, tpe: Type, deleteQuery: QueryRoot, pluginEnabled: Boolean = false): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(query, s"/${index.name}/${tpe.name}/_query", DELETE)
+    if (pluginEnabled) {
+      runEsCommand(deleteQuery, s"/${index.name}/${tpe.name}/_query", DELETE)
+    } else {
+      val documents = Await.result(query(index, tpe, deleteQuery, rawJsonStr = false), 10.seconds).rawSearchResponse.hits.hits.map(_._id)
+      bulkDelete(index, tpe, documents.map(Document(_, Map()))).map(res => RawJsonResponse(res.toString))
+    }
   }
 
   // Scroll requests have optimizations that make them faster when the sort order is _doc.
@@ -261,9 +266,10 @@ object RestlasticSearchClient {
     case class ScrollId(id: String)
 
     case class BulkIndexResponse(items: List[Map[String, BulkItem]])
-    case class BulkItem(_index: String, _type: String, _id: String, status: Int, error: Option[String]) {
+    case class BulkIndexError(reason: String)
+    case class BulkItem(_index: String, _type: String, _id: String, status: Int, error: Option[BulkIndexError]) {
       def created = status > 200 && status < 299 && !alreadyExists
-      def alreadyExists = error.exists(_.contains("DocumentAlreadyExists"))
+      def alreadyExists = error.exists(_.reason.contains("document already exists"))
       def success = status >= 200 && status <= 299
     }
 
