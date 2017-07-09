@@ -121,15 +121,13 @@ trait MappingDsl extends DslCommons {
   }
 
   case class IndexMapping(fields: Map[String, FieldMapping],
-                          enabled: EnabledFieldMapping,
-                          enableAllField: Option[Boolean] = None)
+                          enableAllFieldOpt: Option[Boolean] = None)
     extends EsOperation {
     val _all = "_all"
     val _enabled = "enabled"
     override def toJson: Map[String, Any] = {
-      Map(_properties -> fields.mapValues(_.toJson),
-        _timestamp -> enabled.toJson) ++
-        enableAllField.map(f => _all -> Map(_enabled -> f))
+      Map(_properties -> fields.mapValues(_.toJson)) ++
+        enableAllFieldOpt.map(f => _all -> Map(_enabled -> f))
     }
   }
 
@@ -203,11 +201,6 @@ trait MappingDsl extends DslCommons {
          }
       )
     }
-  }
-
-  case class EnabledFieldMapping(enabled: Boolean) extends FieldMapping {
-    val _enabled = "enabled"
-    override def toJson: Map[String, Any] = Map(_enabled -> enabled)
   }
 
   case class CompletionContext(path: String)

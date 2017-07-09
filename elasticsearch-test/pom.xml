@@ -27,35 +27,29 @@
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-core</artifactId>
-      <version>4.10.4</version>
+      <version>${lucene.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-analyzers-common</artifactId>
-      <version>4.10.4</version>
+      <version>${lucene.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>1.6.2</version>
+      <version>${elasticsearch.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>1.6.2</version>
+      <version>${elasticsearch.version}</version>
       <type>test-jar</type>
     </dependency>
 
     <!-- Non-Sumo Test Dependencies. -->
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-test-framework</artifactId>
-      <version>4.10.4</version>
-    </dependency>
-
     <dependency>
       <groupId>org.scalatest</groupId>
       <artifactId>scalatest_${scala.version.major}</artifactId>

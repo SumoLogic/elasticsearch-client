@@ -22,7 +22,7 @@ import java.io.File
 
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest
 import org.elasticsearch.client.transport.TransportClient
-import org.elasticsearch.common.settings.ImmutableSettings
+import org.elasticsearch.common.settings.Settings
 import org.elasticsearch.common.transport.{InetSocketTransportAddress, LocalTransportAddress}
 import org.elasticsearch.node.NodeBuilder
 import org.scalatest.{BeforeAndAfterAll, Suite}
@@ -71,10 +71,10 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll {
 
 object ElasticsearchIntegrationTest {
   private val r = new Random()
-  private lazy val esNodeSettings = ImmutableSettings.settingsBuilder().put("path.data", createTempDir("elasticsearch-test")).build()
+  private lazy val esNodeSettings = Settings.builder().put("path.home", createTempDir("elasticsearch-test")).build()
   private lazy val esNode = NodeBuilder.nodeBuilder().local(true).settings(esNodeSettings).node()
-  private lazy val settings = ImmutableSettings.settingsBuilder().put("node.local", "true").build()
-  lazy val client = new TransportClient(settings).addTransportAddress(new LocalTransportAddress("1"))
+  private lazy val settings = Settings.builder().put("node.local", "true").build()
+  lazy val client = esNode.client()
   lazy val globalEndpoint = {
     val nodeInfos = client.admin().cluster().prepareNodesInfo().clear().setSettings(true).setHttp(true).get()
     val nodeAddress =
