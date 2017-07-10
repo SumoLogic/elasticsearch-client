@@ -53,7 +53,7 @@
     <dependency>
       <groupId>com.typesafe.akka</groupId>
       <artifactId>akka-stream-experimental_${scala.version.major}</artifactId>
-      <version>2.0.1</version>
+      <version>2.0.1-SNAPSHOT</version>
     </dependency>
 
     <dependency>
