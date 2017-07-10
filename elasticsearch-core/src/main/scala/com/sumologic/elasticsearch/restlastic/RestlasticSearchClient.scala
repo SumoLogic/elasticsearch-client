@@ -18,22 +18,23 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
-
 import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.HttpMethods._
-import akka.http.scaladsl.model.Uri.{Query => UriQuery}
-import akka.http.scaladsl.model._
-import akka.stream.ActorMaterializer
+import akka.io.IO
+import akka.pattern.ask
 import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ScrollId, SearchResponse}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl
-import com.sumologic.elasticsearch.util.AkkaHttpUtil
 import org.json4s._
 import org.json4s.native.JsonMethods._
 import org.slf4j.LoggerFactory
+
+import spray.can.Http
+import spray.http.HttpMethods._
+import spray.http.Uri.{Query => UriQuery}
+import spray.http.{HttpResponse, _}
+
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
 
 trait ScrollClient {
   import Dsl._
@@ -69,7 +70,6 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
                             (implicit val system: ActorSystem = ActorSystem(), val timeout: Timeout = Timeout(30.seconds))
   extends ScrollClient {
 
-  private implicit val materializer = ActorMaterializer()
   private implicit val formats = org.json4s.DefaultFormats
   private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
   import Dsl._
@@ -235,17 +235,16 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
     logger.debug(f"Got Rs request: $request (op was $op)")
 
-    val responseFuture: Future[HttpResponse] = Http().singleRequest(request)
+    val responseFuture: Future[HttpResponse] = (IO(Http) ? request).mapTo[HttpResponse]
 
     responseFuture.map { response =>
       logger.debug(f"Got Es response: $response")
-      val entityString = AkkaHttpUtil.entityToString(response.entity)
       if (response.status.isFailure) {
-        logger.warn(s"Failure response: ${entityString.take(500)}")
+        logger.warn(s"Failure response: ${response.entity.asString.take(500)}")
         logger.warn(s"Failing request: ${op.take(5000)}")
-        throw ElasticErrorResponse(JString(entityString), response.status.intValue)
+        throw ElasticErrorResponse(JString(response.entity.asString), response.status.intValue)
       }
-      RawJsonResponse(entityString)
+      RawJsonResponse(response.entity.asString)
     }
   }
 
@@ -255,7 +254,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       case 443 => "https"
       case _ => "http"
     }
-    Uri.from(scheme = scheme, host = ep.host, port = ep.port, path = path, queryString = Option(query.toString))
+    Uri.from(scheme = scheme, host = ep.host, port = ep.port, path = path, query = query)
   }
 }
 

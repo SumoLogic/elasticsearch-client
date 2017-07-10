@@ -18,18 +18,18 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-
-import akka.http.scaladsl.model.HttpMethods._
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ElasticErrorResponse, _}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch_test.ElasticsearchIntegrationTest
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
+import spray.http.HttpMethods._
 import org.json4s._
 import org.json4s.native.JsonMethods._
+
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFutures with BeforeAndAfterAll
   with ElasticsearchIntegrationTest with OneInstancePerTest {

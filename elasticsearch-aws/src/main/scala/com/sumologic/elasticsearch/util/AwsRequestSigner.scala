@@ -25,13 +25,8 @@ import java.util.{Calendar, TimeZone}
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
-
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.headers.{Host, RawHeader}
-import akka.stream.ActorMaterializer
+import spray.http.HttpHeaders.{Host, RawHeader}
+import spray.http.HttpRequest
 import com.amazonaws.auth.{AWSCredentials, AWSCredentialsProvider, AWSSessionCredentials}
 import com.amazonaws.internal.StaticCredentialsProvider
 import com.sumologic.elasticsearch.restlastic.RequestSigner
@@ -43,8 +38,6 @@ import com.sumologic.elasticsearch.restlastic.RequestSigner
  * @param service Service to connect to (eg. "es" for elasticsearch) [http://docs.aws.amazon.com/general/latest/gr/rande.html]
  */
 class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: String, service: String) extends RequestSigner {
-  private implicit val system = ActorSystem()
-  private implicit val materializer = ActorMaterializer()
 
   val Algorithm = "AWS4-HMAC-SHA256"
   require(awsCredentialsProvider.getCredentials != null, "awsCredentialsProvider must return non null awsCredentials.")
@@ -165,7 +158,7 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
   private def urlEncode(s: String): String = URLEncoder.encode(s, "utf-8")
 
   private def canonicalQueryString(httpRequest: HttpRequest): String = {
-    val params = httpRequest.uri.query()
+    val params = httpRequest.uri.query
     val sortedEncoded = params.toList.map(kv => (urlEncode(kv._1), urlEncode(kv._2))).sortBy(_._1)
     sortedEncoded.map(kv => s"${kv._1}=${kv._2}").mkString("&")
   }
@@ -179,7 +172,7 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
   }
 
   private def hashedPayloadByteArray(httpRequest: HttpRequest): Array[Byte] = {
-    val data = AkkaHttpUtil.entityToString(httpRequest.entity)
+    val data = httpRequest.entity.asString
     hashSha256(data)
   }
 
