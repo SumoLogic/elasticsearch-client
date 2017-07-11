@@ -126,9 +126,12 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   }
 
   // Returns true if document exists, returns ElasticErrorResponse with status = 404 otherwise
-  def doucmentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
+  def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", HEAD).map(_ => true)
+    runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", HEAD).map(_ => true).recover {
+      case ex: ElasticErrorResponse if ex.status == 404 =>
+        false
+    }
   }
 
   def bulkIndex(bulk: Bulk): Future[Seq[BulkItem]] = {

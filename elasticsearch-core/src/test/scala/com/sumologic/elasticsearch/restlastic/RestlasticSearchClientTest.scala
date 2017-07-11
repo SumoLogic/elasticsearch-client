@@ -933,14 +933,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val indexFuture = restClient.bulkIndex(index, tpe, Seq(doc))
       whenReady(indexFuture) { _ => refresh() }
       // verify doc0001 exists
-      restClient.doucmentExistsById(index, tpe, "doc0001").futureValue should be(true)
+      restClient.documentExistsById(index, tpe, "doc0001").futureValue should be(true)
       // verify doc0002 does not exist
-      try {
-        Await.result(restClient.doucmentExistsById(index, tpe, "doc0002"), 10.seconds)
-      } catch {
-        case ex: ElasticErrorResponse =>
-          ex.status should be(404)
-      }
+      restClient.documentExistsById(index, tpe, "doc0002").futureValue should be(false)
     }
 
     def indexDocs(docs: Seq[Document]): Unit = {
