@@ -124,6 +124,14 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     implicit val ec = indexExecutionCtx
     runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", DELETE).map(_.mappedTo[DeleteResponse])
   }
+  
+  def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
+    implicit val ec = indexExecutionCtx
+    runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", HEAD).map(_ => true).recover {
+      case ex: ElasticErrorResponse if ex.status == 404 =>
+        false
+    }
+  }
 
   def bulkIndex(bulk: Bulk): Future[Seq[BulkItem]] = {
     implicit val ec = indexExecutionCtx
