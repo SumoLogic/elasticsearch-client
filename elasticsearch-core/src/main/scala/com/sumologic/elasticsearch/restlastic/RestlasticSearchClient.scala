@@ -124,8 +124,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     implicit val ec = indexExecutionCtx
     runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", DELETE).map(_.mappedTo[DeleteResponse])
   }
-
-  // Returns true if document exists, returns ElasticErrorResponse with status = 404 otherwise
+  
   def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", HEAD).map(_ => true).recover {
