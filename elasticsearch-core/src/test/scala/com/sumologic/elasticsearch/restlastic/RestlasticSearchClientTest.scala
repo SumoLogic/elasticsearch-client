@@ -18,7 +18,6 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
-import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes._
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch_test.ElasticsearchIntegrationTest
