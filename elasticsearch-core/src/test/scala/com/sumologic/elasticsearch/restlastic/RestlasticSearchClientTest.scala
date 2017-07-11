@@ -18,7 +18,8 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
-import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ElasticErrorResponse, _}
+import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes
+import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes._
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch_test.ElasticsearchIntegrationTest
 import org.scalatest._
@@ -926,6 +927,21 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
           terminateAfterOpt = Some(10)),
           highlights))
       resFut.futureValue.rawSearchResponse.highlightAsMaps.head should be(Map("text" -> List("here")))
+    }
+
+    "support check where a document exists by document id" in {
+      val doc = Document("doc0001", Map("text" -> "here"))
+      val indexFuture = restClient.bulkIndex(index, tpe, Seq(doc))
+      whenReady(indexFuture) { _ => refresh() }
+      // verify doc0001 exists
+      restClient.doucmentExistsById(index, tpe, "doc0001").futureValue should be(true)
+      // verify doc0002 does not exist
+      try {
+        Await.result(restClient.doucmentExistsById(index, tpe, "doc0002"), 10.seconds)
+      } catch {
+        case ex: ElasticErrorResponse =>
+          ex.status should be(404)
+      }
     }
 
     def indexDocs(docs: Seq[Document]): Unit = {
