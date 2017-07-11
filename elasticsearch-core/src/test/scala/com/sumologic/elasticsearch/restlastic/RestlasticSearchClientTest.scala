@@ -932,9 +932,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val doc = Document("doc0001", Map("text" -> "here"))
       val indexFuture = restClient.bulkIndex(index, tpe, Seq(doc))
       whenReady(indexFuture) { _ => refresh() }
-      // verify doc0001 exists
       restClient.documentExistsById(index, tpe, "doc0001").futureValue should be(true)
-      // verify doc0002 does not exist
       restClient.documentExistsById(index, tpe, "doc0002").futureValue should be(false)
     }
 
