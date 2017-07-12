@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory
  * @param scrollSource Raw ES scroll interface
  */
 
-class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSource: ScrollClient)
+class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSource: ScrollClient, sizeOpt: Option[Int])
   extends ActorPublisher[SearchResponse]
   with FSM[ScanState, ScanData] {
 
@@ -53,7 +53,7 @@ class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSourc
 
   val logger = LoggerFactory.getLogger(ScanAndScrollSource.getClass)
   override def preStart(): Unit = {
-    scrollSource.startScrollRequest(index, tpe, query).map { case (scrollId, newData) =>
+    scrollSource.startScrollRequest(index, tpe, query, sizeOpt = sizeOpt).map { case (scrollId, newData) =>
       GotData(scrollId, newData)
     }.recover(recovery).pipeTo(self)
     startWith(Starting, FirstScroll)
@@ -129,8 +129,8 @@ class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSourc
 }
 
 object ScanAndScrollSource {
-  def props(index: Index, tpe: Type, query: QueryRoot, scrollSource: ScrollClient) = {
-    Props(new ScanAndScrollSource(index, tpe, query, scrollSource))
+  def props(index: Index, tpe: Type, query: QueryRoot, scrollSource: ScrollClient, sizeOpt: Option[Int] = None) = {
+    Props(new ScanAndScrollSource(index, tpe, query, scrollSource, sizeOpt))
   }
 
   case class ScrollFailureException(message: String, cause: Throwable) extends Exception(message, cause)
