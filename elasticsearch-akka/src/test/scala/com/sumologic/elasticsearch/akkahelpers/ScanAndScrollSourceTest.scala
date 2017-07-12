@@ -51,7 +51,7 @@ class ScanAndScrollSourceTest extends WordSpec with Matchers with ScalaFutures {
     "Read to the end of a source" in {
       val searchResponses = resultMaps.map(searchResponseFromMap)
       val client = new MockScrollClient(searchResponses)
-      val source = Source.actorPublisher[SearchResponse](ScanAndScrollSource.props(index, tpe, queryRoot, client))
+      val source = Source.actorPublisher[SearchResponse](ScanAndScrollSource.props(index, tpe, queryRoot, client, sizeOpt = Some(5)))
       val fut = source
         .map(_.sourceAsMap)
         .grouped(10)
