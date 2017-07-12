@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory
  * @param scrollSource Raw ES scroll interface
  */
 
-class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSource: ScrollClient, sizeOpt: Option[Int])
+class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSource: ScrollClient, sizeOpt: Option[Int] = None)
   extends ActorPublisher[SearchResponse]
   with FSM[ScanState, ScanData] {
 
