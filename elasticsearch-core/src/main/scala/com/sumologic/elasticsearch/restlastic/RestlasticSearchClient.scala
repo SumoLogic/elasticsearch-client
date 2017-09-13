@@ -65,7 +65,7 @@ trait RequestSigner {
  * @param endpointProvider EndpointProvider
  */
 class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
-                             indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
+                             val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
                              searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
                             (implicit val system: ActorSystem = ActorSystem(), val timeout: Timeout = Timeout(30.seconds))
   extends ScrollClient {
