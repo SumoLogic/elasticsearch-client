@@ -39,6 +39,7 @@ import scala.concurrent.duration.Duration
 class BulkIndexerActorTest extends TestKit(ActorSystem("TestSystem")) with WordSpecLike with Matchers
 with BeforeAndAfterAll with BeforeAndAfterEach with MockitoSugar with ImplicitSender with Eventually {
 
+  val executionContext = scala.concurrent.ExecutionContext.Implicits.global
   var indexerActor: TestActorRef[BulkIndexerActor] = _
   var mockEs = mock[RestlasticSearchClient]
   var flushTimeoutMs = 100000L
@@ -46,6 +47,7 @@ with BeforeAndAfterAll with BeforeAndAfterEach with MockitoSugar with ImplicitSe
 
   override def beforeEach(): Unit = {
     mockEs = mock[RestlasticSearchClient]
+    when(mockEs.indexExecutionCtx).thenReturn(executionContext)
     def timeout() = Duration(flushTimeoutMs, TimeUnit.MILLISECONDS)
     def max() = maxMessages
     val config = BulkConfig(timeout, max)
@@ -73,12 +75,12 @@ with BeforeAndAfterAll with BeforeAndAfterEach with MockitoSugar with ImplicitSe
     "not flush when set to 2" in {
       maxMessages = 2
       indexerActor ! CreateRequest(BulkSession.create(), Index("i"), Type("tpe"), Document("id", Map("k" -> "v")))
-      verifyZeroInteractions(mockEs)
+      verify(mockEs, times(0)).bulkIndex(any())
     }
 
     "not flush when there are no messages" in {
       indexerActor ! ForceFlush
-      verifyZeroInteractions(mockEs)
+      verify(mockEs, times(0)).bulkIndex(any())
     }
   }
 

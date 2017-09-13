@@ -43,6 +43,7 @@ case class BulkConfig(flushDuration: () => FiniteDuration, maxDocuments: () => I
  */
 class BulkIndexerActor(restlasticSearchClient: RestlasticSearchClient, bulkConfig: BulkConfig) extends Actor {
   import BulkIndexerActor._
+  implicit val ec = restlasticSearchClient.indexExecutionCtx
 
   val logger = LoggerFactory.getLogger(BulkIndexerActor.getClass)
 
@@ -83,7 +84,6 @@ class BulkIndexerActor(restlasticSearchClient: RestlasticSearchClient, bulkConfi
   private def ago(millis: Long) = now - millis
 
   private def flush(): Unit = {
-    implicit val ec = restlasticSearchClient.indexExecutionCtx
 
     if (queue.isEmpty) {
       flushTimer = resetTimer()
