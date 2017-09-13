@@ -49,7 +49,7 @@ class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSourc
   import akka.stream.actor.ActorPublisherMessage
 
   import ScanAndScrollSource._
-  import scala.concurrent.ExecutionContext.Implicits.global
+  implicit val ec = scrollSource.indexExecutionCtx
 
   val logger = LoggerFactory.getLogger(ScanAndScrollSource.getClass)
   override def preStart(): Unit = {
