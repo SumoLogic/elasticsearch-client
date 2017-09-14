@@ -22,11 +22,13 @@ import akka.actor.FSM.Failure
 import akka.actor.{FSM, Props}
 import akka.pattern.pipe
 import akka.stream.actor.ActorPublisher
-import com.sumologic.elasticsearch.akkahelpers.ScanAndScrollSource.{ScanState, ScanData}
+import com.sumologic.elasticsearch.akkahelpers.ScanAndScrollSource.{ScanData, ScanState}
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ScrollId, SearchResponse}
 import com.sumologic.elasticsearch.restlastic.ScrollClient
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.slf4j.LoggerFactory
+
+import scala.concurrent.ExecutionContext
 
 /**
  * ScanAndScrollSource wraps Elasticsearch's Scroll API as a akka-streams source. By creating and subscribing to this source,
@@ -42,14 +44,19 @@ import org.slf4j.LoggerFactory
  * @param scrollSource Raw ES scroll interface
  */
 
-class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSource: ScrollClient, sizeOpt: Option[Int] = None)
+class ScanAndScrollSource(index: Index, tpe: Type,
+                          query: QueryRoot,
+                          scrollSource: ScrollClient,
+                          sizeOpt: Option[Int] = None,
+                          executionContext: ExecutionContext = ExecutionContext.Implicits.global)
   extends ActorPublisher[SearchResponse]
   with FSM[ScanState, ScanData] {
 
   import akka.stream.actor.ActorPublisherMessage
 
   import ScanAndScrollSource._
-  implicit val ec = scrollSource.indexExecutionCtx
+
+  implicit val ec: ExecutionContext = executionContext
 
   val logger = LoggerFactory.getLogger(ScanAndScrollSource.getClass)
   override def preStart(): Unit = {
@@ -129,8 +136,13 @@ class ScanAndScrollSource(index: Index, tpe: Type, query: QueryRoot, scrollSourc
 }
 
 object ScanAndScrollSource {
-  def props(index: Index, tpe: Type, query: QueryRoot, scrollSource: ScrollClient, sizeOpt: Option[Int] = None) = {
-    Props(new ScanAndScrollSource(index, tpe, query, scrollSource, sizeOpt))
+  def props(index: Index,
+            tpe: Type,
+            query: QueryRoot,
+            scrollSource: ScrollClient,
+            sizeOpt: Option[Int] = None,
+            executionContext: ExecutionContext = ExecutionContext.Implicits.global) = {
+    Props(new ScanAndScrollSource(index, tpe, query, scrollSource, sizeOpt, executionContext))
   }
 
   case class ScrollFailureException(message: String, cause: Throwable) extends Exception(message, cause)
