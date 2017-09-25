@@ -43,13 +43,12 @@ case class BulkConfig(flushDuration: () => FiniteDuration, maxDocuments: () => I
  */
 class BulkIndexerActor(restlasticSearchClient: RestlasticSearchClient, bulkConfig: BulkConfig) extends Actor {
   import BulkIndexerActor._
+  implicit val ec = restlasticSearchClient.indexExecutionCtx
 
   val logger = LoggerFactory.getLogger(BulkIndexerActor.getClass)
 
   case class OpWithTarget(operation: BulkOperation, target: ActorRef, sessionId: BulkSession)
   var queue = List.empty[OpWithTarget]
-
-  import scala.concurrent.ExecutionContext.Implicits.global
 
   private def resetTimer() = context.system.scheduler.scheduleOnce(bulkConfig.flushDuration(), self, ForceFlush)
   var flushTimer = resetTimer()
@@ -85,6 +84,7 @@ class BulkIndexerActor(restlasticSearchClient: RestlasticSearchClient, bulkConfi
   private def ago(millis: Long) = now - millis
 
   private def flush(): Unit = {
+
     if (queue.isEmpty) {
       flushTimer = resetTimer()
       return

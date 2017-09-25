@@ -39,6 +39,7 @@ import scala.concurrent.duration._
 trait ScrollClient {
   import Dsl._
   val defaultResultWindow = "1m"
+  val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global
   def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, fromOpt: Option[Int] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)]
   def scroll(scrollId: ScrollId, resultWindowOpt: Option[String] = None): Future[(ScrollId, SearchResponse)]
 }
@@ -65,7 +66,7 @@ trait RequestSigner {
  * @param endpointProvider EndpointProvider
  */
 class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
-                             indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
+                             override val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
                              searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
                             (implicit val system: ActorSystem = ActorSystem(), val timeout: Timeout = Timeout(30.seconds))
   extends ScrollClient {
