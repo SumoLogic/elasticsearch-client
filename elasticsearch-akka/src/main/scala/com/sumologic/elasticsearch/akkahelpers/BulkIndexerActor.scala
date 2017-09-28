@@ -100,12 +100,12 @@ class BulkIndexerActor(restlasticSearchClient: RestlasticSearchClient, bulkConfi
     }
     val startTime = now
     val respFuture = instrument.measureAction("sendRequest") {
-      val respMb = bulkRequest.toJsonStr.length / 1024.0 / 1024
-      logger.info(f"Flushing ${messages.length} messages ($respMb%.2fMB).")
+      logger.info(f"Flushing ${messages.length} messages.")
       restlasticSearchClient.bulkIndex(bulkRequest).map { items =>
         if (items.length == messages.length) {
           val zipped = items.zip(messages).map { case (item, optarget) => (item, optarget.target, optarget.sessionId) }
-          logger.info(f"Flushed ${messages.length} messages ($respMb%.2fMB). esTimeMs=${ago(startTime)}; ${instrument.measurementsString}")
+          logger.info(f"Flushed ${messages.length} messages. esTimeMs=${ago(startTime)}; ${instrument.measurementsString}")
+          logger.debug(f"Size of ${messages.length} messages is (${respMb(bulkRequest)}%.2fMB).")
           IndexingComplete(zipped)
         } else {
           logger.error(s"Number of responses ${items.length} != requests(${messages.length})")
@@ -121,6 +121,7 @@ class BulkIndexerActor(restlasticSearchClient: RestlasticSearchClient, bulkConfi
     respFuture pipeTo self
   }
 
+  private def respMb(bulkRequest: Bulk): Double = bulkRequest.toJsonStr.length / 1024.0 / 1024
   private def queueFull: Boolean = queue.size >= bulkConfig.maxDocuments()
 }
 
