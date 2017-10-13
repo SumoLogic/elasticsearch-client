@@ -190,6 +190,38 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     }
   }
 
+  def deleteDocuments(index: Index, tpe: Type, deleteQuery: QueryRoot, pluginEnabled: Boolean = false): Future[Map[Index, DeleteResponse]] = {
+    def firstScroll(scId: ScrollId) = startScrollRequest(index, tpe, deleteQuery)
+
+    scrollDelete(index, tpe, ScrollId(""), Map.empty[Index, DeleteResponse], firstScroll)
+  }
+
+  private def scrollDelete(index: Index,
+                           tpe: Type,
+                           scrollId: ScrollId,
+                           acc: Map[Index, DeleteResponse],
+                           scrollingFn: (ScrollId) => Future[(ScrollId, SearchResponse)]): Future[Map[Index, DeleteResponse]] = {
+    implicit val ec = indexExecutionCtx
+    scrollingFn(scrollId).flatMap { case (id, response) =>
+      val rawResponse = response.rawSearchResponse
+      val documentIds = rawResponse.hits.hits.map(_._id)
+
+      if (documentIds.isEmpty) {
+        Future(acc)
+      } else {
+        bulkDelete(index, tpe, documentIds.map(Document(_, Map())))
+          .flatMap { items =>
+            scrollDelete(
+              index,
+              tpe,
+              id,
+              acc ++ items.map(item => Dsl.Index(item._id) -> DeleteResponse(item.success)),
+              (scrollId) => scroll(scrollId))
+          }
+      }
+    }
+  }
+
   // Scroll requests have optimizations that make them faster when the sort order is _doc.
   // Put sort by _doc in query as described in the the following document
   // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html
