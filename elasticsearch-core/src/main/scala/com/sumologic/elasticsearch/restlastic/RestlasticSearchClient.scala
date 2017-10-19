@@ -180,7 +180,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     runEsCommand(EmptyObject, s"/${index.name}", DELETE)
   }
 
-  @deprecated("Use deleteDocuments instead")
+  @deprecated("When plugin is not enabled this function doesn't handle pagination, so it deletes only first page of query results. Replaced by deleteDocuments.")
   def deleteDocument(index: Index, tpe: Type, deleteQuery: QueryRoot, pluginEnabled: Boolean = false): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
     if (pluginEnabled) {
