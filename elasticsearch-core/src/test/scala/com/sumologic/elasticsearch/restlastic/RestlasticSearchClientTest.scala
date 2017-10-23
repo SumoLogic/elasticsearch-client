@@ -936,6 +936,39 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       restClient.documentExistsById(index, tpe, "doc0002").futureValue should be(false)
     }
 
+    "Support deleting more than 10000 docs" in {
+      val insertFutures = (1 to 10011).map(i => restClient.index(index, tpe, Document(s"doc$i", Map("text7" -> "here7"))))
+      val ir = Future.sequence(insertFutures)
+      Await.result(ir, 20.seconds)
+      refresh()
+
+      val delFut = restClient.deleteDocuments(index, tpe, new QueryRoot(MatchAll, sizeOpt = Some(9)))
+      Await.result(delFut, 20.seconds)
+      refresh()
+
+      val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
+      count should be (0)
+    }
+
+    "Delete only first page of query results" in {
+      val insertFutures = (1 to 100).map(i => restClient.index(index, tpe, Document(s"doc$i", Map("text7" -> "here7"))))
+      val ir = Future.sequence(insertFutures)
+      Await.result(ir, 20.seconds)
+      refresh()
+
+      val delFut = restClient.deleteDocument(index, tpe, new QueryRoot(MatchAll, sizeOpt = Some(50)))
+      Await.result(delFut, 20.seconds)
+      refresh()
+
+      val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
+      count should be (50)
+    }
+
+    "Support deleting a doc that doesn't exist" in {
+      val delFut = restClient.deleteDocuments(index, tpe, new QueryRoot(TermQuery("text7", "here7")))
+      Await.result(delFut, 10.seconds) // May not need Await?
+    }
+
     def indexDocs(docs: Seq[Document]): Unit = {
       val bulkIndexFuture = restClient.bulkIndex(index, tpe, docs)
       whenReady(bulkIndexFuture) { _ => refresh() }
