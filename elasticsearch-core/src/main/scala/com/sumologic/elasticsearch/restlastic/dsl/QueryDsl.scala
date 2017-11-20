@@ -151,7 +151,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class RangeQuery(key: String, bounds: RangeBound*) extends Query {
+  case class RangeQuery(key: String, bounds: RangeBound*) extends Query with Filter {
     val _range = "range"
     val boundsMap = Map(key -> (bounds :\ Map[String, Any]())(_.toJson ++ _))
 
