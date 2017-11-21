@@ -489,9 +489,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val termf0 = TermFilter("mod3Filter", "rem0")
       val termf1 = TermFilter("mod3Filter", "rem1")
       val termf2 = TermFilter("mod3Filter", "rem2")
-      val rangeFilterGt1 = RangeQuery("range-id", Gt("1"))
-      val rangeFilterLt4 = RangeQuery("range-id", Lt("4"))
-      val rangeFilterLt5 = RangeQuery("range-id", Lt("5"))
+      val rangeFilterGt1 = RangeFilter("range-id", Gt("1"))
+      val rangeFilterLt4 = RangeFilter("range-id", Lt("4"))
+      val rangeFilterLt5 = RangeFilter("range-id", Lt("5"))
 
       //val validQuery1 = MultiTermFilteredQuery(MatchAll)
       val validQuery1 = MultiTermFilteredQuery(MatchAll, termf0, rangeFilterGt1)
