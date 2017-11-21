@@ -474,6 +474,81 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       }
     }
 
+    "Support RangeQueries along filters" in {
+      val rangeFutures = (1 to 10).map { n =>
+        Document(s"range-$n", Map("mod3Filter" -> s"rem${n % 3}", "range-id" -> n))
+      }.map { doc =>
+        restClient.index(index, tpe, doc)
+      }
+
+      val range = Future.sequence(rangeFutures)
+      whenReady(range) { _ =>
+        refresh()
+      }
+      refresh()
+      val termf0 = TermFilter("mod3Filter", "rem0")
+      val termf1 = TermFilter("mod3Filter", "rem1")
+      val termf2 = TermFilter("mod3Filter", "rem2")
+      val rangeFilterGt1 = RangeFilter("range-id", Gt("1"))
+      val rangeFilterLt4 = RangeFilter("range-id", Lt("4"))
+      val rangeFilterLt5 = RangeFilter("range-id", Lt("5"))
+
+      //val validQuery1 = MultiTermFilteredQuery(MatchAll)
+      val validQuery1 = MultiTermFilteredQuery(MatchAll, termf0, rangeFilterGt1)
+      val validQuery2 = MultiTermFilteredQuery(MatchAll, termf1, rangeFilterLt4)
+      val validQuery3 = MultiTermFilteredQuery(MatchAll, termf1, rangeFilterLt5)
+      val validQuery4 = MultiTermFilteredQuery(MatchAll, termf2, rangeFilterLt5)
+      val expectedEmptyResultQuery = MultiTermFilteredQuery(MatchAll, termf2, termf0, rangeFilterGt1)
+
+      val sortByRange = (first: Map[String, Any], second: Map[String, Any]) => {
+        first("range-id").toString > second("range-id").toString
+      }
+
+      val resFut = restClient.query(index, tpe, new QueryRoot(validQuery1))
+      whenReady(resFut) { res =>
+        res.sourceAsMap.toList.sortWith(sortByRange) should be(
+          List(
+            Map("mod3Filter" -> "rem0", "range-id" -> 3),
+            Map("mod3Filter" -> "rem0", "range-id" -> 6),
+            Map("mod3Filter" -> "rem0", "range-id" -> 9)
+          ).sortWith(sortByRange)
+        )
+      }
+
+      val resFut2 = restClient.query(index, tpe, new QueryRoot(validQuery2))
+      whenReady(resFut2) { res =>
+        res.sourceAsMap.toList.sortWith(sortByRange) should be(
+          List(
+            Map("mod3Filter" -> "rem1", "range-id" -> 1)
+          ).sortWith(sortByRange)
+        )
+      }
+
+      val resFut3 = restClient.query(index, tpe, new QueryRoot(validQuery3))
+      whenReady(resFut3) { res =>
+        res.sourceAsMap.toList.sortWith(sortByRange) should be(
+          List(
+            Map("mod3Filter" -> "rem1", "range-id" -> 1),
+            Map("mod3Filter" -> "rem1", "range-id" -> 4)
+          ).sortWith(sortByRange)
+        )
+      }
+
+      val resFut4 = restClient.query(index, tpe, new QueryRoot(validQuery4))
+      whenReady(resFut4) { res =>
+        res.sourceAsMap.toList.sortWith(sortByRange) should be(
+          List(
+            Map("mod3Filter" -> "rem2", "range-id" -> 2)
+          ).sortWith(sortByRange)
+        )
+      }
+
+      val resFutE = restClient.query(index, tpe, new QueryRoot(expectedEmptyResultQuery))
+      whenReady(resFutE) { res =>
+        res.sourceAsMap.toList should be(List())
+      }
+    }
+
     "Support Bool's Must and MustNot query" in {
       val mustNotDoc = Document("mustNotDoc", Map("f1" -> "MustNot", "f2" -> 5))
       val mustNotInsertionFuture = restClient.index(index, tpe, mustNotDoc)

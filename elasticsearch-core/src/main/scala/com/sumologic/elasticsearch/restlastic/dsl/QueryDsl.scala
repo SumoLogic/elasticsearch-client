@@ -120,6 +120,13 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
+  case class RangeFilter(key: String, bounds: RangeBound*) extends Filter {
+    val _range = "range"
+    val boundsMap = Map(key -> (bounds :\ Map[String, Any]())(_.toJson ++ _))
+
+    override def toJson: Map[String, Any] =  Map(_range -> boundsMap)
+  }
+
   case class Bool(queries: BoolQuery*) extends Query {
     val _bool = "bool"
     val queryMap = queries.map(_.toJson).map(map => (map.keys.head, map(map.keys.head))).toMap
