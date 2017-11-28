@@ -1017,7 +1017,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       Await.result(ir, 20.seconds)
       refresh()
 
-      val delFut = restClient.deleteDocuments(index, tpe, new QueryRoot(MatchAll, sizeOpt = Some(9)))
+      val delFut = restClient.deleteDocuments(index, tpe, new QueryRoot(MatchAll, sizeOpt = Some(1000)))
       Await.result(delFut, 20.seconds)
       refresh()
 
