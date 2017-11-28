@@ -21,25 +21,25 @@ The library components are offered a la carte:
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-core</artifactId>
-      <version>2.0.4</version>
+      <version>2.0.5</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-aws</artifactId>
-      <version>2.0.4</version>
+      <version>2.0.5</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-akka</artifactId>
-      <version>2.0.4</version>
+      <version>2.0.5</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-test</artifactId>
-      <version>2.0.4</version>
+      <version>2.0.5</version>
       <scope>test</scope>
     </dependency>
   ```
