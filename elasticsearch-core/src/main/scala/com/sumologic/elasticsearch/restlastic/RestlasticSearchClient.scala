@@ -215,7 +215,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       val documentIds = rawResponse.hits.hits.map(_._id)
 
       if (documentIds.isEmpty) {
-        Future(acc)
+        Future.successful(acc)
       } else {
         bulkDelete(index, tpe, documentIds.map(Document(_, Map())))
           .flatMap { items =>
