@@ -213,6 +213,27 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       }
     }
 
+    "Support bulk updates with retry on conflict" in {
+
+      val doc = Document("doc", Map("text" -> "retry on version conflict"))
+      val indexFuture = restClient.index(index, tpe, doc)
+      indexFuture.futureValue.created should be(true)
+
+      val docUpdate1 = Document("doc", Map("text" -> "retry on version conflict 1"))
+      val docUpdate2 = Document("doc", Map("text" -> "retry on version conflict 2"))
+      val docUpdate3 = Document("doc", Map("text" -> "retry on version conflict 3"))
+
+      val bulkUpdateFuture = (1 to 5).map { _ =>
+        restClient.bulkUpdate(index, tpe, Seq(docUpdate1, docUpdate2, docUpdate3))
+      }
+      Future.sequence(bulkUpdateFuture).futureValue.toString().contains("version conflict") should be(true)
+
+      val bulkUpdateFutureWithRetry = (1 to 5).map { _ =>
+        restClient.bulkUpdate(index, tpe, Seq(docUpdate1, docUpdate2, docUpdate3), retryOnConflictOpt = Some(100))
+      }
+      Future.sequence(bulkUpdateFutureWithRetry).futureValue.toString().contains("version conflict") should be(false)
+    }
+
     "Support scroll requests" in {
       val docFutures = (1 to 10).map { n =>
         Document(s"doc-$n", Map("ct" -> "ct", "id" -> n))

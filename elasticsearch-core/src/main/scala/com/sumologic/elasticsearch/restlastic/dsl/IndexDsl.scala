@@ -51,17 +51,18 @@ trait IndexDsl extends DslCommons {
     override lazy val toJsonStr = operations.map(_.toJsonStr).mkString("", "\n", "\n")
   }
 
-  case class BulkOperation(operation: OperationType, location: Option[(Index, Type)], document: Document) extends EsOperation {
+  case class BulkOperation(operation: OperationType, location: Option[(Index, Type)], document: Document, retryOnConflictOpt: Option[Int] = None) extends EsOperation {
     import EsOperation.compactJson
     override def toJson: Map[String, Any] = throw new UnsupportedOperationException
     def toJsonStr: String = {
-      val doc = operation match {
+      val (doc, retryOpt) = operation match {
         case `update` =>
-          Document(document.id, Map("doc"->document.data) ++ Map("detect_noop" -> true, "doc_as_upsert" -> true))
-        case _ => document
+          (Document(document.id, Map("doc"->document.data) ++ Map("detect_noop" -> true, "doc_as_upsert" -> true)), retryOnConflictOpt.map(n => Map("_retry_on_conflict" -> n)))
+        case _ => (document, None)
       }
+
       val jsonObjects = Map(operation.jsonStr ->
-        (Map("_id" -> doc.id) ++ location.map { case (index, tpe) => Map("_index" -> index.name, "_type" -> tpe.name)}.getOrElse(Map()))
+        (Map("_id" -> doc.id) ++ location.map { case (index, tpe) => Map("_index" -> index.name, "_type" -> tpe.name)}.getOrElse(Map()) ++ retryOpt.getOrElse(Map()))
       )
       operation match {
         case `delete` => s"${compactJson(jsonObjects)}"
