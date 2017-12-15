@@ -147,8 +147,8 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     bulkIndex(bulkOperation)
   }
 
-  def bulkUpdate(index: Index, tpe: Type, documents: Seq[Document], retryOnVersionConflictOpt: Option[Int] = None): Future[Seq[BulkItem]] = {
-    val bulkOperation = Bulk(documents.map(BulkOperation(update, Some(index -> tpe), _, retryOnVersionConflictOpt)))
+  def bulkUpdate(index: Index, tpe: Type, documents: Seq[Document], retryOnConflictOpt: Option[Int] = None): Future[Seq[BulkItem]] = {
+    val bulkOperation = Bulk(documents.map(BulkOperation(update, Some(index -> tpe), _, retryOnConflictOpt)))
     bulkIndex(bulkOperation)
   }
   

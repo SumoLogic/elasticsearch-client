@@ -229,7 +229,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       Future.sequence(bulkUpdateFuture).futureValue.toString().contains("version conflict") should be(true)
 
       val bulkUpdateFutureWithRetry = (1 to 5).map { _ =>
-        restClient.bulkUpdate(index, tpe, Seq(docUpdate1, docUpdate2, docUpdate3), retryOnVersionConflictOpt = Some(100))
+        restClient.bulkUpdate(index, tpe, Seq(docUpdate1, docUpdate2, docUpdate3), retryOnConflictOpt = Some(100))
       }
       Future.sequence(bulkUpdateFutureWithRetry).futureValue.toString().contains("version conflict") should be(false)
     }
