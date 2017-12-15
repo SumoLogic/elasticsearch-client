@@ -198,8 +198,8 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     }
   }
 
-  def deleteDocuments(index: Index, tpe: Type, deleteQuery: QueryRoot, pluginEnabled: Boolean = false): Future[Map[Index, DeleteResponse]] = {
-    def firstScroll(scId: ScrollId) = startScrollRequest(index, tpe, deleteQuery)
+  def deleteDocuments(index: Index, tpe: Type, deleteQuery: QueryRoot, pluginEnabled: Boolean = false, sizeOpt: Option[Int] = None): Future[Map[Index, DeleteResponse]] = {
+    def firstScroll(scId: ScrollId) = startScrollRequest(index, tpe, deleteQuery, sizeOpt = sizeOpt)
 
     scrollDelete(index, tpe, ScrollId(""), Map.empty[Index, DeleteResponse], firstScroll)
   }
