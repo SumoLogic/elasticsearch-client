@@ -147,6 +147,8 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     bulkIndex(bulkOperation)
   }
 
+  // retryOnConflictOpt specifies how many times to retry before throwing version conflict exception.
+  // https://www.elastic.co/guide/en/elasticsearch/reference/2.3/docs-update.html#_parameters_2
   def bulkUpdate(index: Index, tpe: Type, documents: Seq[Document], retryOnConflictOpt: Option[Int] = None): Future[Seq[BulkItem]] = {
     val bulkOperation = Bulk(documents.map(BulkOperation(update, Some(index -> tpe), _, retryOnConflictOpt)))
     bulkIndex(bulkOperation)
