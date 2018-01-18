@@ -376,22 +376,16 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
     "Support bulk partial document updates with whole document upserts" in {
       val docOrigin1 = Document("bulk_upsert_doc1", Map("text" -> "original", "foo" -> "bar"))
-      val docOrigin2 = Document("bulk_upsert_doc2", Map("text" -> "original", "foo" -> "bar"))
-      val docOrigin3 = Document("bulk_upsert_doc3", Map("text" -> "original", "foo" -> "bar"))
-      val docs = Seq(docOrigin1, docOrigin2, docOrigin3)
+      val docs = Seq(docOrigin1)
       indexDocs(docs)
 
       val docUpdate1 = Document("bulk_upsert_doc1", Map("text" -> "update"))
       val docUpdate2 = Document("bulk_upsert_doc2", Map("text" -> "update"))
-      val docUpdate3 = Document("bulk_upsert_doc3", Map("text" -> "update"))
-      val docUpdate4 = Document("bulk_upsert_doc4", Map("text" -> "update"))
-      val docsUpdate = Seq(docUpdate1, docUpdate2, docUpdate3, docUpdate4)
+      val docsUpdate = Seq(docUpdate1, docUpdate2)
 
       val docUpsert1 = Document("bulk_upsert_doc1", Map("text" -> "update", "notfoo" -> "notbar"))
-      val docUpsert2 = Document("bulk_upsert_doc2", Map("text" -> "update", "notfoo" -> "notbar"))
-      val docUpsert3 = Document("bulk_upsert_doc3", Map("text" -> "update", "notfoo" -> "notbar"))
-      val docUpsert4 = Document("bulk_upsert_doc4", Map("text" -> "update", "foo" -> "bar"))
-      val docsUpdsert = Seq(docUpdate1, docOrigin2, docOrigin3, docUpdate4)
+      val docUpsert2 = Document("bulk_upsert_doc2", Map("text" -> "update", "foo" -> "bar"))
+      val docsUpdsert = Seq(docUpsert1, docUpsert2)
 
       val updateFuture = restClient.bulkUpdate(index, tpe, docsUpdate, upsertsOpt=Some(docsUpdsert))
 
@@ -399,11 +393,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
       val resFut = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "update")))
 
-      // doc 1, 2, 3 should do partial update, doc 4 should do whole doc upsert
+      // doc 1 should do partial update, doc 2 should do whole doc upsert
       whenReady(resFut) { res =>
         res.sourceAsMap should equal(Seq(
-          Map("text" -> "update"),
-          Map("text" -> "update", "foo"-> "bar"),
           Map("text" -> "update", "foo" -> "bar"),
           Map("text" -> "update", "foo" -> "bar")))
       }

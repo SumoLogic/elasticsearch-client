@@ -154,6 +154,12 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     val bulkOperation = if(upsertsOpt.isEmpty) {
       Bulk(documents.map(BulkOperation(update, Some(index -> tpe), _, retryOnConflictOpt)))
     } else {
+      val upsertsSize = upsertsOpt.get.size
+      val documentsSize = documents.size
+      if(upsertsSize != documentsSize) {
+        logger.warn(s"Number of documents $documentsSize is different from number of upserts $upsertsSize. " +
+          s"Only first ${Math.min(documentsSize, upsertsSize)} updates in the bulkUpdate request will be applied.")
+      }
       Bulk(documents.zip(upsertsOpt.getOrElse(documents)).map { case (document, upsert) =>
         BulkOperation(update, Some(index -> tpe), document, retryOnConflictOpt, Some(upsert))})
     }
