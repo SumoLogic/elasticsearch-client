@@ -51,13 +51,20 @@ trait IndexDsl extends DslCommons {
     override lazy val toJsonStr = operations.map(_.toJsonStr).mkString("", "\n", "\n")
   }
 
-  case class BulkOperation(operation: OperationType, location: Option[(Index, Type)], document: Document, retryOnConflictOpt: Option[Int] = None) extends EsOperation {
+  // When upsertOpt is specified, its content is used for upsert as described in
+  // https://www.elastic.co/guide/en/elasticsearch/reference/2.3/docs-update.html
+  // When upsertOpt is not given, document is used for upsert.
+  case class BulkOperation(operation: OperationType, location: Option[(Index, Type)], document: Document, retryOnConflictOpt: Option[Int] = None, upsertOpt: Option[Document] = None) extends EsOperation {
     import EsOperation.compactJson
     override def toJson: Map[String, Any] = throw new UnsupportedOperationException
     def toJsonStr: String = {
       val (doc, retryOpt) = operation match {
         case `update` =>
-          (Document(document.id, Map("doc"->document.data) ++ Map("detect_noop" -> true, "doc_as_upsert" -> true)), retryOnConflictOpt.map(n => Map("_retry_on_conflict" -> n)))
+          if (upsertOpt.isEmpty) {
+            (Document(document.id, Map("doc"->document.data) ++ Map("detect_noop" -> true, "doc_as_upsert" -> true)), retryOnConflictOpt.map(n => Map("_retry_on_conflict" -> n)))
+          } else {
+            (Document(document.id, Map("doc"->document.data) ++ Map("detect_noop" -> true) ++ Map("upsert" -> upsertOpt.getOrElse(document).data)), retryOnConflictOpt.map(n => Map("_retry_on_conflict" -> n)))
+          }
         case _ => (document, None)
       }
 

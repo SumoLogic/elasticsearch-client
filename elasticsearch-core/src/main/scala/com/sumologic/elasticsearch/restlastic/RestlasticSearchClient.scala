@@ -148,9 +148,15 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   }
 
   // retryOnConflictOpt specifies how many times to retry before throwing version conflict exception.
-  // https://www.elastic.co/guide/en/elasticsearch/reference/2.3/docs-update.html#_parameters_2
-  def bulkUpdate(index: Index, tpe: Type, documents: Seq[Document], retryOnConflictOpt: Option[Int] = None): Future[Seq[BulkItem]] = {
-    val bulkOperation = Bulk(documents.map(BulkOperation(update, Some(index -> tpe), _, retryOnConflictOpt)))
+  // upsertOpt specifies the document to create in an update request when the document does not exist.
+  // https://www.elastic.co/guide/en/elasticsearch/reference/2.3/docs-update.html
+  def bulkUpdate(index: Index, tpe: Type, documents: Seq[Document], retryOnConflictOpt: Option[Int] = None, upsertsOpt: Option[Seq[Document]] = None): Future[Seq[BulkItem]] = {
+    val bulkOperation = if(upsertsOpt.isEmpty) {
+      Bulk(documents.map(BulkOperation(update, Some(index -> tpe), _, retryOnConflictOpt)))
+    } else {
+      Bulk(documents.zip(upsertsOpt.getOrElse(documents)).map { case (document, upsert) =>
+        BulkOperation(update, Some(index -> tpe), document, retryOnConflictOpt, Some(upsert))})
+    }
     bulkIndex(bulkOperation)
   }
   
