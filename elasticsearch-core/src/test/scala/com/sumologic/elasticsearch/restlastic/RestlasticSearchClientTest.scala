@@ -381,13 +381,14 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
       val docUpdate1 = Document("bulk_upsert_doc1", Map("text" -> "update"))
       val docUpdate2 = Document("bulk_upsert_doc2", Map("text" -> "update"))
-      val docsUpdate = Seq(docUpdate1, docUpdate2)
 
       val docUpsert1 = Document("bulk_upsert_doc1", Map("text" -> "update", "notfoo" -> "notbar"))
       val docUpsert2 = Document("bulk_upsert_doc2", Map("text" -> "update", "foo" -> "bar"))
-      val docsUpdsert = Seq(docUpsert1, docUpsert2)
 
-      val updateFuture = restClient.bulkUpdate(index, tpe, docsUpdate, upsertsOpt=Some(docsUpdsert))
+      val bulkOperation1 = BulkOperation(update, Some(index, tpe), docUpdate1, retryOnConflictOpt = Some(5), upsertOpt = Some(docUpsert1))
+      val bulkOperation2 = BulkOperation(update, Some(index, tpe), docUpdate2, retryOnConflictOpt = Some(5), upsertOpt = Some(docUpsert2))
+
+      val updateFuture = restClient.bulkIndex(Bulk(Seq(bulkOperation1, bulkOperation2)))
 
       whenReady(updateFuture) { _ => refresh() }
 
