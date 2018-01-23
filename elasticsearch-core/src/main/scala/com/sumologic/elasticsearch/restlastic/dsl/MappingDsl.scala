@@ -1,21 +1,21 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+  * Licensed to the Apache Software Foundation (ASF) under one
+  * or more contributor license agreements.  See the NOTICE file
+  * distributed with this work for additional information
+  * regarding copyright ownership.  The ASF licenses this file
+  * to you under the Apache License, Version 2.0 (the
+  * "License"); you may not use this file except in compliance
+  * with the License.  You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing,
+  * software distributed under the License is distributed on an
+  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  * KIND, either express or implied.  See the License for the
+  * specific language governing permissions and limitations
+  * under the License.
+  */
 package com.sumologic.elasticsearch.restlastic.dsl
 
 trait MappingDsl extends DslCommons {
@@ -81,7 +81,7 @@ trait MappingDsl extends DslCommons {
   sealed trait IndexType {
     val rep: String
   }
-  
+
   case object NotAnalyzedIndex extends IndexType {
     val rep = "not_analyzed"
   }
@@ -92,6 +92,7 @@ trait MappingDsl extends DslCommons {
 
   case object MappingPath {
     val sep = "."
+
     def createPath(parent: String, child: String) = {
       parent + sep + child
     }
@@ -122,12 +123,13 @@ trait MappingDsl extends DslCommons {
 
   case class IndexMapping(fields: Map[String, FieldMapping],
                           enableAllFieldOpt: Option[Boolean] = None)
-    extends EsOperation {
+      extends EsOperation {
     val _all = "_all"
     val _enabled = "enabled"
+
     override def toJson: Map[String, Any] = {
       Map(_properties -> fields.mapValues(_.toJson)) ++
-        enableAllFieldOpt.map(f => _all -> Map(_enabled -> f))
+          enableAllFieldOpt.map(f => _all -> Map(_enabled -> f))
     }
   }
 
@@ -143,17 +145,18 @@ trait MappingDsl extends DslCommons {
   val _fieldIndexOpions = "index_options"
 
   case class BasicFieldMapping(tpe: FieldType, index: Option[IndexType], analyzer: Option[Name],
-                               ignoreAbove: Option[Int] = None, search_analyzer: Option[Name]= None,
+                               ignoreAbove: Option[Int] = None, search_analyzer: Option[Name] = None,
                                indexOption: Option[IndexOption] = None)
-    extends FieldMapping {
+      extends FieldMapping {
 
     override def toJson: Map[String, Any] = Map(
       _type -> tpe.rep) ++
-      index.map(_index -> _.rep) ++
-      analyzer.map(_analyzer -> _.name) ++
-      search_analyzer.map(_searchAnalyzer -> _.name) ++
-      indexOption.map(_fieldIndexOpions -> _.option)
-      ignoreAbove.map(_ignoreAbove -> _).toList.toMap
+        index.map(_index -> _.rep) ++
+        analyzer.map(_analyzer -> _.name) ++
+        search_analyzer.map(_searchAnalyzer -> _.name) ++
+        indexOption.map(_fieldIndexOpions -> _.option)
+
+    ignoreAbove.map(_ignoreAbove -> _).toList.toMap
   }
 
   case class BasicObjectMapping(fields: Map[String, FieldMapping]) extends FieldMapping {
@@ -177,29 +180,29 @@ trait MappingDsl extends DslCommons {
   }
 
   case class CompletionMapping(context: Map[String, CompletionContext], analyzer: Name = Name("keyword"))
-    extends FieldMapping with Completion {
+      extends FieldMapping with Completion {
 
     override def toJson: Map[String, Any] = {
       super.toJson ++
-      Map(_context -> context.mapValues { case cc =>
-          Map(
-            "type" -> "category",
-            "path" -> cc.path
+          Map(_context -> context.mapValues { case cc =>
+            Map(
+              "type" -> "category",
+              "path" -> cc.path
+            )
+          }
           )
-        }
-      )
     }
   }
 
   case class CompletionMappingWithoutPath(context: Map[String, Unit], analyzer: Name = Name("keyword"))
-    extends FieldMapping with Completion {
+      extends FieldMapping with Completion {
 
     override def toJson: Map[String, Any] = {
       super.toJson ++
-        Map(_context -> context.mapValues { case cc =>
-          Map("type" -> "category")
-         }
-      )
+          Map(_context -> context.mapValues { case cc =>
+            Map("type" -> "category")
+          }
+          )
     }
   }
 
@@ -207,8 +210,10 @@ trait MappingDsl extends DslCommons {
 
   case object NestedFieldMapping extends FieldMapping {
     val _nested = "nested"
+
     override def toJson: Map[String, Any] = Map(_type -> _nested)
   }
+
 }
 
 

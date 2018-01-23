@@ -1,21 +1,21 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+  * Licensed to the Apache Software Foundation (ASF) under one
+  * or more contributor license agreements.  See the NOTICE file
+  * distributed with this work for additional information
+  * regarding copyright ownership.  The ASF licenses this file
+  * to you under the Apache License, Version 2.0 (the
+  * "License"); you may not use this file except in compliance
+  * with the License.  You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing,
+  * software distributed under the License is distributed on an
+  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  * KIND, either express or implied.  See the License for the
+  * specific language governing permissions and limitations
+  * under the License.
+  */
 package com.sumologic.elasticsearch.restlastic
 
 import akka.actor.ActorSystem
@@ -37,21 +37,28 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 
 trait ScrollClient {
+
   import Dsl._
+
   val defaultResultWindow = "1m"
   val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global
+
   def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, fromOpt: Option[Int] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)]
+
   def scroll(scrollId: ScrollId, resultWindowOpt: Option[String] = None): Future[(ScrollId, SearchResponse)]
 }
 
 case class Endpoint(host: String, port: Int)
+
 trait EndpointProvider {
   def endpoint: Endpoint
+
   def ready: Boolean
 }
 
 class StaticEndpoint(_endpoint: Endpoint) extends EndpointProvider {
   override def endpoint: Endpoint = _endpoint
+
   override def ready = true
 }
 
@@ -60,27 +67,30 @@ trait RequestSigner {
 }
 
 /**
- * The RestlasticSearchClient is an implementation of a subset of the ElasticSearch protocol using the REST client
- * instead of the native client. The DSL classes provide a (relatively) typesafe mapping from scala code to the JSON
- * used by ElasticSearch.
- * @param endpointProvider EndpointProvider
- */
+  * The RestlasticSearchClient is an implementation of a subset of the ElasticSearch protocol using the REST client
+  * instead of the native client. The DSL classes provide a (relatively) typesafe mapping from scala code to the JSON
+  * used by ElasticSearch.
+  *
+  * @param endpointProvider EndpointProvider
+  */
 class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
                              override val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
                              searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
                             (implicit val system: ActorSystem = ActorSystem(), val timeout: Timeout = Timeout(30.seconds))
-  extends ScrollClient {
+    extends ScrollClient {
 
   private implicit val formats = org.json4s.DefaultFormats
   private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
+
   import Dsl._
   import RestlasticSearchClient.ReturnTypes._
 
   def ready: Boolean = endpointProvider.ready
+
   def query(index: Index, tpe: Type, query: RootObject, rawJsonStr: Boolean = true, uriQuery: UriQuery = UriQuery.Empty): Future[SearchResponse] = {
     implicit val ec = searchExecutionCtx
-    runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query=uriQuery).map { rawJson =>
-      val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
+    runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = uriQuery).map { rawJson =>
+      val jsonStr = if (rawJsonStr) rawJson.jsonStr else ""
       SearchResponse(rawJson.mappedTo[RawSearchResponse], jsonStr)
     }
   }
@@ -125,7 +135,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     implicit val ec = indexExecutionCtx
     runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", DELETE).map(_.mappedTo[DeleteResponse])
   }
-  
+
   def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", HEAD).map(_ => true).recover {
@@ -153,7 +163,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     val bulkOperation = Bulk(documents.map(BulkOperation(update, Some(index -> tpe), _, retryOnConflictOpt)))
     bulkIndex(bulkOperation)
   }
-  
+
   def bulkDelete(index: Index, tpe: Type, documents: Seq[Document]): Future[Seq[BulkItem]] = {
     val bulkOperation = Bulk(documents.map(BulkOperation(delete, Some(index -> tpe), _)))
     bulkIndex(bulkOperation)
@@ -193,7 +203,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       val documents = response.hits.hits.map(_._id)
       if (totalHits > documents.length) {
         logger.warn(s"deleting only first ${documents.length}/$totalHits matches. " +
-          "Use deleteDocuments, if you want to delete more at once.")
+            "Use deleteDocuments, if you want to delete more at once.")
       }
 
       bulkDelete(index, tpe, documents.map(Document(_, Map()))).map(res => RawJsonResponse(res.toString))
@@ -220,14 +230,14 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
         Future.successful(acc)
       } else {
         bulkDelete(index, tpe, documentIds.map(Document(_, Map())))
-          .flatMap { items =>
-            scrollDelete(
-              index,
-              tpe,
-              id,
-              acc ++ items.map(item => Dsl.Index(item._id) -> DeleteResponse(item.success)),
-              (scrollId) => scroll(scrollId))
-          }
+            .flatMap { items =>
+              scrollDelete(
+                index,
+                tpe,
+                id,
+                acc ++ items.map(item => Dsl.Index(item._id) -> DeleteResponse(item.success)),
+                (scrollId) => scroll(scrollId))
+            }
       }
     }
   }
@@ -280,7 +290,6 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       val unauthed = HttpRequest(
         method = method,
         uri = buildUri(endpoint, query),
-        entity = HttpEntity(op))
         entity = HttpEntity(op),
         headers = List(HttpHeaders.`Content-Type`(ContentTypes.`application/json`)))
       signer.map(_.withAuthHeader(unauthed)).getOrElse(unauthed)
@@ -318,10 +327,14 @@ object RestlasticSearchClient {
     case class ScrollId(id: String)
 
     case class BulkIndexResponse(items: List[Map[String, BulkItem]])
+
     case class BulkIndexError(reason: String)
+
     case class BulkItem(_index: String, _type: String, _id: String, status: Int, error: Option[BulkIndexError]) {
       def created = status > 200 && status < 299 && !alreadyExists
+
       def alreadyExists = error.exists(_.reason.contains("document already exists"))
+
       def success = status >= 200 && status <= 299
     }
 
@@ -331,7 +344,9 @@ object RestlasticSearchClient {
       }
 
       def sourceAsMap: Seq[Map[String, Any]] = rawSearchResponse.sourceAsMap
+
       def highlightAsMaps: Seq[Map[String, Any]] = rawSearchResponse.highlightAsMaps
+
       def length = rawSearchResponse.hits.hits.length
     }
 
@@ -342,42 +357,53 @@ object RestlasticSearchClient {
     case class CountResponse(count: Int)
 
     case class SearchResponseWithScrollId(_scroll_id: String, hits: Hits)
+
     case class RawSearchResponse(hits: Hits) {
       private implicit val formats = org.json4s.DefaultFormats
+
       def extractSource[T: Manifest]: Seq[T] = {
         hits.hits.map(_._source.extract[T])
       }
 
       def sourceAsMap: Seq[Map[String, Any]] = hits.hits.map(_._source.values)
+
       def highlightAsMaps: Seq[Map[String, Any]] = hits.hits.flatMap(_.highlight.map(_.values))
     }
 
     case class BucketNested(underlying: BucketNestedMap)
+
     type BucketNestedMap = Map[String, Any]
     type NestedAggregations = (String, BucketNestedMap)
+
     case class BucketNestedAggregationResponse(aggregations: NestedAggregations)
+
     case class BucketNestedAggregationResultBody(doc_count_error_upper_bound: Int,
-                                           sum_other_doc_count: Int,
-                                           buckets: List[BucketNestedMap])
+                                                 sum_other_doc_count: Int,
+                                                 buckets: List[BucketNestedMap])
 
 
     case class BucketAggregationResponse(aggregations: Aggregations)
-    case class Aggregations(aggs_name: BucketAggregationResultBody )
+
+    case class Aggregations(aggs_name: BucketAggregationResultBody)
+
     case class BucketAggregationResultBody(doc_count_error_upper_bound: Int,
                                            sum_other_doc_count: Int,
                                            buckets: List[Bucket])
+
     case class Bucket(key: String, doc_count: Int)
 
     case class Hits(hits: List[ElasticJsonDocument], total: Int = 0)
+
     case class ElasticJsonDocument(_index: String,
                                    _type: String,
                                    _id: String,
-                                    _score: Option[Float],
+                                   _score: Option[Float],
                                    _source: JObject,
                                    highlight: Option[JObject])
 
     case class RawJsonResponse(jsonStr: String) {
       private implicit val formats = org.json4s.DefaultFormats
+
       def mappedTo[T: Manifest]: T = {
         val jsonTree = parse(jsonStr)
         jsonTree.extract[T]

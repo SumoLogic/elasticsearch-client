@@ -1,21 +1,21 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+  * Licensed to the Apache Software Foundation (ASF) under one
+  * or more contributor license agreements.  See the NOTICE file
+  * distributed with this work for additional information
+  * regarding copyright ownership.  The ASF licenses this file
+  * to you under the Apache License, Version 2.0 (the
+  * "License"); you may not use this file except in compliance
+  * with the License.  You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing,
+  * software distributed under the License is distributed on an
+  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  * KIND, either express or implied.  See the License for the
+  * specific language governing permissions and limitations
+  * under the License.
+  */
 package com.sumologic.elasticsearch.restlastic
 
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes._
@@ -31,7 +31,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAfterAll
-  with ElasticsearchIntegrationTest with OneInstancePerTest {
+    with ElasticsearchIntegrationTest with OneInstancePerTest {
   val tpe = Type("foo")
   val analyzerName = Name("keyword_lowercase")
 
@@ -39,7 +39,10 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
 
   implicit val patience = PatienceConfig(timeout = scaled(Span(10, Seconds)), interval = scaled(Span(50, Millis)))
 
-
+  val analyzer = Analyzer(analyzerName, Keyword, Lowercase)
+  val indexSetting = IndexSetting(12, 1, analyzer, 30)
+  val indexFut = restClient.createIndex(index, Some(indexSetting))
+  indexFut.futureValue
 
   private def refreshWithClient(): Unit = {
     Await.result(restClient.refresh(index), 2.seconds)
@@ -107,10 +110,10 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       indexDocs(Seq(Document("doc1", Map("text" -> "here"))))
       val resFut = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here"), timeoutOpt = Some(5000)))
 
-      val foundDoc: ElasticJsonDocument = whenReady(resFut){ res =>
+      val foundDoc: ElasticJsonDocument = whenReady(resFut) { res =>
         res.rawSearchResponse.hits.hits.head
       }
-      
+
       val delFut = restClient.deleteById(index, tpe, foundDoc._id)
 
       whenReady(delFut) { res =>
@@ -120,7 +123,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       refresh()
 
       val resFut2 = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here"), timeoutOpt = Some(5000)))
-      whenReady(resFut2){ res =>
+      whenReady(resFut2) { res =>
         res.rawSearchResponse.hits.hits.size should be(0)
       }
     }
@@ -184,15 +187,15 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
         res.jsonStr should include("doc4")
         res.jsonStr should not include "doc5"
       }
-      
+
       val delFut = restClient.bulkDelete(index, tpe, Seq(doc3, doc4, doc5))
-      whenReady(delFut){ resp =>
+      whenReady(delFut) { resp =>
         resp.length should be(3)
         resp.head.success should be(true)
         resp(1).success should be(true)
         resp(2).success should be(true)
       }
-      
+
       refresh()
       val resFut2 = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here")))
       whenReady(resFut2) { res =>
@@ -270,7 +273,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
     "Return error on failed raw requests" in {
       val future = restClient.runRawEsRequest(op = "", endpoint = "/does/not/exist", GET)
       whenReady(future.failed) { e =>
-        e shouldBe a [ElasticErrorResponse]
+        e shouldBe a[ElasticErrorResponse]
         val elasticErrorResponse = e.asInstanceOf[ElasticErrorResponse]
         elasticErrorResponse.status should be(404)
       }
@@ -719,12 +722,12 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       val aggrQueryFuture = restClient.bucketNestedAggregation(index, tpe, aggrQuery)
       val aggrResult = aggrQueryFuture.futureValue
       val actual = aggrResult.underlying("buckets").
-        asInstanceOf[Seq[Map[String, Any]]].
-        flatMap(_ ("thereCanBeOnlyOne").
-          asInstanceOf[Map[String, Any]]("hits").
-          asInstanceOf[Map[String, Any]]("hits").
-          asInstanceOf[Seq[Map[String, Any]]].map(_ ("_source"))
-        )
+          asInstanceOf[Seq[Map[String, Any]]].
+          flatMap(_ ("thereCanBeOnlyOne").
+              asInstanceOf[Map[String, Any]]("hits").
+              asInstanceOf[Map[String, Any]]("hits").
+              asInstanceOf[Seq[Map[String, Any]]].map(_ ("_source"))
+          )
       actual should be(expected)
     }
 
@@ -1060,7 +1063,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       refresh()
 
       val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
-      count should be (0)
+      count should be(0)
     }
 
     "Delete only first page of query results" in {
@@ -1074,7 +1077,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       refresh()
 
       val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
-      count should be (50)
+      count should be(50)
     }
 
     "Support deleting a doc that doesn't exist" in {
