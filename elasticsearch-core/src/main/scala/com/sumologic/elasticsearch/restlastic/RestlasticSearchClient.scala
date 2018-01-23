@@ -416,7 +416,7 @@ object RestlasticSearchClient {
 
     case class Suggestion(text: String, options: List[SuggestOption])
 
-    case class SuggestOption(text: String, score: Float)
+    case class SuggestOption(text: String, _score: Float)
 
     case class IndexResponse(created: Boolean)
 
