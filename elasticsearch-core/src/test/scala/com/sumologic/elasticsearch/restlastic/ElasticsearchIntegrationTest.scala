@@ -18,11 +18,11 @@
   */
 package com.sumologic.elasticsearch.restlastic
 
-import akka.dispatch.Futures
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{BeforeAndAfterAll, Suite}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time.{Millis, Span}
+import org.scalatest.{BeforeAndAfterAll, Suite}
+
 import scala.util.{Random, Try}
 
 /**
@@ -59,8 +59,8 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
     super.afterAll()
   }
 
-  def refresh(): Unit = restClient.refresh(index).futureValue(PatienceConfig())
+  def refresh(): Unit = restClient.refresh(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
 
-  def delete(index: Index) = restClient.deleteIndex(index).futureValue(PatienceConfig())
+  def delete(index: Index) = restClient.deleteIndex(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
 }
 
