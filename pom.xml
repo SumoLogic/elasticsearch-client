@@ -14,7 +14,6 @@
         </license>
     </licenses>
     <modules>
-        <module>elasticsearch-test</module>
         <module>elasticsearch-core</module>
         <module>elasticsearch-akka</module>
         <module>elasticsearch-aws</module>
