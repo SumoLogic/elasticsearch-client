@@ -281,6 +281,8 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
         method = method,
         uri = buildUri(endpoint, query),
         entity = HttpEntity(op))
+        entity = HttpEntity(op),
+        headers = List(HttpHeaders.`Content-Type`(ContentTypes.`application/json`)))
       signer.map(_.withAuthHeader(unauthed)).getOrElse(unauthed)
     }
 
