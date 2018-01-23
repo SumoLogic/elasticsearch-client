@@ -182,7 +182,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(CreateIndex(settings), s"/${index.name}", PUT).recover {
-      case ElasticErrorResponse(message, status) if message.toString contains "index_already_exists_exception" =>
+      case ElasticErrorResponse(message, status) if message.toString contains "resource_already_exists_exception" =>
         throw IndexAlreadyExistsException(message.toString)
     }
   }
@@ -421,6 +421,7 @@ object RestlasticSearchClient {
     case class IndexResponse(created: Boolean)
 
     case class DeleteResponse(found: Boolean)
+    }
 
     case class IndexAlreadyExistsException(message: String) extends Exception(message)
 
