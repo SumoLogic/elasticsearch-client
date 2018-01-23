@@ -374,6 +374,34 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       }
     }
 
+    "Support bulk partial document updates with whole document upserts" in {
+      val docOrigin1 = Document("bulk_upsert_doc1", Map("text" -> "original", "foo" -> "bar"))
+      val docs = Seq(docOrigin1)
+      indexDocs(docs)
+
+      val docUpdate1 = Document("bulk_upsert_doc1", Map("text" -> "update"))
+      val docUpdate2 = Document("bulk_upsert_doc2", Map("text" -> "update"))
+
+      val docUpsert1 = Document("bulk_upsert_doc1", Map("text" -> "update", "notfoo" -> "notbar"))
+      val docUpsert2 = Document("bulk_upsert_doc2", Map("text" -> "update", "foo" -> "bar"))
+
+      val bulkOperation1 = BulkOperation(update, Some(index, tpe), docUpdate1, retryOnConflictOpt = Some(5), upsertOpt = Some(docUpsert1))
+      val bulkOperation2 = BulkOperation(update, Some(index, tpe), docUpdate2, retryOnConflictOpt = Some(5), upsertOpt = Some(docUpsert2))
+
+      val updateFuture = restClient.bulkIndex(Bulk(Seq(bulkOperation1, bulkOperation2)))
+
+      whenReady(updateFuture) { _ => refresh() }
+
+      val resFut = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "update")))
+
+      // doc 1 should do partial update, doc 2 should do whole doc upsert
+      whenReady(resFut) { res =>
+        res.sourceAsMap should equal(Seq(
+          Map("text" -> "update", "foo" -> "bar"),
+          Map("text" -> "update", "foo" -> "bar")))
+      }
+    }
+
     "Support case insensitive autocomplete" in {
 
       val basicFieldMapping = BasicFieldMapping(StringType, None, Some(analyzerName))
