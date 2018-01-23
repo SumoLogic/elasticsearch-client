@@ -33,18 +33,18 @@ trait CompletionDsl extends DslCommons with QueryDsl {
     }
   }
 
-  case class Completion(field: String, size: Int, context: Map[String, String]) extends Query {
+  case class Completion(field: String, size: Int, contexts: List[Map[String, String]]) extends Query {
     val _field = "field"
-    val _context = "context"
+    val _context = "contexts"
     val _size = "size"
 
-    def withAdditionalContext(newContext: (String, String)*) = {
-      this.copy(context = context ++ newContext)
+    def withAdditionalContext(newContext: Map[String, String]) = {
+      this.copy(contexts = (contexts :+ newContext))
     }
 
     override def toJson: Map[String, Any] = Map(
       _field -> field,
-      _context -> context,
+      _context -> contexts,
       _size -> size
     )
   }
