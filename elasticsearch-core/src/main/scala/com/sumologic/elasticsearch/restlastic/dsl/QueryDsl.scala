@@ -28,6 +28,8 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   trait Query extends EsOperation
 
+  trait CompoundQuery extends Query
+
   trait Filter extends EsOperation
 
   class QueryRoot(query: Query,
@@ -62,36 +64,26 @@ trait QueryDsl extends DslCommons with SortDsl {
   case class ConstantScore(filter: Filter) extends SingleField("constant_score", filter) with Filter
 
 
-  case class FilteredQuery(filter: Filter, query: Query) extends Query {
-    val _filtered = "filtered"
+  case class FilteredContext(filter: List[Filter]) extends Query {
     val _filter = "filter"
     val _query = "query"
     val _searchType = "search-type"
 
     override def toJson: Map[String, Any] = {
       Map(
-        _filtered -> Map(
-          _query -> query.toJson,
-          _filter -> filter.toJson
-        )
+        _filter -> filter.map(_.toJson)
       )
     }
   }
 
-  case class MultiTermFilteredQuery(query: Query, filter: Filter*) extends Query {
-    val _filtered = "filtered"
+  case class MultiTermFilterContext(filter: Filter*) extends Query {
     val _filter = "filter"
     val _query = "query"
-    val _searchType = "search-type"
-    val _bool = "bool"
     val _must = "must"
 
     override def toJson: Map[String, Any] = {
       Map(
-        _filtered -> Map(
-          _query -> query.toJson,
-          _filter -> Map(_bool -> Map(_must -> filter.map(_.toJson)))
-        )
+        _filter -> Map(_must -> filter.map(_.toJson))
       )
     }
   }
@@ -127,11 +119,11 @@ trait QueryDsl extends DslCommons with SortDsl {
     override def toJson: Map[String, Any] = Map(_range -> boundsMap)
   }
 
-  case class Bool(queries: BoolQuery*) extends Query {
+  case class Bool(queries: List[BoolQuery], filterContext: FilteredContext = FilteredContext(List())) extends CompoundQuery {
     val _bool = "bool"
     val queryMap = queries.map(_.toJson).map(map => (map.keys.head, map(map.keys.head))).toMap
 
-    override def toJson: Map[String, Any] = Map(_bool -> queryMap)
+    override def toJson: Map[String, Any] = Map(_bool -> (queryMap ++ filterContext.toJson))
   }
 
   case class Should(opts: Query*) extends BoolQuery {
