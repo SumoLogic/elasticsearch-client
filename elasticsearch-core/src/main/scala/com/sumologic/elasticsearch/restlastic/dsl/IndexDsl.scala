@@ -60,11 +60,13 @@ trait IndexDsl extends DslCommons {
     def toJsonStr: String = {
       val (doc, retryOpt) = operation match {
         case `update` =>
-          if (upsertOpt.isEmpty) {
-            (Document(document.id, Map("doc"->document.data) ++ Map("detect_noop" -> true, "doc_as_upsert" -> true)), retryOnConflictOpt.map(n => Map("_retry_on_conflict" -> n)))
-          } else {
-            (Document(document.id, Map("doc"->document.data) ++ Map("detect_noop" -> true) ++ Map("upsert" -> upsertOpt.getOrElse(document).data)), retryOnConflictOpt.map(n => Map("_retry_on_conflict" -> n)))
+          val updateOps = upsertOpt match {
+            case Some(upsert) =>
+              Map("upsert" -> upsert.data)
+            case None =>
+              Map("doc_as_upsert" -> true)
           }
+          (Document(document.id, Map("doc"->document.data) ++ Map("detect_noop" -> true) ++ updateOps), retryOnConflictOpt.map(n => Map("_retry_on_conflict" -> n)))
         case _ => (document, None)
       }
 
