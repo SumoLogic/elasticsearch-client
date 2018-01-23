@@ -290,8 +290,8 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       val unauthed = HttpRequest(
         method = method,
         uri = buildUri(endpoint, query),
-        entity = HttpEntity(op),
-        headers = List(HttpHeaders.`Content-Type`(ContentTypes.`application/json`)))
+        entity = HttpEntity(ContentTypes.`application/json`, op),
+        headers = List())
       signer.map(_.withAuthHeader(unauthed)).getOrElse(unauthed)
     }
 

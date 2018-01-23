@@ -24,11 +24,13 @@ trait MappingDsl extends DslCommons {
     val option: String
   }
 
-  // String datatype - https://www.elastic.co/guide/en/elasticsearch/reference/current/string.html
-  case object StringType extends FieldType {
-    val rep = "string"
+  case object KeywordType extends FieldType {
+    val rep = "keyword"
   }
 
+  case object TextType extends FieldType {
+    val rep = "text"
+  }
 
   // Numeric datatypes - https://www.elastic.co/guide/en/elasticsearch/reference/current/number.html
   case object LongType extends FieldType {
