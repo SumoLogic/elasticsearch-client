@@ -43,7 +43,7 @@ trait ScrollClient {
   val defaultResultWindow = "1m"
   val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global
 
-  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, fromOpt: Option[Int] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)]
+  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)]
 
   def scroll(scrollId: ScrollId, resultWindowOpt: Option[String] = None): Future[(ScrollId, SearchResponse)]
 }
@@ -112,7 +112,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   def suggest(index: Index, tpe: Type, query: Suggest): Future[List[String]] = {
     // I'm not totally sure why, but you don't specify the type for _suggest queries
     implicit val ec = searchExecutionCtx
-    val fut = runEsCommand(query, s"/${index.name}/_suggest")
+    val fut = runEsCommand(query, s"/${index.name}/_search")
     fut.map { resp =>
       val extracted = resp.mappedTo[SuggestResult]
       extracted.suggestions
@@ -245,9 +245,9 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   // Scroll requests have optimizations that make them faster when the sort order is _doc.
   // Put sort by _doc in query as described in the the following document
   // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html
-  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, fromOpt: Option[Int] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)] = {
+  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)] = {
     implicit val ec = searchExecutionCtx
-    val params = Map("scroll" -> resultWindowOpt.getOrElse(defaultResultWindow)) ++ fromOpt.map("from" -> _.toString) ++ sizeOpt.map("size" -> _.toString)
+    val params = Map("scroll" -> resultWindowOpt.getOrElse(defaultResultWindow)) ++ sizeOpt.map("size" -> _.toString)
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = UriQuery(params)).map { resp =>
       val sr = resp.mappedTo[SearchResponseWithScrollId]
       (ScrollId(sr._scroll_id), SearchResponse(RawSearchResponse(sr.hits), resp.jsonStr))
