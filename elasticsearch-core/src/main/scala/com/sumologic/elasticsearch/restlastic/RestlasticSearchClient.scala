@@ -235,7 +235,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
                 index,
                 tpe,
                 id,
-                acc ++ items.map(item => Dsl.Index(item._id) -> DeleteResponse(item.success)),
+                acc ++ items.map(item => Dsl.Index(item._id) -> DeleteResponse("deleted")),
                 (scrollId) => scroll(scrollId))
             }
       }
@@ -297,6 +297,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
     logger.debug(f"Got Rs request: $request (op was $op)")
 
+    println(request)
     val responseFuture: Future[HttpResponse] = (IO(Http) ? request).mapTo[HttpResponse]
 
     responseFuture.map { response =>
@@ -306,7 +307,9 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
         logger.warn(s"Failing request: ${op.take(5000)}")
         throw ElasticErrorResponse(JString(response.entity.asString), response.status.intValue)
       }
-      RawJsonResponse(response.entity.asString)
+      val t = RawJsonResponse(response.entity.asString)
+      println(t)
+      t
     }
   }
 
@@ -418,9 +421,17 @@ object RestlasticSearchClient {
 
     case class SuggestOption(text: String, _score: Float)
 
-    case class IndexResponse(created: Boolean)
+    case class IndexResponse(result: String) {
+      def isSuccess = result == IndexApiResponse.Created.toString
+    }
 
-    case class DeleteResponse(found: Boolean)
+    case class DeleteResponse(result: String) {
+      def isSuccess = result == IndexApiResponse.Deleted.toString
+    }
+
+    object IndexApiResponse extends Enumeration {
+      val Created = Value("created")
+      val Deleted = Value("deleted")
     }
 
     case class IndexAlreadyExistsException(message: String) extends Exception(message)

@@ -118,7 +118,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       val delFut = restClient.deleteById(index, tpe, foundDoc._id)
 
       whenReady(delFut) { res =>
-        res.found should be(true)
+        res.isSuccess  should be(true)
       }
 
       refresh()
@@ -210,7 +210,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
 
       val doc = Document("doc", Map("text" -> "retry on version conflict"))
       val indexFuture = restClient.index(index, tpe, doc)
-      indexFuture.futureValue.created should be(true)
+      indexFuture.futureValue.isSuccess should be(true)
 
       val docUpdate1 = Document("doc", Map("text" -> "retry on version conflict 1"))
       val docUpdate2 = Document("doc", Map("text" -> "retry on version conflict 2"))
@@ -298,7 +298,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
     "Support delete documents" in {
       val ir = restClient.index(index, tpe, Document("doc7", Map("text7" -> "here7")))
       whenReady(ir) { ir =>
-        ir.created should be(true)
+        ir.isSuccess should be(true)
       }
       refresh()
       val resFut = restClient.query(index, tpe, new QueryRoot(TermQuery("text7", "here7")))
@@ -493,7 +493,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
         ir
       }
       whenReady(ir) { ir =>
-        ir.created should be(true)
+        ir.isSuccess should be(true)
       }
       refresh()
       val termf1 = TermFilter("filter1", "val1")
