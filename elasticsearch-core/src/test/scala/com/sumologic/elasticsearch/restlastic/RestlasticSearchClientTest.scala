@@ -829,7 +829,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       val matchDocInsertionFuture = restClient.index(index, tpe, matchDoc)
       whenReady(matchDocInsertionFuture) { _ => refresh() }
 
-      val matchResultFuture = restClient.query(index, tpe, new QueryRoot(NestedQuery("user", Some(AvgScoreMode), Bool(Must(MatchQuery("user.first", "Alice"))))))
+      val matchResultFuture = restClient.query(index, tpe, new QueryRoot(NestedQuery("user", Some(AvgScoreMode), Bool(List(Must(MatchQuery("user.first", "Alice")))))))
       whenReady(matchResultFuture) { resp =>
         resp.extractSource[DocNestedType].head should be(DocNestedType(userDoc))
       }
