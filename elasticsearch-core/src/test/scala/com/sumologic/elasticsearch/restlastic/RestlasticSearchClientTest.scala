@@ -18,7 +18,7 @@
   */
 package com.sumologic.elasticsearch.restlastic
 
-import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes._
+import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ElasticJsonDocument, ElasticErrorResponse, IndexAlreadyExistsException, BucketAggregationResultBody, Bucket, BucketNested}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
@@ -407,30 +407,44 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
 
-      val keyWords = List("Case", "case", "#Case`case")
-      val input = Map(
+
+      val contexts = List("Case1", "case2")
+      val input1 = Map(
         "name" -> "test",
         "suggest" -> Map(
-          "input" -> keyWords
+          "contexts" -> Map("f" -> contexts),
+          "input" -> List("class")
         )
       )
-      val docFut = restClient.index(index, tpe, Document("autocomplete", input))
-      whenReady(docFut) { _ => refresh() }
+
+      val input2 = Map(
+        "name" -> "test",
+        "suggest" -> Map(
+          "contexts" -> Map("f" -> contexts),
+          "input" -> List("Case", "#Case`case")
+        )
+      )
+
+      val docFut1 = restClient.index(index, tpe, Document("autocomplete1", input1))
+      whenReady(docFut1) { _ => refresh() }
+      val docFut2 = restClient.index(index, tpe, Document("autocomplete2", input2))
+      whenReady(docFut2) { _ => refresh() }
 
       // test lower case c
-      val autocompleteLower = restClient.suggest(index, tpe, Suggest("c", Completion("suggest", 50, List(Map("f" -> "test")))))
+      val autocompleteLower = restClient.suggest(index, tpe, SuggestRoot(None, List(Suggestion("my-suggestions", Some("c"), None, Some(Completion("suggest", 50, "f", List(Context(List("Case1")))))))))
       whenReady(autocompleteLower) {
-        resp => resp.toSet should be(Set("Case", "case"))
+        resp => resp.head._2.toSet should be(Set("Case", "class"))
       }
+
       // test upper case C
-      val autocompleteUpper = restClient.suggest(index, tpe, Suggest("C", Completion("suggest", 50, List(Map("f" -> "test")))))
+      val autocompleteUpper = restClient.suggest(index, tpe, SuggestRoot(None, List(Suggestion("my-suggestions", Some("c"), None, Some(Completion("suggest", 50, "f", List(Context(List("Case1")))))))))
       whenReady(autocompleteUpper) {
-        resp => resp.toSet should be(Set("Case", "case"))
+        resp => resp.head._2.toSet should be(Set("Case", "class"))
       }
       // test special characters
-      val autocompleteSpecial = restClient.suggest(index, tpe, Suggest("#", Completion("suggest", 50, List(Map("f" -> "test")))))
+      val autocompleteSpecial = restClient.suggest(index, tpe, SuggestRoot(None, List(Suggestion("my-suggestions", Some("#"), None, Some(Completion("suggest", 50, "f", List(Context(List("Case1")))))))))
       whenReady(autocompleteSpecial) {
-        resp => resp should be(List("#Case`case"))
+        resp => resp.head._2.toSet should be(Set("#Case`case"))
       }
     }
 
@@ -797,15 +811,23 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
     }
 
     "support buckets inside buckets" in {
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("make" -> basicKeywordFieldMapping, "color" -> basicKeywordFieldMapping), Some(false)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
+
       // https://www.elastic.co/guide/en/elasticsearch/guide/current/_buckets_inside_buckets.html
       val doc1 = Document("agg_doc1", Map("make" -> "honda", "color" -> "red"))
       val doc2 = Document("agg_doc2", Map("make" -> "honda", "color" -> "black"))
       val doc3 = Document("agg_doc3", Map("make" -> "honda", "color" -> "black"))
+
       val regexFuture = restClient.bulkIndex(index, tpe, Seq(doc1, doc2, doc3))
       whenReady(regexFuture) { _ => refresh() }
 
-      val aggregations = TermsAggregation(name = Some("make"), field = "make", include = None, size = Some(0), shardSize = None, hint = None,
-        aggs = Some(TermsAggregation(name = Some("color"), field = "color", include = None, size = Some(0), shardSize = None, hint = None))
+      val aggregations = TermsAggregation(name = Some("make"), field = "make", include = None, size = Some(Int.MaxValue), shardSize = None, hint = None,
+        aggs = Some(TermsAggregation(name = Some("color"), field = "color", include = None, size = Some(Int.MaxValue), shardSize = None, hint = None))
       )
 
       val aggregationsQuery = AggregationQuery(

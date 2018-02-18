@@ -109,7 +109,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     }
   }
 
-  def suggest(index: Index, tpe: Type, query: Suggest): Future[List[String]] = {
+  def suggest(index: Index, tpe: Type, query: SuggestRoot): Future[Map[String,List[String]]] = {
     // I'm not totally sure why, but you don't specify the type for _suggest queries
     implicit val ec = searchExecutionCtx
     val fut = runEsCommand(query, s"/${index.name}/_search")
@@ -413,8 +413,8 @@ object RestlasticSearchClient {
       }
     }
 
-    case class SuggestResult(suggest: List[Suggestion]) {
-      def suggestions: List[String] = suggest.flatMap(_.options.map(_.text))
+    case class SuggestResult(suggest: Map[String, List[Suggestion]]) {
+      def suggestions: Map[String, List[String]] = suggest.map{ case (name, suggestions) => name -> suggestions.flatMap(_.options.map(_.text))}
     }
 
     case class Suggestion(text: String, options: List[SuggestOption])

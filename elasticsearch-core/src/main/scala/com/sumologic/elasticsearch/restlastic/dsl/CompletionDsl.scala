@@ -20,33 +20,55 @@ package com.sumologic.elasticsearch.restlastic.dsl
 
 trait CompletionDsl extends DslCommons with QueryDsl {
 
-  case class Suggest(text: String, completion: Completion) extends Query with RootObject {
+  case class SuggestRoot(textOpt: Option[String], suggestions: List[Suggestion]) extends Query with RootObject {
     val _suggest = "suggest"
     val _text = "text"
-    val _completion = "completion"
+
 
     override def toJson: Map[String, Any] = {
-      Map(_suggest -> Map(
-        _text -> text,
-        _completion -> completion.toJson
-      ))
+      val globalTextJson = if (textOpt.isDefined) Map(_text -> textOpt.get) else Map.empty
+
+      globalTextJson ++ Map(_suggest -> suggestions.map(p => p.name -> p.toJson).toMap)
     }
   }
 
-  case class Completion(field: String, size: Int, contexts: List[Map[String, String]]) extends Query {
-    val _field = "field"
-    val _context = "contexts"
-    val _size = "size"
+  case class Suggestion(name: String, textOpt: Option[String], termOpt: Option[SuggestionTerm], completionOpt: Option[Completion]) extends Query {
+    val _text = "text"
+    val _term = "term"
+    val _completion = "completion"
 
-    def withAdditionalContext(newContext: Map[String, String]) = {
-      this.copy(contexts = (contexts :+ newContext))
+    override def toJson: Map[String, Any] = {
+      val textJson = if (textOpt.isDefined) Map(_text -> textOpt.get) else Map.empty[String, Any]
+      val termJson = if (termOpt.isDefined) Map(_term -> termOpt.get.toJson) else Map.empty[String, Any]
+      val completionJson = if (completionOpt.isDefined) Map(_completion -> completionOpt.get.toJson) else Map.empty[String, Any]
+      termJson ++ textJson ++ completionJson
     }
+  }
+
+  case class SuggestionTerm(fieldName: String) extends Query {
+    val _field = "field"
+
+    override def toJson: Map[String, Any] = {
+      Map(_field -> fieldName)
+    }
+  }
+
+  case class Completion(field: String, size: Int, name: String, contexts: List[Context]) extends Query {
+    val _field = "field"
+    val _contexts = "contexts"
+    val _size = "size"
 
     override def toJson: Map[String, Any] = Map(
       _field -> field,
-      _context -> contexts,
+      _contexts -> Map(name -> contexts.map(_.toJson)),
       _size -> size
     )
+  }
+
+  case class Context(values: List[String]) extends Query {
+    val _context = "context"
+
+    override def toJson: Map[String, Any] = values.flatMap(value => Map(_context -> value)).toMap
   }
 
 }
