@@ -1,3 +1,4 @@
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,18 +19,20 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
+import java.util.concurrent.Executors
+
+import akka.http.scaladsl.model.HttpMethods
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes._
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch_test.ElasticsearchIntegrationTest
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
-import spray.http.HttpMethods._
 import org.json4s._
 import org.json4s.native.JsonMethods._
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFutures with BeforeAndAfterAll
   with ElasticsearchIntegrationTest with OneInstancePerTest {
@@ -272,14 +275,14 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Support raw requests" in {
-      val future = restClient.runRawEsRequest(op = "", endpoint = "/_stats/indices", GET)
+      val future = restClient.runRawEsRequest(op = "", endpoint = "/_stats/indices", HttpMethods.GET)
       whenReady(future) { res =>
         res.jsonStr should include(IndexName)
       }
     }
 
     "Return error on failed raw requests" in {
-      val future = restClient.runRawEsRequest(op = "", endpoint = "/does/not/exist", GET)
+      val future = restClient.runRawEsRequest(op = "", endpoint = "/does/not/exist", HttpMethods.GET)
       whenReady(future.failed) { e =>
         e shouldBe a [ElasticErrorResponse]
         val elasticErrorResponse = e.asInstanceOf[ElasticErrorResponse]
@@ -1077,9 +1080,17 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Support deleting more than 10000 docs" in {
-      val insertFutures = (1 to 10011).map(i => restClient.index(index, tpe, Document(s"doc$i", Map("text7" -> "here7"))))
-      val ir = Future.sequence(insertFutures)
-      Await.result(ir, 20.seconds)
+      val docs = (1 to 10011).map(i => Document(s"doc$i", Map("text7" -> "here7")))
+
+      val chunkSize = 20
+      docs.sliding(chunkSize, chunkSize).foreach { chunk =>
+        val ir = Future.traverse(chunk) { doc =>
+          restClient.index(index, tpe, doc)
+        }
+
+        Await.result(ir, 20.seconds)
+      }
+
       refresh()
 
       val delFut = restClient.deleteDocuments(index, tpe, new QueryRoot(MatchAll, sizeOpt = Some(1000)))
@@ -1091,9 +1102,10 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Delete only first page of query results" in {
-      val insertFutures = (1 to 100).map(i => restClient.index(index, tpe, Document(s"doc$i", Map("text7" -> "here7"))))
-      val ir = Future.sequence(insertFutures)
-      Await.result(ir, 20.seconds)
+      (1 to 100).foreach { i =>
+          Await.result(restClient.index(index, tpe, Document(s"doc$i", Map("text7" -> "here7"))), 20.seconds)
+        }
+
       refresh()
 
       val delFut = restClient.deleteDocument(index, tpe, new QueryRoot(MatchAll, sizeOpt = Some(50)))

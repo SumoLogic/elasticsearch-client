@@ -25,16 +25,27 @@
     </scm>
 
     <properties>
-        <scala.version.major>2.11</scala.version.major>
-        <akka.version>2.3.11</akka.version>
+        <scala.version.major>2.12</scala.version.major>
+        <akka.version>2.5.9</akka.version>
         <elasticsearch.version>2.3.5</elasticsearch.version>
         <lucene.version>5.5.0</lucene.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-stream_${scala.version.major}</artifactId>
+                <version>${akka.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.version.major}</artifactId>
-            <version>2.2.6</version>
+            <version>3.0.5</version>
         </dependency>
     </dependencies>
     <build>
@@ -76,8 +87,6 @@
                         <arg>-language:implicitConversions</arg>
                         <arg>-unchecked</arg>
                         <arg>-feature</arg>
-                        <arg>-Ybackend:GenBCode</arg>
-                        <arg>-optimise</arg>
                     </args>
                     <jvmArgs>
                         <jvmArg>-client</jvmArg>

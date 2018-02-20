@@ -56,7 +56,7 @@ with BeforeAndAfterAll with BeforeAndAfterEach with MockitoSugar with ImplicitSe
   }
 
   override def afterAll(): Unit = {
-    system.shutdown()
+    system.terminate()
   }
 
   "BulkIndexerActor" should {

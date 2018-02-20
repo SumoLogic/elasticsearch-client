@@ -19,8 +19,13 @@
 package com.sumologic.elasticsearch.restlastic
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.HttpMethods._
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.io.IO
 import akka.pattern.ask
+import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ScrollId, SearchResponse}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl
@@ -28,13 +33,9 @@ import org.json4s._
 import org.json4s.native.JsonMethods._
 import org.slf4j.LoggerFactory
 
-import spray.can.Http
-import spray.http.HttpMethods._
-import spray.http.Uri.{Query => UriQuery}
-import spray.http.{HttpResponse, _}
-
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.util.Success
 
 trait ScrollClient {
   import Dsl._
@@ -71,13 +72,14 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
                             (implicit val system: ActorSystem = ActorSystem(), val timeout: Timeout = Timeout(30.seconds))
   extends ScrollClient {
 
-  private implicit val formats = org.json4s.DefaultFormats
+  private implicit val formats: DefaultFormats.type = org.json4s.DefaultFormats
+  private implicit val mat: ActorMaterializer = ActorMaterializer()
   private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
   import Dsl._
   import RestlasticSearchClient.ReturnTypes._
 
   def ready: Boolean = endpointProvider.ready
-  def query(index: Index, tpe: Type, query: RootObject, rawJsonStr: Boolean = true, uriQuery: UriQuery = UriQuery.Empty): Future[SearchResponse] = {
+  def query(index: Index, tpe: Type, query: RootObject, rawJsonStr: Boolean = true, uriQuery: Uri.Query = Uri.Query.Empty): Future[SearchResponse] = {
     implicit val ec = searchExecutionCtx
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query=uriQuery).map { rawJson =>
       val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
@@ -238,7 +240,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, fromOpt: Option[Int] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)] = {
     implicit val ec = searchExecutionCtx
     val params = Map("scroll" -> resultWindowOpt.getOrElse(defaultResultWindow)) ++ fromOpt.map("from" -> _.toString) ++ sizeOpt.map("size" -> _.toString)
-    runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = UriQuery(params)).map { resp =>
+    runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = Uri.Query(params)).map { resp =>
       val sr = resp.mappedTo[SearchResponseWithScrollId]
       (ScrollId(sr._scroll_id), SearchResponse(RawSearchResponse(sr.hits), resp.jsonStr))
     }
@@ -246,7 +248,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
   def scroll(scrollId: ScrollId, resultWindowOpt: Option[String] = None): Future[(ScrollId, SearchResponse)] = {
     implicit val ec = searchExecutionCtx
-    val uriQuery = UriQuery("scroll_id" -> scrollId.id, "scroll" -> resultWindowOpt.getOrElse(defaultResultWindow))
+    val uriQuery = Uri.Query("scroll_id" -> scrollId.id, "scroll" -> resultWindowOpt.getOrElse(defaultResultWindow))
     runEsCommand(NoOp, s"/_search/scroll", query = uriQuery).map { resp =>
       val sr = resp.mappedTo[SearchResponseWithScrollId]
       (ScrollId(sr._scroll_id), SearchResponse(RawSearchResponse(sr.hits), resp.jsonStr))
@@ -266,7 +268,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   private def runEsCommand(op: RootObject,
                            endpoint: String,
                            method: HttpMethod = POST,
-                           query: UriQuery = UriQuery.Empty)
+                           query: Uri.Query = Uri.Query.Empty)
                           (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     runRawEsRequest(op.toJsonStr, endpoint, method, query)
   }
@@ -274,7 +276,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   def runRawEsRequest(op: String,
                       endpoint: String,
                       method: HttpMethod = POST,
-                      query: UriQuery = UriQuery.Empty)
+                      query: Uri.Query = Uri.Query.Empty)
                      (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse] = {
     val request = {
       val unauthed = HttpRequest(
@@ -286,26 +288,33 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
     logger.debug(f"Got Rs request: $request (op was $op)")
 
-    val responseFuture: Future[HttpResponse] = (IO(Http) ? request).mapTo[HttpResponse]
+    val responseFuture: Future[HttpResponse] = Http().singleRequest(request)
 
-    responseFuture.map { response =>
+    responseFuture.flatMap { response =>
       logger.debug(f"Got Es response: $response")
+      val responseBody = Unmarshal(response.entity).to[String]
+
       if (response.status.isFailure) {
-        logger.warn(s"Failure response: ${response.entity.asString.take(500)}")
+        logger.warn(s"Failure response: ${response.status.defaultMessage()}")
         logger.warn(s"Failing request: ${op.take(5000)}")
-        throw ElasticErrorResponse(JString(response.entity.asString), response.status.intValue)
+
+        responseBody.flatMap(body =>
+          Future.failed(ElasticErrorResponse(JString(body), response.status.intValue)))
+      } else {
+        responseBody.map(RawJsonResponse)
       }
-      RawJsonResponse(response.entity.asString)
     }
   }
 
-  private def buildUri(path: String, query: UriQuery = UriQuery.Empty): Uri = {
+  private def buildUri(path: String, query: Uri.Query = Uri.Query.Empty): Uri = {
     val ep = endpointProvider.endpoint
     val scheme = ep.port match {
       case 443 => "https"
       case _ => "http"
     }
-    Uri.from(scheme = scheme, host = ep.host, port = ep.port, path = path, query = query)
+
+    Uri.from(scheme = scheme, host = ep.host, port = ep.port, path = path)
+      .withQuery(query)
   }
 }
 
