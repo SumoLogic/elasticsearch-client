@@ -297,7 +297,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
     logger.debug(f"Got Rs request: $request (op was $op)")
 
-    println(request)
+    //println(request)
     val responseFuture: Future[HttpResponse] = (IO(Http) ? request).mapTo[HttpResponse]
 
     responseFuture.map { response =>
@@ -307,9 +307,9 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
         logger.warn(s"Failing request: ${op.take(5000)}")
         throw ElasticErrorResponse(JString(response.entity.asString), response.status.intValue)
       }
-      val t = RawJsonResponse(response.entity.asString)
-      println(t)
-      t
+      val result = RawJsonResponse(response.entity.asString)
+      //println(response)
+      result
     }
   }
 
