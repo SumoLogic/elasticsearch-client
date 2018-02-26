@@ -62,8 +62,7 @@ trait IndexDsl extends DslCommons {
   // When upsertOpt is specified, its content is used for upsert as described in
   // https://www.elastic.co/guide/en/elasticsearch/reference/2.3/docs-update.html
   // When upsertOpt is not given, document is used for upsert.
-  case class BulkOperation(operation: OperationType, location: Option[(Index, Type)], document: Document, retryOnConflictOpt: Option[Int] = None, upsertOpt: Option[Document] = None) extends EsOperation {
-
+  case class BulkOperation(operation: OperationType, location: Option[(Index, Type)], document: Document, retryOnConflictOpt: Option[Int] = None, upsertOpt: Option[Document] = None, docAsUpsertOpt: Option[Boolean] = None) extends EsOperation {
     import EsOperation.compactJson
 
     override def toJson: Map[String, Any] = throw new UnsupportedOperationException
@@ -75,7 +74,7 @@ trait IndexDsl extends DslCommons {
             case Some(upsert) =>
               Map("upsert" -> upsert.data)
             case None =>
-              Map("doc_as_upsert" -> true)
+              Map("doc_as_upsert" -> docAsUpsertOpt.getOrElse(true))
           }
           (Document(document.id, Map("doc" -> document.data) ++ Map("detect_noop" -> true) ++ updateOps), retryOnConflictOpt.map(n => Map("_retry_on_conflict" -> n)))
         case _ => (document, None)

@@ -399,6 +399,22 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       }
     }
 
+    "Return error when update a document that does not exist and doc as upsert is set to false" in {
+      val docNotExist = Document("doc_not_exist", Map("foo" -> "bar"))
+      val updateOperation = BulkOperation(update, Some(index, tpe), docNotExist, retryOnConflictOpt = Some(5), docAsUpsertOpt = Some(false))
+      val resultFuture = restClient.bulkIndex(Bulk(Seq(updateOperation)))
+      resultFuture.futureValue.head.status should be(404)
+      resultFuture.futureValue.head.success should be(false)
+    }
+
+    "Return success when update a document that does not exist and doc as upsert is set to true" in {
+      val docNotExist = Document("doc_not_exist", Map("foo" -> "bar"))
+      val updateOperation = BulkOperation(update, Some(index, tpe), docNotExist, retryOnConflictOpt = Some(5), docAsUpsertOpt = Some(true) )
+      val resultFuture = restClient.bulkIndex(Bulk(Seq(updateOperation)))
+      resultFuture.futureValue.head.status should be(201)
+      resultFuture.futureValue.head.success should be(true)
+    }
+
     "Support case insensitive autocomplete" in {
       val basicFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName))
       val metadataMapping = Mapping(tpe, IndexMapping(
