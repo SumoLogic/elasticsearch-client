@@ -1110,6 +1110,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       resp.sourceAsMap should not be empty
       val highlights = Highlight(Seq(HighlightField("text", Some(UnifiedHighlighter), None, Some(0)),
         HighlightField("f1", Some(PlainHighlighter))), Seq(""), Seq(""))
+      val resFut = restClient.query(index, tpe,
         HighlightRoot(new QueryRoot(
           PrefixQuery("text", "h"),
           fromOpt = None,
