@@ -26,7 +26,7 @@ trait CompletionDsl extends DslCommons with QueryDsl {
 
 
     override def toJson: Map[String, Any] = {
-      val globalTextJson = if (textOpt.isDefined) Map(_text -> textOpt.get) else Map.empty
+      val globalTextJson = Map.empty[String, Any] ++ textOpt.map(text => _text -> text)
 
       globalTextJson ++ Map(_suggest -> suggestions.map(p => p.name -> p.toJson).toMap)
     }
@@ -38,9 +38,9 @@ trait CompletionDsl extends DslCommons with QueryDsl {
     val _completion = "completion"
 
     override def toJson: Map[String, Any] = {
-      val textJson = if (textOpt.isDefined) Map(_text -> textOpt.get) else Map.empty[String, Any]
-      val termJson = if (termOpt.isDefined) Map(_term -> termOpt.get.toJson) else Map.empty[String, Any]
-      val completionJson = if (completionOpt.isDefined) Map(_completion -> completionOpt.get.toJson) else Map.empty[String, Any]
+      val textJson = Map.empty[String, Any] ++ textOpt.map(text => _text -> text)
+      val termJson = Map.empty[String, Any] ++ termOpt.map(term => _term -> term.toJson)
+      val completionJson = Map.empty[String, Any] ++ completionOpt.map(completion => _term -> completion.toJson)
       termJson ++ textJson ++ completionJson
     }
   }
