@@ -400,8 +400,8 @@ trait QueryDsl extends DslCommons with SortDsl {
     val name = "plain"
   }
 
-  case object PostingsHighlighter extends HighlighterType {
-    val name = "postings"
+  case object UnifiedHighlighter extends HighlighterType {
+    val name = "unified"
   }
 
   case object FastVectorHighlighter extends HighlighterType {
