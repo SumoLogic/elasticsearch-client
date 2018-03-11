@@ -34,13 +34,12 @@ trait CompletionDsl extends DslCommons with QueryDsl {
 
   case class Suggestion(name: String, textOpt: Option[String], termOpt: Option[SuggestionTerm], completionOpt: Option[Completion]) extends Query {
     val _text = "text"
-    val _term = "term"
     val _completion = "completion"
 
     override def toJson: Map[String, Any] = {
       val textJson = Map.empty[String, Any] ++ textOpt.map(text => _text -> text)
-      val termJson = Map.empty[String, Any] ++ termOpt.map(term => _term -> term.toJson)
-      val completionJson = Map.empty[String, Any] ++ completionOpt.map(completion => _term -> completion.toJson)
+      val termJson = Map.empty[String, Any] ++ termOpt.map(term => _completion -> term.toJson)
+      val completionJson = Map.empty[String, Any] ++ completionOpt.map(completion => _completion -> completion.toJson)
       termJson ++ textJson ++ completionJson
     }
   }
