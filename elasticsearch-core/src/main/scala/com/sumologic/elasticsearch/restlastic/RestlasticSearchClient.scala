@@ -192,6 +192,24 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     runEsCommand(EmptyObject, s"/${index.name}", DELETE)
   }
 
+  @deprecated("When plugin is not enabled this function doesn't handle pagination, so it deletes only first page of query results. Replaced by deleteDocuments.")
+  def deleteDocument(index: Index, tpe: Type, deleteQuery: QueryRoot, pluginEnabled: Boolean = false): Future[RawJsonResponse] = {
+    implicit val ec = indexExecutionCtx
+    if (pluginEnabled) {
+      runEsCommand(deleteQuery, s"/${index.name}/${tpe.name}/_query", DELETE)
+    } else {
+      val response = Await.result(query(index, tpe, deleteQuery, rawJsonStr = false), 10.seconds).rawSearchResponse
+      val totalHits = response.hits.total
+      val documents = response.hits.hits.map(_._id)
+      if (totalHits > documents.length) {
+        logger.warn(s"deleting only first ${documents.length}/$totalHits matches. " +
+            "Use deleteDocuments, if you want to delete more at once.")
+      }
+
+      bulkDelete(index, tpe, documents.map(Document(_, Map()))).map(res => RawJsonResponse(res.toString))
+    }
+  }
+
   def deleteDocuments(index: Index, tpe: Type, deleteQuery: QueryRoot, pluginEnabled: Boolean = false): Future[Map[Index, DeleteResponse]] = {
     def firstScroll(scId: ScrollId) = startScrollRequest(index, tpe, deleteQuery)
 

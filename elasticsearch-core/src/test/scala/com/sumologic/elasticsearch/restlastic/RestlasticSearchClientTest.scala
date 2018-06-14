@@ -309,7 +309,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       whenReady(resFut) { res =>
         res.sourceAsMap.toList should be(List(Map("text7" -> "here7")))
       }
-      val delFut = restClient.deleteDocuments(index, tpe, new QueryRoot(TermQuery("text7", "here7")))
+      val delFut = restClient.deleteDocument(index, tpe, new QueryRoot(TermQuery("text7", "here7")))
       Await.result(delFut, 10.seconds)
       refresh()
       val resFut1 = restClient.query(index, tpe, new QueryRoot(TermQuery("text7", "here7")))
@@ -1151,7 +1151,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       Await.result(ir, 20.seconds)
       refresh()
 
-      val delFut = restClient.deleteDocuments(index, tpe, new QueryRoot(MatchAll, sizeOpt = Some(50)))
+      val delFut = restClient.deleteDocument(index, tpe, new QueryRoot(MatchAll, sizeOpt = Some(50)))
       Await.result(delFut, 20.seconds)
       refresh()
 
