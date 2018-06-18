@@ -1,4 +1,8 @@
 language: java
+services:
+  - elasticsearch
+before_install:
+  - sleep 15
 install: mvn install -DskipTests=true -Dgpg.skip=true
 after_success:
   - bash <(curl -s https://codecov.io/bash)
