@@ -2,6 +2,9 @@ language: java
 services:
   - elasticsearch
 before_install:
+  - curl -XGET 'localhost:9200'
+  - curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.0.0.deb && sudo dpkg -i --force-confnew elasticsearch-6.0.0.deb && sudo service elasticsearch restart
+  - curl -XGET 'localhost:9200'
   - sleep 15
 install: mvn install -DskipTests=true -Dgpg.skip=true
 after_success:
