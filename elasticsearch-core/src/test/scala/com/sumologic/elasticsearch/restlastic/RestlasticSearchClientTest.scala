@@ -1131,7 +1131,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       restClient.documentExistsById(index, tpe, "doc0002").futureValue should be(false)
     }
 
-    "Support deleting more than 10000 docs" ignore {
+    "Support deleting more than 10000 docs" in {
       val documents = (1 to 10011).map(i => Document(s"doc$i", Map("text7" -> "here7")))
       val bulkInsertResult = restClient.bulkIndex(index, tpe,documents)
       Await.result(bulkInsertResult, 20.seconds)
