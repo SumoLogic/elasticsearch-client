@@ -37,6 +37,11 @@ trait CompletionDsl extends DslCommons with QueryDsl {
 
     override def toJson: Map[String, Any] = {
       val textJson = Map.empty[String, Any] ++ textOpt.map(text => _text -> text)
+
+      // TODO: Merge both the termOpt and completionOpt
+      require(!(termOpt.isDefined && completionOpt.isDefined),
+      "Both the completionOpt and termOpt can not be defined.")
+
       val termJson = Map.empty[String, Any] ++ termOpt.map(term => _completion -> term.toJson)
       val completionJson = Map.empty[String, Any] ++ completionOpt.map(completion => _completion -> completion.toJson)
       termJson ++ textJson ++ completionJson
