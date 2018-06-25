@@ -449,7 +449,8 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       val specialCharCaseSuggestionOpt = Some("#")
       val defaultWithTextSuggestion = Suggestion("my-suggestions", lowerCaseSuggestionOpt, None, Some(Completion("suggest", 50, "f", List(Context(List("Case1"))))))
       val defaulNoTextSuggestion = Suggestion("my-suggestions",None, None, Some(Completion("suggest", 50, "f", List(Context(List("Case1"))))))
-      
+      val defaultNoContextSuggestion = Suggestion("my-suggestions",None, Some(SuggestionTerm("suggest")), None)
+
       val suggestionWithText1 = defaultWithTextSuggestion
       val suggestionWithText2 = defaultWithTextSuggestion.copy(textOpt = upperCaseSuggestionOpt)
       val suggestionWithText3 = defaultWithTextSuggestion.copy(textOpt = specialCharCaseSuggestionOpt)
@@ -460,7 +461,10 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
         SuggestRoot(None, List(suggestionWithText3)) -> Set("#Case`case"),
         SuggestRoot(lowerCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("Case", "class"),
         SuggestRoot(specialCharCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("Case", "class"),
-        SuggestRoot(specialCharCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("#Case`case")
+        SuggestRoot(specialCharCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("#Case`case"),
+        SuggestRoot(lowerCaseSuggestionOpt, List(defaultNoContextSuggestion)) -> Set("Case", "class"),
+        SuggestRoot(specialCharCaseSuggestionOpt, List(defaultNoContextSuggestion)) -> Set("Case", "class"),
+        SuggestRoot(specialCharCaseSuggestionOpt, List(defaultNoContextSuggestion)) -> Set("#Case`case")
       )
 
       suggestionRootWithResult.foreach {
