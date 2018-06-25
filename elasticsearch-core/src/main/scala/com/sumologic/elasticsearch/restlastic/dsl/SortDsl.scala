@@ -29,7 +29,7 @@ trait SortDsl extends DslCommons {
     val _order = "order"
 
     override def toJson: Map[String, Any] = Map(field ->
-      Map(_order -> order.value)
+        Map(_order -> order.value)
     )
   }
 

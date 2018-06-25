@@ -18,22 +18,19 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
-import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes._
+import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ElasticJsonDocument, ElasticErrorResponse, IndexAlreadyExistsException, BucketAggregationResultBody, Bucket, BucketNested}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
-import com.sumologic.elasticsearch_test.ElasticsearchIntegrationTest
-import org.scalatest._
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
-import spray.http.HttpMethods._
 import org.json4s._
 import org.json4s.native.JsonMethods._
+import org.scalatest._
+import org.scalatest.time.{Millis, Seconds, Span}
+import spray.http.HttpMethods._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFutures with BeforeAndAfterAll
-  with ElasticsearchIntegrationTest with OneInstancePerTest {
-  val index = Index(IndexName)
+class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAfterAll
+    with ElasticsearchIntegrationTest with OneInstancePerTest {
   val tpe = Type("foo")
   val analyzerName = Name("keyword_lowercase")
 
@@ -41,22 +38,20 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
   implicit val patience = PatienceConfig(timeout = scaled(Span(10, Seconds)), interval = scaled(Span(50, Millis)))
 
-  lazy val restClient = {
-    val (host, port) = endpoint
-    val client = new RestlasticSearchClient(new StaticEndpoint(Endpoint(host, port)))
-    val analyzer = Analyzer(analyzerName, Keyword, Lowercase)
-    val indexSetting = IndexSetting(12, 1, analyzer, 30)
-    val indexFut = client.createIndex(index, Some(indexSetting))
-    indexFut.futureValue
-    client
-  }
+  val analyzer = Analyzer(analyzerName, Keyword, Lowercase)
+  val indexSetting = IndexSetting(12, 1, analyzer, 30)
+  val indexFut = restClient.createIndex(index, Some(indexSetting))
+  indexFut.futureValue
 
   private def refreshWithClient(): Unit = {
     Await.result(restClient.refresh(index), 2.seconds)
   }
 
-
   "RestlasticSearchClient" should {
+    val basicTextFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
+    val basicKeywordFieldMapping = BasicFieldMapping(KeywordType, None, None, ignoreAbove = None, None)
+    val basicNumericFieldMapping = BasicFieldMapping(IntegerType, None, None, None, None)
+
     "Be able to create an index and setup index setting with keyword & edgengram lowercase analyzer" in {
       val edgeNgram = EdgeNGramFilter(Name(EdgeNGram.rep), 1, 20)
       val edgeNgramLowercaseAnalyzer = Analyzer(Name(s"${EdgeNGram.rep}_lowercase"), Keyword, Lowercase, EdgeNGram)
@@ -68,7 +63,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Be able to setup document mapping" in {
-      val basicFieldMapping = BasicFieldMapping(StringType, None, Some(analyzerName))
+      val basicFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName))
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)), Some(false)))
 
@@ -77,7 +72,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Be able to setup document mapping with ignoreAbove" in {
-      val basicFieldMapping = BasicFieldMapping(StringType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
+      val basicFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName))))
 
@@ -86,11 +81,11 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Be able to setup document mapping with field index options" in {
-      val basicFieldDocsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+      val basicFieldDocsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(DocsIndexOption))
-      val basicFieldFreqsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+      val basicFieldFreqsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(FreqsIndexOption))
-      val basicFieldOffsetsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+      val basicFieldOffsetsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(OffsetsIndexOption))
 
       val metadataMapping = Mapping(tpe, IndexMapping(
@@ -102,7 +97,8 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
       val mappingRes = restClient.getMapping(index, tpe)
-      mappingRes.futureValue.jsonStr.toString.contains(""""f2":{"type":"string","index_options":"offsets","analyzer":"keyword_lowercase"}""") should be(true)
+
+      mappingRes.futureValue.jsonStr.toString.contains(""""f2":{"type":"text","index_options":"offsets","analyzer":"keyword_lowercase"}""") should be(true)
     }
 
     "Be able to create an index, index a document, and search it" in {
@@ -118,20 +114,20 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       indexDocs(Seq(Document("doc1", Map("text" -> "here"))))
       val resFut = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here"), timeoutOpt = Some(5000)))
 
-      val foundDoc: ElasticJsonDocument = whenReady(resFut){ res =>
+      val foundDoc: ElasticJsonDocument = whenReady(resFut) { res =>
         res.rawSearchResponse.hits.hits.head
       }
-      
+
       val delFut = restClient.deleteById(index, tpe, foundDoc._id)
 
       whenReady(delFut) { res =>
-        res.found should be(true)
+        res.isSuccess should be(true)
       }
 
       refresh()
 
       val resFut2 = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here"), timeoutOpt = Some(5000)))
-      whenReady(resFut2){ res =>
+      whenReady(resFut2) { res =>
         res.rawSearchResponse.hits.hits.size should be(0)
       }
     }
@@ -195,15 +191,15 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         res.jsonStr should include("doc4")
         res.jsonStr should not include "doc5"
       }
-      
+
       val delFut = restClient.bulkDelete(index, tpe, Seq(doc3, doc4, doc5))
-      whenReady(delFut){ resp =>
+      whenReady(delFut) { resp =>
         resp.length should be(3)
         resp.head.success should be(true)
         resp(1).success should be(true)
         resp(2).success should be(true)
       }
-      
+
       refresh()
       val resFut2 = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here")))
       whenReady(resFut2) { res =>
@@ -217,7 +213,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 
       val doc = Document("doc", Map("text" -> "retry on version conflict"))
       val indexFuture = restClient.index(index, tpe, doc)
-      indexFuture.futureValue.created should be(true)
+      indexFuture.futureValue.isSuccess should be(true)
 
       val docUpdate1 = Document("doc", Map("text" -> "retry on version conflict 1"))
       val docUpdate2 = Document("doc", Map("text" -> "retry on version conflict 2"))
@@ -244,7 +240,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         refresh()
       }
       val query = new QueryRoot(MatchAll, sortOpt = Some(Seq(SimpleSort("id", AscSortOrder))))
-      val fut = restClient.startScrollRequest(index, tpe, query, fromOpt = Some(1), sizeOpt = Some(5))
+      val fut = restClient.startScrollRequest(index, tpe, query, sizeOpt = Some(5))
       val scrollId = whenReady(fut) { case (id, data) =>
         data.sourceAsMap.flatMap(_.values).filter(_ != "ct") should be(List(1, 2, 3, 4, 5))
         id
@@ -272,7 +268,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Support raw requests" in {
-      val future = restClient.runRawEsRequest(op = "", endpoint = "/_stats/indices", GET)
+      val future = restClient.runRawEsRequest(op = "", endpoint = "/_cat/indices", GET)
       whenReady(future) { res =>
         res.jsonStr should include(IndexName)
       }
@@ -281,7 +277,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     "Return error on failed raw requests" in {
       val future = restClient.runRawEsRequest(op = "", endpoint = "/does/not/exist", GET)
       whenReady(future.failed) { e =>
-        e shouldBe a [ElasticErrorResponse]
+        e shouldBe a[ElasticErrorResponse]
         val elasticErrorResponse = e.asInstanceOf[ElasticErrorResponse]
         elasticErrorResponse.status should be(404)
       }
@@ -305,7 +301,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     "Support delete documents" in {
       val ir = restClient.index(index, tpe, Document("doc7", Map("text7" -> "here7")))
       whenReady(ir) { ir =>
-        ir.created should be(true)
+        ir.isSuccess should be(true)
       }
       refresh()
       val resFut = restClient.query(index, tpe, new QueryRoot(TermQuery("text7", "here7")))
@@ -419,38 +415,74 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Support case insensitive autocomplete" in {
-
-      val basicFieldMapping = BasicFieldMapping(StringType, None, Some(analyzerName))
+      val basicFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName))
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)), Some(false)))
 
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
 
-      val keyWords = List("Case", "case", "#Case`case")
-      val input = Map(
+
+      val contexts = List("Case1", "case2")
+      val input1 = Map(
         "name" -> "test",
         "suggest" -> Map(
-          "input" -> keyWords
+          "contexts" -> Map("f" -> contexts),
+          "input" -> List("class")
         )
       )
-      val docFut = restClient.index(index, tpe, Document("autocomplete", input))
-      whenReady(docFut) { _ => refresh() }
 
-      // test lower case c
-      val autocompleteLower = restClient.suggest(index, tpe, Suggest("c", Completion("suggest", 50, Map("f" -> "test"))))
-      whenReady(autocompleteLower) {
-        resp => resp.toSet should be(Set("Case", "case"))
+      val input2 = Map(
+        "name" -> "test",
+        "suggest" -> Map(
+          "contexts" -> Map("f" -> contexts),
+          "input" -> List("Case", "#Case`case")
+        )
+      )
+
+      val docFut1 = restClient.index(index, tpe, Document("autocomplete1", input1))
+      whenReady(docFut1) { _ => refresh() }
+      val docFut2 = restClient.index(index, tpe, Document("autocomplete2", input2))
+      whenReady(docFut2) { _ => refresh() }
+      val lowerCaseSuggestionOpt = Some("c")
+      val upperCaseSuggestionOpt = Some("C")
+      val specialCharCaseSuggestionOpt = Some("#")
+      val defaultWithTextSuggestion = Suggestion("my-suggestions", lowerCaseSuggestionOpt, None, Some(Completion("suggest", 50, "f", List(Context(List("Case1"))))))
+      val defaulNoTextSuggestion = Suggestion("my-suggestions",None, None, Some(Completion("suggest", 50, "f", List(Context(List("Case1"))))))
+      val defaultNoContextSuggestion = Suggestion("my-suggestions",None, Some(SuggestionTerm("suggest")), None)
+
+      val suggestionWithText1 = defaultWithTextSuggestion
+      val suggestionWithText2 = defaultWithTextSuggestion.copy(textOpt = upperCaseSuggestionOpt)
+      val suggestionWithText3 = defaultWithTextSuggestion.copy(textOpt = specialCharCaseSuggestionOpt)
+
+      val suggestionRootWithResult = Map(
+        SuggestRoot(None, List(suggestionWithText1)) -> Set("Case", "class"),
+        SuggestRoot(None, List(suggestionWithText2)) -> Set("Case", "class"),
+        SuggestRoot(None, List(suggestionWithText3)) -> Set("#Case`case"),
+        SuggestRoot(lowerCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("Case", "class"),
+        SuggestRoot(specialCharCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("Case", "class"),
+        SuggestRoot(specialCharCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("#Case`case"),
+        SuggestRoot(lowerCaseSuggestionOpt, List(defaultNoContextSuggestion)) -> Set("Case", "class"),
+        SuggestRoot(specialCharCaseSuggestionOpt, List(defaultNoContextSuggestion)) -> Set("Case", "class"),
+        SuggestRoot(specialCharCaseSuggestionOpt, List(defaultNoContextSuggestion)) -> Set("#Case`case")
+      )
+
+      suggestionRootWithResult.foreach {
+        case (suggestionRoot, suggestionResult) => {
+          val result = restClient.suggest(index, tpe, suggestionRoot)
+          whenReady(result) {
+            resp => withClue(s"Suggest root $suggestionRoot, result = ${resp.head._2.toSet}"){
+              resp.head._2.toSet should be(suggestionResult)
+            }
+          }
+        }
       }
-      // test upper case C
-      val autocompleteUpper = restClient.suggest(index, tpe, Suggest("C", Completion("suggest", 50, Map("f" -> "test"))))
-      whenReady(autocompleteUpper) {
-        resp => resp.toSet should be(Set("Case", "case"))
-      }
-      // test special characters
-      val autocompleteSpecial = restClient.suggest(index, tpe, Suggest("#", Completion("suggest", 50, Map("f" -> "test"))))
-      whenReady(autocompleteSpecial) {
-        resp => resp should be(List("#Case`case"))
+    }
+
+    "throw exception if both termOpt and completionOpt are defined" in {
+      val suggestion = Suggestion("my-suggestions", Some("c"), Some(SuggestionTerm("suggest")), Some(Completion("suggest", 50, "f", List(Context(List("Case1"))))))
+      a[IllegalArgumentException] shouldBe thrownBy{
+        restClient.suggest(index, tpe, SuggestRoot(None, List(suggestion)))
       }
     }
 
@@ -516,15 +548,15 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         ir
       }
       whenReady(ir) { ir =>
-        ir.created should be(true)
+        ir.isSuccess should be(true)
       }
       refresh()
       val termf1 = TermFilter("filter1", "val1")
       val termf2 = TermFilter("filter2", "val2")
       val termf3 = TermFilter("filter1", "val2")
-      val validQuery = MultiTermFilteredQuery(MatchAll, termf1, termf2)
-      val invalidQuery = MultiTermFilteredQuery(MatchAll, termf1, termf3)
-      val invalidQuery2 = MultiTermFilteredQuery(MatchAll, termf3, termf1)
+      val validQuery = Bool(List(Must(MatchAll)), FilteredContext(List(termf1, termf2)))
+      val invalidQuery = Bool(List(Must(MatchAll)), FilteredContext(List(termf1, termf3)))
+      val invalidQuery2 = Bool(List(Must(MatchAll)), FilteredContext(List(termf3, termf1)))
       val resFut = restClient.query(index, tpe, new QueryRoot(validQuery))
       whenReady(resFut) { res =>
         res.sourceAsMap.toList should be(List(Map("filter1" -> "val1", "filter2" -> "val2")))
@@ -558,12 +590,11 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val rangeFilterLt4 = RangeFilter("range-id", Lt("4"))
       val rangeFilterLt5 = RangeFilter("range-id", Lt("5"))
 
-      //val validQuery1 = MultiTermFilteredQuery(MatchAll)
-      val validQuery1 = MultiTermFilteredQuery(MatchAll, termf0, rangeFilterGt1)
-      val validQuery2 = MultiTermFilteredQuery(MatchAll, termf1, rangeFilterLt4)
-      val validQuery3 = MultiTermFilteredQuery(MatchAll, termf1, rangeFilterLt5)
-      val validQuery4 = MultiTermFilteredQuery(MatchAll, termf2, rangeFilterLt5)
-      val expectedEmptyResultQuery = MultiTermFilteredQuery(MatchAll, termf2, termf0, rangeFilterGt1)
+      val validQuery1 = Bool(List(Must(MatchAll)), FilteredContext(List(termf0, rangeFilterGt1)))
+      val validQuery2 = Bool(List(Must(MatchAll)), FilteredContext(List(termf1, rangeFilterLt4)))
+      val validQuery3 = Bool(List(Must(MatchAll)), FilteredContext(List(termf1, rangeFilterLt5)))
+      val validQuery4 = Bool(List(Must(MatchAll)), FilteredContext(List(termf2, rangeFilterLt5)))
+      val expectedEmptyResultQuery = Bool(List(Must(MatchAll)), FilteredContext(List(termf2, termf0, rangeFilterGt1)))
 
       val sortByRange = (first: Map[String, Any], second: Map[String, Any]) => {
         first("range-id").toString > second("range-id").toString
@@ -619,12 +650,12 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val mustNotInsertionFuture = restClient.index(index, tpe, mustNotDoc)
       whenReady(mustNotInsertionFuture) { _ => refresh() }
 
-      val mustResultFuture = restClient.query(index, tpe, new QueryRoot(Bool(Must(MatchQuery("f1", "MustNot")))))
+      val mustResultFuture = restClient.query(index, tpe, new QueryRoot(Bool(List(Must(MatchQuery("f1", "MustNot"))))))
       whenReady(mustResultFuture) { resp =>
         resp.extractSource[DocType].head should be(DocType("MustNot", 5))
       }
 
-      val mustNotResultFuture = restClient.query(index, tpe, new QueryRoot(Bool(MustNot(MatchQuery("f1", "MustNot")))))
+      val mustNotResultFuture = restClient.query(index, tpe, new QueryRoot(Bool(List(MustNot(MatchQuery("f1", "MustNot"))))))
       whenReady(mustNotResultFuture) { resp =>
         resp.sourceAsMap.exists(_.get("f1").contains("MustNot")) should be(false)
       }
@@ -679,15 +710,22 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Support Terms Aggregation Query" in {
+
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("f1" -> basicKeywordFieldMapping, "f2" -> basicNumericFieldMapping, "text" -> basicTextFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
       val aggrDoc1 = Document("aggrDoc1", Map("f1" -> "aggr1", "f2" -> 1, "text" -> "text1"))
       val aggrDoc2 = Document("aggrDoc2", Map("f1" -> "aggr2", "f2" -> 2, "text" -> "text2"))
       val aggrDoc3 = Document("aggrDoc3", Map("f1" -> "aggr3", "f2" -> 1, "text" -> "text1"))
       val bulkIndexFuture = restClient.bulkIndex(index, tpe, Seq(aggrDoc1, aggrDoc2, aggrDoc3))
       whenReady(bulkIndexFuture) { _ => refresh() }
 
-      val phasePrefixQuery = PhrasePrefixQuery("f1", "aggr", Some(5))
+      val phasePrefixQuery = PrefixQuery("f1", "aggr")
       val termf = TermFilter("f2", "1")
-      val filteredQuery = MultiTermFilteredQuery(phasePrefixQuery, termf, termf)
+      val filteredQuery = Bool(List(Must(phasePrefixQuery)), FilteredContext(List(termf)))
       val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some(5), Some(5), Some("map"))
       val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
 
@@ -697,7 +735,14 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       aggrQueryFuture.futureValue should be(expected)
     }
 
+
     "Support Terms Aggregation Query with sort order" in {
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("f1" -> basicKeywordFieldMapping, "f2" -> basicNumericFieldMapping, "text" -> basicTextFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
       val docs = Seq(
         Document("sortOrderAggrDoc1", Map("f1" -> "sortOrderAggr1", "f2" -> 1, "text" -> "text1")),
         Document("sortOrderAggrDoc2", Map("f1" -> "sortOrderAggr2", "f2" -> 2, "text" -> "text2")),
@@ -706,18 +751,28 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val bulkIndexFuture = restClient.bulkIndex(index, tpe, docs)
       whenReady(bulkIndexFuture) { _ => refresh() }
 
-      val phasePrefixQuery = PhrasePrefixQuery("f1", "sortOrderAggr", Some(5)) // filters out ES docs for other tests
-      val filteredQuery = MultiTermFilteredQuery(phasePrefixQuery, TermFilter("f2", "1"))
+      val phasePrefixQuery = PrefixQuery("f1", "sortOrderAggr") // filters out ES docs for other tests
+      val filteredQuery = Bool(List(Must(phasePrefixQuery)), FilteredContext(List(TermFilter("f2", "1"))))
       val termsAggr = TermsAggregation("f1", None, Some(5), Some(5), None, None, None, Some(DescSortOrder))
       val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
 
-      val expected = BucketAggregationResultBody(0, 0, List(Bucket("sortorderaggr3", 1), Bucket("sortorderaggr1", 1)))
+      val expected = BucketAggregationResultBody(0, 0, List(Bucket("sortOrderAggr3", 1), Bucket("sortOrderAggr1", 1)))
 
       val aggrQueryFuture = restClient.bucketAggregation(index, tpe, aggrQuery)
       aggrQueryFuture.futureValue should be(expected)
     }
 
+
     "Support Top Hits Aggregation Query" in {
+      val basicKeywordFieldMapping = BasicFieldMapping(KeywordType, None, None, ignoreAbove = None, None)
+      val basicNumericFieldMapping = BasicFieldMapping(IntegerType, None, None, None, None)
+
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("f1" -> basicKeywordFieldMapping, "f2" -> basicNumericFieldMapping, "text" -> basicKeywordFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
       val docs = Seq(
         Document("topHitsAggrDoc1", Map("f1" -> "topHitsAggr1", "f2" -> 1, "text" -> "text1")),
         Document("topHitsAggrDoc2", Map("f1" -> "topHitsAggr2", "f2" -> 1, "text" -> "text2")),
@@ -726,8 +781,8 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val bulkIndexFuture = restClient.bulkIndex(index, tpe, docs)
       whenReady(bulkIndexFuture) { _ => refresh() }
 
-      val phasePrefixQuery = PhrasePrefixQuery("f1", "topHitsAggr", Some(5)) // filters out ES docs for other tests
-      val filteredQuery = MultiTermFilteredQuery(phasePrefixQuery)
+      val phasePrefixQuery = PrefixQuery("f1", "topHitsAggr")
+
       val termsAggr = TermsAggregation("text", None, Some(5), Some(5), None, None,
         Some(TopHitsAggregation("thereCanBeOnlyOne", Some(1),
           Some(Seq(
@@ -739,21 +794,23 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         )),
         Some(AscSortOrder)
       )
-      val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
+
+      val aggrQuery = AggregationQuery(phasePrefixQuery, termsAggr, Some(1000))
 
       val expected = Seq(Map("f1" -> "topHitsAggr3", "text" -> "text1"), Map("f1" -> "topHitsAggr2", "text" -> "text2"))
 
       val aggrQueryFuture = restClient.bucketNestedAggregation(index, tpe, aggrQuery)
       val aggrResult = aggrQueryFuture.futureValue
       val actual = aggrResult.underlying("buckets").
-        asInstanceOf[Seq[Map[String, Any]]].
-        flatMap(_ ("thereCanBeOnlyOne").
-          asInstanceOf[Map[String, Any]]("hits").
-          asInstanceOf[Map[String, Any]]("hits").
-          asInstanceOf[Seq[Map[String, Any]]].map(_ ("_source"))
-        )
+          asInstanceOf[Seq[Map[String, Any]]].
+          flatMap(_ ("thereCanBeOnlyOne").
+              asInstanceOf[Map[String, Any]]("hits").
+              asInstanceOf[Map[String, Any]]("hits").
+              asInstanceOf[Seq[Map[String, Any]]].map(_ ("_source"))
+          )
       actual should be(expected)
     }
+
 
     "Support query with source filtering" in {
       val filterDoc1 = Document("filterDoc", Map("f1" -> "filter1", "f2" -> 1, "text" -> "text1"))
@@ -782,25 +839,33 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val regexFuture = restClient.bulkIndex(index, tpe, Seq(regexDoc1, regexDoc2))
       whenReady(regexFuture) { _ => refresh() }
 
-      val filteredQuery = MultiTermFilteredQuery(MatchAll, RegexFilter("f1", "regexf.*1"))
+      val filteredQuery = Bool(List(Must(MatchAll)), FilteredContext(List(RegexFilter("f1", "regexf.*1"))))
       val regexQueryFuture = restClient.query(index, tpe, new QueryRoot(filteredQuery))
       regexQueryFuture.futureValue.sourceAsMap should be(List(Map("f1" -> "regexFilter1", "f2" -> 1, "text" -> "text1")))
 
-      val filteredQuery2 = MultiTermFilteredQuery(MatchAll, RegexFilter("f1", "regexf.*"))
+      val filteredQuery2 = Bool(List(Must(MatchAll)), FilteredContext(List(RegexFilter("f1", "regexf.*"))))
       val regexQueryFuture2 = restClient.query(index, tpe, new QueryRoot(filteredQuery2))
       regexQueryFuture2.futureValue.sourceAsMap.toSet should be(Set(Map("f1" -> "regexFilter1", "f2" -> 1, "text" -> "text1"), Map("f1" -> "regexFilter2", "f2" -> 1, "text" -> "text2")))
     }
 
     "support buckets inside buckets" in {
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("make" -> basicKeywordFieldMapping, "color" -> basicKeywordFieldMapping), Some(false)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
+
       // https://www.elastic.co/guide/en/elasticsearch/guide/current/_buckets_inside_buckets.html
       val doc1 = Document("agg_doc1", Map("make" -> "honda", "color" -> "red"))
       val doc2 = Document("agg_doc2", Map("make" -> "honda", "color" -> "black"))
       val doc3 = Document("agg_doc3", Map("make" -> "honda", "color" -> "black"))
+
       val regexFuture = restClient.bulkIndex(index, tpe, Seq(doc1, doc2, doc3))
       whenReady(regexFuture) { _ => refresh() }
 
-      val aggregations = TermsAggregation(name = Some("make"), field = "make", include = None, size = Some(0), shardSize = None, hint = None,
-        aggs = Some(TermsAggregation(name = Some("color"), field = "color", include = None, size = Some(0), shardSize = None, hint = None))
+      val aggregations = TermsAggregation(name = Some("make"), field = "make", include = None, size = Some(Int.MaxValue), shardSize = None, hint = None,
+        aggs = Some(TermsAggregation(name = Some("color"), field = "color", include = None, size = Some(Int.MaxValue), shardSize = None, hint = None))
       )
 
       val aggregationsQuery = AggregationQuery(
@@ -824,7 +889,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val matchDocInsertionFuture = restClient.index(index, tpe, matchDoc)
       whenReady(matchDocInsertionFuture) { _ => refresh() }
 
-      val matchResultFuture = restClient.query(index, tpe, new QueryRoot(NestedQuery("user", Some(AvgScoreMode), Bool(Must(MatchQuery("user.first", "Alice"))))))
+      val matchResultFuture = restClient.query(index, tpe, new QueryRoot(NestedQuery("user", Some(AvgScoreMode), Bool(List(Must(MatchQuery("user.first", "Alice")))))))
       whenReady(matchResultFuture) { resp =>
         resp.extractSource[DocNestedType].head should be(DocNestedType(userDoc))
       }
@@ -893,15 +958,21 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val locDocsFuture = restClient.bulkIndex(index, tpe, Seq(locationDoc1, locationDoc2))
       whenReady(locDocsFuture) { _ => refresh() }
 
-      val geoQuery = MultiTermFilteredQuery(
-        query = MatchQuery("category", "categoryName"),
-        filter = GeoDistanceFilter(s"1km", "location", GeoLocation(40.715, -74.011))
-      )
+      val geoQuery = Bool(
+        List(Must(MatchQuery("category", "categoryName"))),
+        FilteredContext(List(GeoDistanceFilter(s"1km", "location", GeoLocation(40.715, -74.011)))))
+
       val geoQueryFuture = restClient.query(index, tpe, new QueryRoot(geoQuery))
       geoQueryFuture.futureValue.sourceAsMap.toSet should be(Set(Map("category" -> "categoryName", "location" -> "40.715, -74.011")))
     }
 
     "support simple sorting" in {
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("f1" -> basicTextFieldMapping, "cat" -> basicKeywordFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
       // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-sort.html
       val sortDoc1 = Document("simpleSortDoc1", Map("f1" -> "simpleSort", "cat" -> "aaa"))
       val sortDoc2 = Document("simpleSortDoc2", Map("f1" -> "simpleSort", "cat" -> "aab"))
@@ -931,6 +1002,12 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "support multiple simple sorting" in {
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("f1" -> basicTextFieldMapping, "cat" -> basicKeywordFieldMapping, "dog" -> basicKeywordFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
       // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-sort.html
       val sortDoc1 = Document("multiSimpleSortDoc1", Map("f2" -> "multiSimpleSort", "cat" -> "aaa", "dog" -> "ccd"))
       val sortDoc2 = Document("multiSimpleSortDoc2", Map("f2" -> "multiSimpleSort", "cat" -> "aab", "dog" -> "ccd"))
@@ -1040,9 +1117,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "support query with highlights with extended query root" in {
-      val basicFieldFreqsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+      val basicFieldFreqsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(FreqsIndexOption))
-      val basicFieldOffsetsMapping = BasicFieldMapping(StringType, None, Some(analyzerName), None,
+      val basicFieldOffsetsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(OffsetsIndexOption))
 
       val metadataMapping = Mapping(tpe, IndexMapping(
@@ -1053,7 +1130,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       indexDocs(Seq(Document("doc1", Map("f1" -> "text", "text" -> "here"))))
       val resp = restClient.query(index, tpe, new QueryRoot(PrefixQuery("text", "h"))).futureValue
       resp.sourceAsMap should not be empty
-      val highlights = Highlight(Seq(HighlightField("text", Some(PostingsHighlighter), None, Some(0)),
+      val highlights = Highlight(Seq(HighlightField("text", Some(UnifiedHighlighter), None, Some(0)),
         HighlightField("f1", Some(PlainHighlighter))), Seq(""), Seq(""))
       val resFut = restClient.query(index, tpe,
         HighlightRoot(new QueryRoot(
@@ -1077,9 +1154,9 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     }
 
     "Support deleting more than 10000 docs" in {
-      val insertFutures = (1 to 10011).map(i => restClient.index(index, tpe, Document(s"doc$i", Map("text7" -> "here7"))))
-      val ir = Future.sequence(insertFutures)
-      Await.result(ir, 20.seconds)
+      val documents = (1 to 10011).map(i => Document(s"doc$i", Map("text7" -> "here7")))
+      val bulkInsertResult = restClient.bulkIndex(index, tpe,documents)
+      Await.result(bulkInsertResult, 20.seconds)
       refresh()
 
       val delFut = restClient.deleteDocuments(index, tpe, new QueryRoot(MatchAll, sizeOpt = Some(1000)))
@@ -1087,7 +1164,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       refresh()
 
       val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
-      count should be (0)
+      count should be(0)
     }
 
     "Delete only first page of query results" in {
@@ -1101,7 +1178,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       refresh()
 
       val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
-      count should be (50)
+      count should be(50)
     }
 
     "Support deleting a doc that doesn't exist" in {
@@ -1119,3 +1196,4 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
 case class DocNestedType(user: List[Map[String, String]])
 
 case class DocType(f1: String, f2: Int)
+

@@ -19,10 +19,10 @@
 package com.sumologic.elasticsearch.restlastic.dsl
 
 trait Dsl extends DslCommons
-  with IndexDsl
-  with QueryDsl
-  with MappingDsl
-  with CompletionDsl
-  with AggregationDsl
+    with IndexDsl
+    with QueryDsl
+    with MappingDsl
+    with CompletionDsl
+    with AggregationDsl
 
 object Dsl extends Dsl

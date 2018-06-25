@@ -34,11 +34,14 @@ trait DslCommons {
 
   object EsOperation {
     implicit val formats = org.json4s.DefaultFormats
+
     def compactJson(map: Map[String, Any]) = compact(render(decompose(map)))
   }
 
   trait RootObject extends EsOperation {
+
     import EsOperation._
+
     def toJsonStr: String = compactJson(toJson)
   }
 
@@ -48,6 +51,7 @@ trait DslCommons {
 
   case object NoOp extends RootObject {
     override def toJson: Map[String, Any] = throw new UnsupportedOperationException
+
     override def toJsonStr = ""
   }
 
@@ -62,6 +66,7 @@ trait DslCommons {
   case class Type(name: String)
 
   case class Name(name: String)
+
 }
 
 

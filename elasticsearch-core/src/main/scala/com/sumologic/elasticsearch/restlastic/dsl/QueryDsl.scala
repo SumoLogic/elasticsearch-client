@@ -28,6 +28,8 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   trait Query extends EsOperation
 
+  trait CompoundQuery extends Query
+
   trait Filter extends EsOperation
 
   class QueryRoot(query: Query,
@@ -37,7 +39,7 @@ trait QueryDsl extends DslCommons with SortDsl {
                   timeoutOpt: Option[Int] = None,
                   sourceFilterOpt: Option[Seq[String]] = None,
                   terminateAfterOpt: Option[Int] = None)
-    extends RootObject {
+      extends RootObject {
 
     val _query = "query"
     val _size = "size"
@@ -50,48 +52,38 @@ trait QueryDsl extends DslCommons with SortDsl {
 
     override def toJson: Map[String, Any] = {
       Map(_query -> query.toJson) ++
-        fromOpt.map(_from -> _) ++
-        sizeOpt.map(_size -> _) ++
-        timeoutOpt.map(t => _timeout -> s"${t}ms") ++
-        sortOpt.map(_sort -> _.map(_.toJson)) ++
-        sourceFilterOpt.map(_source -> _) ++
-        terminateAfterOpt.map(_terminate_after -> _)
+          fromOpt.map(_from -> _) ++
+          sizeOpt.map(_size -> _) ++
+          timeoutOpt.map(t => _timeout -> s"${t}ms") ++
+          sortOpt.map(_sort -> _.map(_.toJson)) ++
+          sourceFilterOpt.map(_source -> _) ++
+          terminateAfterOpt.map(_terminate_after -> _)
     }
   }
 
   case class ConstantScore(filter: Filter) extends SingleField("constant_score", filter) with Filter
 
 
-  case class FilteredQuery(filter: Filter, query: Query) extends Query {
-    val _filtered = "filtered"
+  case class FilteredContext(filter: List[Filter]) extends Query {
     val _filter = "filter"
     val _query = "query"
     val _searchType = "search-type"
 
     override def toJson: Map[String, Any] = {
       Map(
-        _filtered -> Map(
-          _query -> query.toJson,
-          _filter -> filter.toJson
-        )
+        _filter -> filter.map(_.toJson)
       )
     }
   }
 
-  case class MultiTermFilteredQuery(query: Query, filter: Filter*) extends Query {
-    val _filtered = "filtered"
+  case class MultiTermFilterContext(filter: Filter*) extends Query {
     val _filter = "filter"
     val _query = "query"
-    val _searchType = "search-type"
-    val _bool = "bool"
     val _must = "must"
 
     override def toJson: Map[String, Any] = {
       Map(
-        _filtered -> Map(
-          _query -> query.toJson,
-          _filter -> Map(_bool -> Map(_must -> filter.map(_.toJson)))
-        )
+        _filter -> Map(_must -> filter.map(_.toJson))
       )
     }
   }
@@ -122,16 +114,16 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   case class RangeFilter(key: String, bounds: RangeBound*) extends Filter {
     val _range = "range"
-    val boundsMap = Map(key -> (bounds :\ Map[String, Any]())(_.toJson ++ _))
+    val boundsMap = Map(key -> (bounds :\ Map[String, Any]()) (_.toJson ++ _))
 
-    override def toJson: Map[String, Any] =  Map(_range -> boundsMap)
+    override def toJson: Map[String, Any] = Map(_range -> boundsMap)
   }
 
-  case class Bool(queries: BoolQuery*) extends Query {
+  case class Bool(queries: List[BoolQuery], filterContext: FilteredContext = FilteredContext(List())) extends CompoundQuery {
     val _bool = "bool"
     val queryMap = queries.map(_.toJson).map(map => (map.keys.head, map(map.keys.head))).toMap
 
-    override def toJson: Map[String, Any] = Map(_bool -> queryMap)
+    override def toJson: Map[String, Any] = Map(_bool -> (queryMap ++ filterContext.toJson))
   }
 
   case class Should(opts: Query*) extends BoolQuery {
@@ -160,9 +152,9 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   case class RangeQuery(key: String, bounds: RangeBound*) extends Query {
     val _range = "range"
-    val boundsMap = Map(key -> (bounds :\ Map[String, Any]())(_.toJson ++ _))
+    val boundsMap = Map(key -> (bounds :\ Map[String, Any]()) (_.toJson ++ _))
 
-    override def toJson: Map[String, Any] =  Map(_range -> boundsMap)
+    override def toJson: Map[String, Any] = Map(_range -> boundsMap)
   }
 
   sealed trait RangeBound extends EsOperation
@@ -222,9 +214,9 @@ trait QueryDsl extends DslCommons with SortDsl {
 
     override def toJson: Map[String, Any] = {
       Map(_match ->
-        Map(key ->
-          Map(_query -> value,
-              _boost -> boost)))
+          Map(key ->
+              Map(_query -> value,
+                _boost -> boost)))
     }
   }
 
@@ -237,18 +229,18 @@ trait QueryDsl extends DslCommons with SortDsl {
   }
 
   case class PrefixQuery(key: String, prefix: String)
-    extends Query {
+      extends Query {
     val _prefix = "prefix"
 
     override def toJson: Map[String, Any] = {
       Map(_prefix ->
-        Map(key -> prefix)
+          Map(key -> prefix)
       )
     }
   }
 
   case class PhrasePrefixQuery(key: String, prefix: String, maxExpansions: Option[Int])
-    extends Query {
+      extends Query {
 
     val _matchPhrasePrefix = "match_phrase_prefix"
     val _query = "query"
@@ -256,18 +248,19 @@ trait QueryDsl extends DslCommons with SortDsl {
 
     override def toJson: Map[String, Any] = {
       Map(_matchPhrasePrefix ->
-        Map(key->
-          (Map(_query -> prefix) ++ maxExpansions.map(_maxExpansions -> _))
-        )
+          Map(key ->
+              (Map(_query -> prefix) ++ maxExpansions.map(_maxExpansions -> _))
+          )
       )
     }
   }
 
   case object MatchAll extends Query {
     val _matchAll = "match_all"
+
     override def toJson: Map[String, Any] = Map(_matchAll -> Map())
   }
-  
+
   case class NestedQuery(path: String, scoreMode: Option[ScoreMode] = None, query: Bool) extends Query {
     val _nested = "nested"
     val _path = "path"
@@ -313,8 +306,8 @@ trait QueryDsl extends DslCommons with SortDsl {
       _multiMatch -> (Map(
         _query -> query,
         _fields -> fields.toList) ++
-        options
-      )
+          options
+          )
     )
   }
 
@@ -356,7 +349,7 @@ trait QueryDsl extends DslCommons with SortDsl {
   }
 
   case class HighlightRoot(queryRoot: QueryRoot, highlight: Highlight)
-    extends RootObject {
+      extends RootObject {
 
     override def toJson: Map[String, Any] = {
       queryRoot.toJson ++ highlight.toJson
@@ -364,7 +357,7 @@ trait QueryDsl extends DslCommons with SortDsl {
   }
 
   case class Highlight(fields: Seq[HighlightField], preTags: Seq[String] = Seq(), postTags: Seq[String] = Seq())
-    extends EsOperation {
+      extends EsOperation {
 
     val _pre_tags = "pre_tags"
     val _post_tags = "post_tags"
@@ -376,15 +369,15 @@ trait QueryDsl extends DslCommons with SortDsl {
 
     override def toJson: Map[String, Any] = Map(
       _highlight -> {
-        Map( _fields -> fields.map(_.toJson).reduce(_ ++ _)) ++
-          pre_tags ++ post_tags
+        Map(_fields -> fields.map(_.toJson).reduce(_ ++ _)) ++
+            pre_tags ++ post_tags
       }
     )
   }
 
   case class HighlightField(field: String, highlighter_type: Option[HighlighterType] = None, fragment_size: Option[Int] = None,
                             number_of_fragments: Option[Int] = None, no_match_size: Option[Int] = None, matched_fields: Seq[String] = Seq())
-    extends EsOperation {
+      extends EsOperation {
     val _type = "type"
     val _fragment_size = "fragment_size"
     val _number_of_fragments = "number_of_fragments"
@@ -394,11 +387,11 @@ trait QueryDsl extends DslCommons with SortDsl {
     override def toJson: Map[String, Any] = Map(
       field -> {
         Map[String, Any]() ++
-          highlighter_type.map(_type -> _.name) ++
-          fragment_size.map(_fragment_size -> _) ++
-          number_of_fragments.map(_number_of_fragments -> _) ++
-          no_match_size.map(_no_match_size -> _) ++
-          matched_fields.map(_matched_fields -> _)
+            highlighter_type.map(_type -> _.name) ++
+            fragment_size.map(_fragment_size -> _) ++
+            number_of_fragments.map(_number_of_fragments -> _) ++
+            no_match_size.map(_no_match_size -> _) ++
+            matched_fields.map(_matched_fields -> _)
       }
     )
   }
@@ -407,11 +400,12 @@ trait QueryDsl extends DslCommons with SortDsl {
     val name = "plain"
   }
 
-  case object PostingsHighlighter extends HighlighterType {
-    val name = "postings"
+  case object UnifiedHighlighter extends HighlighterType {
+    val name = "unified"
   }
 
   case object FastVectorHighlighter extends HighlighterType {
     val name = "fvh"
   }
+
 }

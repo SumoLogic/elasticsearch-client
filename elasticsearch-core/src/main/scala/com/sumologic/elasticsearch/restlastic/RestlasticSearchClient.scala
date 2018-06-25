@@ -37,21 +37,28 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 
 trait ScrollClient {
+
   import Dsl._
+
   val defaultResultWindow = "1m"
   val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global
-  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, fromOpt: Option[Int] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)]
+
+  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)]
+
   def scroll(scrollId: ScrollId, resultWindowOpt: Option[String] = None): Future[(ScrollId, SearchResponse)]
 }
 
 case class Endpoint(host: String, port: Int)
+
 trait EndpointProvider {
   def endpoint: Endpoint
+
   def ready: Boolean
 }
 
 class StaticEndpoint(_endpoint: Endpoint) extends EndpointProvider {
   override def endpoint: Endpoint = _endpoint
+
   override def ready = true
 }
 
@@ -60,27 +67,30 @@ trait RequestSigner {
 }
 
 /**
- * The RestlasticSearchClient is an implementation of a subset of the ElasticSearch protocol using the REST client
- * instead of the native client. The DSL classes provide a (relatively) typesafe mapping from scala code to the JSON
- * used by ElasticSearch.
- * @param endpointProvider EndpointProvider
- */
+  * The RestlasticSearchClient is an implementation of a subset of the ElasticSearch protocol using the REST client
+  * instead of the native client. The DSL classes provide a (relatively) typesafe mapping from scala code to the JSON
+  * used by ElasticSearch.
+  *
+  * @param endpointProvider EndpointProvider
+  */
 class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
                              override val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
                              searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
                             (implicit val system: ActorSystem = ActorSystem(), val timeout: Timeout = Timeout(30.seconds))
-  extends ScrollClient {
+    extends ScrollClient {
 
   private implicit val formats = org.json4s.DefaultFormats
   private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
+
   import Dsl._
   import RestlasticSearchClient.ReturnTypes._
 
   def ready: Boolean = endpointProvider.ready
+
   def query(index: Index, tpe: Type, query: RootObject, rawJsonStr: Boolean = true, uriQuery: UriQuery = UriQuery.Empty): Future[SearchResponse] = {
     implicit val ec = searchExecutionCtx
-    runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query=uriQuery).map { rawJson =>
-      val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
+    runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = uriQuery).map { rawJson =>
+      val jsonStr = if (rawJsonStr) rawJson.jsonStr else ""
       SearchResponse(rawJson.mappedTo[RawSearchResponse], jsonStr)
     }
   }
@@ -99,10 +109,10 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     }
   }
 
-  def suggest(index: Index, tpe: Type, query: Suggest): Future[List[String]] = {
+  def suggest(index: Index, tpe: Type, query: SuggestRoot): Future[Map[String,List[String]]] = {
     // I'm not totally sure why, but you don't specify the type for _suggest queries
     implicit val ec = searchExecutionCtx
-    val fut = runEsCommand(query, s"/${index.name}/_suggest")
+    val fut = runEsCommand(query, s"/${index.name}/_search")
     fut.map { resp =>
       val extracted = resp.mappedTo[SuggestResult]
       extracted.suggestions
@@ -125,7 +135,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     implicit val ec = indexExecutionCtx
     runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", DELETE).map(_.mappedTo[DeleteResponse])
   }
-  
+
   def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", HEAD).map(_ => true).recover {
@@ -153,7 +163,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
     val bulkOperation = Bulk(documents.map(BulkOperation(update, Some(index -> tpe), _, retryOnConflictOpt)))
     bulkIndex(bulkOperation)
   }
-  
+
   def bulkDelete(index: Index, tpe: Type, documents: Seq[Document]): Future[Seq[BulkItem]] = {
     val bulkOperation = Bulk(documents.map(BulkOperation(delete, Some(index -> tpe), _)))
     bulkIndex(bulkOperation)
@@ -171,8 +181,8 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
   def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(CreateIndex(settings), s"/${index.name}").recover {
-      case ElasticErrorResponse(message, status) if message.toString contains "index_already_exists_exception" =>
+    runEsCommand(CreateIndex(settings), s"/${index.name}", PUT).recover {
+      case ElasticErrorResponse(message, status) if message.toString contains "resource_already_exists_exception" =>
         throw IndexAlreadyExistsException(message.toString)
     }
   }
@@ -193,7 +203,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       val documents = response.hits.hits.map(_._id)
       if (totalHits > documents.length) {
         logger.warn(s"deleting only first ${documents.length}/$totalHits matches. " +
-          "Use deleteDocuments, if you want to delete more at once.")
+            "Use deleteDocuments, if you want to delete more at once.")
       }
 
       bulkDelete(index, tpe, documents.map(Document(_, Map()))).map(res => RawJsonResponse(res.toString))
@@ -220,14 +230,14 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
         Future.successful(acc)
       } else {
         bulkDelete(index, tpe, documentIds.map(Document(_, Map())))
-          .flatMap { items =>
-            scrollDelete(
-              index,
-              tpe,
-              id,
-              acc ++ items.map(item => Dsl.Index(item._id) -> DeleteResponse(item.success)),
-              (scrollId) => scroll(scrollId))
-          }
+            .flatMap { items =>
+              scrollDelete(
+                index,
+                tpe,
+                id,
+                acc ++ items.map(item => Dsl.Index(item._id) -> DeleteResponse("deleted")),
+                (scrollId) => scroll(scrollId))
+            }
       }
     }
   }
@@ -235,9 +245,9 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
   // Scroll requests have optimizations that make them faster when the sort order is _doc.
   // Put sort by _doc in query as described in the the following document
   // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html
-  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, fromOpt: Option[Int] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)] = {
+  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)] = {
     implicit val ec = searchExecutionCtx
-    val params = Map("scroll" -> resultWindowOpt.getOrElse(defaultResultWindow)) ++ fromOpt.map("from" -> _.toString) ++ sizeOpt.map("size" -> _.toString)
+    val params = Map("scroll" -> resultWindowOpt.getOrElse(defaultResultWindow)) ++ sizeOpt.map("size" -> _.toString)
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = UriQuery(params)).map { resp =>
       val sr = resp.mappedTo[SearchResponseWithScrollId]
       (ScrollId(sr._scroll_id), SearchResponse(RawSearchResponse(sr.hits), resp.jsonStr))
@@ -280,7 +290,8 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
       val unauthed = HttpRequest(
         method = method,
         uri = buildUri(endpoint, query),
-        entity = HttpEntity(op))
+        entity = HttpEntity(ContentTypes.`application/json`, op),
+        headers = List())
       signer.map(_.withAuthHeader(unauthed)).getOrElse(unauthed)
     }
 
@@ -295,7 +306,7 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
         logger.warn(s"Failing request: ${op.take(5000)}")
         throw ElasticErrorResponse(JString(response.entity.asString), response.status.intValue)
       }
-      RawJsonResponse(response.entity.asString)
+      RawJsonResponse(response.entity.asString) 
     }
   }
 
@@ -316,10 +327,14 @@ object RestlasticSearchClient {
     case class ScrollId(id: String)
 
     case class BulkIndexResponse(items: List[Map[String, BulkItem]])
+
     case class BulkIndexError(reason: String)
+
     case class BulkItem(_index: String, _type: String, _id: String, status: Int, error: Option[BulkIndexError]) {
       def created = status > 200 && status < 299 && !alreadyExists
+
       def alreadyExists = error.exists(_.reason.contains("document already exists"))
+
       def success = status >= 200 && status <= 299
     }
 
@@ -329,7 +344,9 @@ object RestlasticSearchClient {
       }
 
       def sourceAsMap: Seq[Map[String, Any]] = rawSearchResponse.sourceAsMap
+
       def highlightAsMaps: Seq[Map[String, Any]] = rawSearchResponse.highlightAsMaps
+
       def length = rawSearchResponse.hits.hits.length
     }
 
@@ -340,59 +357,79 @@ object RestlasticSearchClient {
     case class CountResponse(count: Int)
 
     case class SearchResponseWithScrollId(_scroll_id: String, hits: Hits)
+
     case class RawSearchResponse(hits: Hits) {
       private implicit val formats = org.json4s.DefaultFormats
+
       def extractSource[T: Manifest]: Seq[T] = {
         hits.hits.map(_._source.extract[T])
       }
 
       def sourceAsMap: Seq[Map[String, Any]] = hits.hits.map(_._source.values)
+
       def highlightAsMaps: Seq[Map[String, Any]] = hits.hits.flatMap(_.highlight.map(_.values))
     }
 
     case class BucketNested(underlying: BucketNestedMap)
+
     type BucketNestedMap = Map[String, Any]
     type NestedAggregations = (String, BucketNestedMap)
+
     case class BucketNestedAggregationResponse(aggregations: NestedAggregations)
+
     case class BucketNestedAggregationResultBody(doc_count_error_upper_bound: Int,
-                                           sum_other_doc_count: Int,
-                                           buckets: List[BucketNestedMap])
+                                                 sum_other_doc_count: Int,
+                                                 buckets: List[BucketNestedMap])
 
 
     case class BucketAggregationResponse(aggregations: Aggregations)
-    case class Aggregations(aggs_name: BucketAggregationResultBody )
+
+    case class Aggregations(aggs_name: BucketAggregationResultBody)
+
     case class BucketAggregationResultBody(doc_count_error_upper_bound: Int,
                                            sum_other_doc_count: Int,
                                            buckets: List[Bucket])
+
     case class Bucket(key: String, doc_count: Int)
 
     case class Hits(hits: List[ElasticJsonDocument], total: Int = 0)
+
     case class ElasticJsonDocument(_index: String,
                                    _type: String,
                                    _id: String,
-                                    _score: Option[Float],
+                                   _score: Option[Float],
                                    _source: JObject,
                                    highlight: Option[JObject])
 
     case class RawJsonResponse(jsonStr: String) {
       private implicit val formats = org.json4s.DefaultFormats
+
       def mappedTo[T: Manifest]: T = {
         val jsonTree = parse(jsonStr)
         jsonTree.extract[T]
       }
     }
 
-    case class SuggestResult(suggest: List[Suggestion]) {
-      def suggestions: List[String] = suggest.flatMap(_.options.map(_.text))
+    case class SuggestResult(suggest: Map[String, List[Suggestion]]) {
+      def suggestions: Map[String, List[String]] = suggest.map{ case (name, suggestions) => name -> suggestions.flatMap(_.options.map(_.text))}
     }
 
     case class Suggestion(text: String, options: List[SuggestOption])
 
-    case class SuggestOption(text: String, score: Float)
+    case class SuggestOption(text: String, _score: Float)
 
-    case class IndexResponse(created: Boolean)
+    case class IndexResponse(result: String) {
+      def isSuccess = result == IndexApiResponse.Created.toString
+    }
 
-    case class DeleteResponse(found: Boolean)
+    case class DeleteResponse(result: String) {
+      def isSuccess = result == IndexApiResponse.Deleted.toString
+    }
+
+    object IndexApiResponse extends Enumeration {
+      val Created = Value("created")
+      val Deleted = Value("deleted")
+    }
 
     case class IndexAlreadyExistsException(message: String) extends Exception(message)
 

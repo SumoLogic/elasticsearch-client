@@ -23,7 +23,7 @@ trait AggregationDsl extends DslCommons with QueryDsl {
   sealed trait Aggregation extends EsOperation
 
   case class AggregationQuery(query: Query, aggs: Aggregation, timeout: Option[Int] = None)
-    extends Query with RootObject {
+      extends Query with RootObject {
 
     val _query = "query"
     val _aggs = "aggs"
@@ -34,7 +34,7 @@ trait AggregationDsl extends DslCommons with QueryDsl {
       Map(_query -> query.toJson,
         _aggs -> aggs.toJson,
         _size -> 0) ++
-      timeout.map(t => _timeout -> s"${t}ms")
+          timeout.map(t => _timeout -> s"${t}ms")
     }
   }
 
@@ -44,7 +44,7 @@ trait AggregationDsl extends DslCommons with QueryDsl {
                               name: Option[String] = None,
                               aggs: Option[Aggregation] = None,
                               order: Option[SortOrder] = None)
-    extends Aggregation {
+      extends Aggregation {
 
     val _aggsName = name.getOrElse("aggs_name")
     val _terms = "terms"
@@ -59,20 +59,20 @@ trait AggregationDsl extends DslCommons with QueryDsl {
 
     override def toJson: Map[String, Any] = {
       Map(_aggsName ->
-        (Map(_terms ->
-          (Map(_field -> field)
-            ++ include.map(_include -> _)
-            ++ size.map(_size -> _)
-            ++ shardSize.map(_shardSize -> _)
-            ++ hint.map(_hint -> _)
-            ++ order.map(o =>_order -> Map(_term -> o.value))))
-          ++ aggs.map(_aggs -> _.toJson))
+          (Map(_terms ->
+              (Map(_field -> field)
+                  ++ include.map(_include -> _)
+                  ++ size.map(_size -> _)
+                  ++ shardSize.map(_shardSize -> _)
+                  ++ hint.map(_hint -> _)
+                  ++ order.map(o => _order -> Map(_term -> o.value))))
+              ++ aggs.map(_aggs -> _.toJson))
       )
     }
   }
 
   case class NestedAggregation(path: String, name: Option[String] = None, aggs: Option[Aggregation] = None)
-    extends Aggregation {
+      extends Aggregation {
 
     val _aggsName = name.getOrElse("aggs_name")
     val _nested = "nested"
@@ -81,9 +81,9 @@ trait AggregationDsl extends DslCommons with QueryDsl {
 
     override def toJson: Map[String, Any] = {
       Map(_aggsName ->
-        (Map(_nested ->
-        Map(_path -> path))
-          ++ aggs.map(_aggs -> _.toJson))
+          (Map(_nested ->
+              Map(_path -> path))
+              ++ aggs.map(_aggs -> _.toJson))
       )
     }
   }
@@ -92,7 +92,7 @@ trait AggregationDsl extends DslCommons with QueryDsl {
                                 size: Option[Int],
                                 source: Option[Seq[String]],
                                 sort: Option[Map[String, SortOrder]])
-    extends Aggregation {
+      extends Aggregation {
 
     val _topHits = "top_hits"
     val _size = "size"
@@ -101,13 +101,13 @@ trait AggregationDsl extends DslCommons with QueryDsl {
 
     override def toJson: Map[String, Any] = {
       Map(name ->
-        Map(_topHits ->
-          (Map()
-            ++ size.map(_size -> _)
-            ++ source.map(_source -> _)
-            ++ sort.map(_sort -> _.map { case (field, order) => (field, order.value) })
-            )
-        )
+          Map(_topHits ->
+              (Map()
+                  ++ size.map(_size -> _)
+                  ++ source.map(_source -> _)
+                  ++ sort.map(_sort -> _.map { case (field, order) => (field, order.value) })
+                  )
+          )
       )
     }
   }
