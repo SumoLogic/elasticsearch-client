@@ -24,11 +24,10 @@ trait CompletionDsl extends DslCommons with QueryDsl {
     val _suggest = "suggest"
     val _text = "text"
 
-
     override def toJson: Map[String, Any] = {
-      val globalTextJson = Map.empty[String, Any] ++ textOpt.map(text => _text -> text)
-
-      globalTextJson ++ Map(_suggest -> suggestions.map(p => p.name -> p.toJson).toMap)
+      val globalTextJson: Map[String, Any] = Map.empty[String, Any] ++ textOpt.map(text => _text -> text)
+      val suggestionsMap: Map[String, Any] = suggestions.map(p => p.name -> p.toJson).toMap
+      Map(_suggest -> (globalTextJson ++ suggestionsMap))
     }
   }
 

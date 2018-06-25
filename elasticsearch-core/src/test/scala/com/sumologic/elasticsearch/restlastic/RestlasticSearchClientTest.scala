@@ -20,12 +20,11 @@ package com.sumologic.elasticsearch.restlastic
 
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ElasticJsonDocument, ElasticErrorResponse, IndexAlreadyExistsException, BucketAggregationResultBody, Bucket, BucketNested}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
-import org.scalatest._
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
-import spray.http.HttpMethods._
 import org.json4s._
 import org.json4s.native.JsonMethods._
+import org.scalatest._
+import org.scalatest.time.{Millis, Seconds, Span}
+import spray.http.HttpMethods._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -445,22 +444,34 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       whenReady(docFut1) { _ => refresh() }
       val docFut2 = restClient.index(index, tpe, Document("autocomplete2", input2))
       whenReady(docFut2) { _ => refresh() }
+      val lowerCaseSuggestionOpt = Some("c")
+      val upperCaseSuggestionOpt = Some("C")
+      val specialCharCaseSuggestionOpt = Some("#")
+      val defaultWithTextSuggestion = Suggestion("my-suggestions", lowerCaseSuggestionOpt, None, Some(Completion("suggest", 50, "f", List(Context(List("Case1"))))))
+      val defaulNoTextSuggestion = Suggestion("my-suggestions",None, None, Some(Completion("suggest", 50, "f", List(Context(List("Case1"))))))
+      
+      val suggestionWithText1 = defaultWithTextSuggestion
+      val suggestionWithText2 = defaultWithTextSuggestion.copy(textOpt = upperCaseSuggestionOpt)
+      val suggestionWithText3 = defaultWithTextSuggestion.copy(textOpt = specialCharCaseSuggestionOpt)
 
-      // test lower case c
-      val autocompleteLower = restClient.suggest(index, tpe, SuggestRoot(None, List(Suggestion("my-suggestions", Some("c"), None, Some(Completion("suggest", 50, "f", List(Context(List("Case1")))))))))
-      whenReady(autocompleteLower) {
-        resp => resp.head._2.toSet should be(Set("Case", "class"))
-      }
+      val suggestionRootWithResult = Map(
+        SuggestRoot(None, List(suggestionWithText1)) -> Set("Case", "class"),
+        SuggestRoot(None, List(suggestionWithText2)) -> Set("Case", "class"),
+        SuggestRoot(None, List(suggestionWithText3)) -> Set("#Case`case"),
+        SuggestRoot(lowerCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("Case", "class"),
+        SuggestRoot(specialCharCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("Case", "class"),
+        SuggestRoot(specialCharCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("#Case`case")
+      )
 
-      // test upper case C
-      val autocompleteUpper = restClient.suggest(index, tpe, SuggestRoot(None, List(Suggestion("my-suggestions", Some("c"), None, Some(Completion("suggest", 50, "f", List(Context(List("Case1")))))))))
-      whenReady(autocompleteUpper) {
-        resp => resp.head._2.toSet should be(Set("Case", "class"))
-      }
-      // test special characters
-      val autocompleteSpecial = restClient.suggest(index, tpe, SuggestRoot(None, List(Suggestion("my-suggestions", Some("#"), None, Some(Completion("suggest", 50, "f", List(Context(List("Case1")))))))))
-      whenReady(autocompleteSpecial) {
-        resp => resp.head._2.toSet should be(Set("#Case`case"))
+      suggestionRootWithResult.foreach {
+        case (suggestionRoot, suggestionResult) => {
+          val result = restClient.suggest(index, tpe, suggestionRoot)
+          whenReady(result) {
+            resp => withClue(s"Suggest root $suggestionRoot, result = ${resp.head._2.toSet}"){
+              resp.head._2.toSet should be(suggestionResult)
+            }
+          }
+        }
       }
     }
 
