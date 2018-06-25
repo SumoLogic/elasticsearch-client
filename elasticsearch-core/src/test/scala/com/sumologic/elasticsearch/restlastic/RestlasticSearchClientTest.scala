@@ -479,6 +479,13 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAf
       }
     }
 
+    "throw exception if both termOpt and completionOpt are defined" in {
+      val suggestion = Suggestion("my-suggestions", Some("c"), Some(SuggestionTerm("suggest")), Some(Completion("suggest", 50, "f", List(Context(List("Case1"))))))
+      a[IllegalArgumentException] shouldBe thrownBy{
+        restClient.suggest(index, tpe, SuggestRoot(None, List(suggestion)))
+      }
+    }
+
     "Support case insensitive query" in {
       val docLower = Document("caseinsensitivequerylower", Map("f1" -> "CaSe", "f2" -> 5))
       val futLower = restClient.index(index, tpe, docLower)
