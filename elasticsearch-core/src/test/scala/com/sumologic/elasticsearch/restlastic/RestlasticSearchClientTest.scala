@@ -121,7 +121,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       val foundDoc: ElasticJsonDocument = whenReady(resFut){ res =>
         res.rawSearchResponse.hits.hits.head
       }
-      
+
       val delFut = restClient.deleteById(index, tpe, foundDoc._id)
 
       whenReady(delFut) { res =>
@@ -195,7 +195,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         res.jsonStr should include("doc4")
         res.jsonStr should not include "doc5"
       }
-      
+
       val delFut = restClient.bulkDelete(index, tpe, Seq(doc3, doc4, doc5))
       whenReady(delFut){ resp =>
         resp.length should be(3)
@@ -203,7 +203,7 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
         resp(1).success should be(true)
         resp(2).success should be(true)
       }
-      
+
       refresh()
       val resFut2 = restClient.query(index, tpe, new QueryRoot(TermQuery("text", "here")))
       whenReady(resFut2) { res =>
@@ -1107,6 +1107,38 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
     "Support deleting a doc that doesn't exist" in {
       val delFut = restClient.deleteDocuments(index, tpe, new QueryRoot(TermQuery("text7", "here7")))
       Await.result(delFut, 10.seconds) // May not need Await?
+    }
+
+    "Support nested mapping" in {
+      val basicFieldMapping = BasicFieldMapping(StringType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
+      val metadataMapping = Mapping(tpe,
+        IndexMapping(
+          Map("name" -> basicFieldMapping,
+            "kv" -> NestedObjectMapping(Map("key" -> basicFieldMapping, "val" -> basicFieldMapping))
+          )
+        )
+      )
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+      val mappingRes = restClient.getMapping(index, tpe)
+      val expected = """"kv":{"type":"nested","properties":{"key":{"type":"string","analyzer":"keyword_lowercase","ignore_above":10000},"val":{"type":"string","analyzer":"keyword_lowercase","ignore_above":10000}}}"""
+      mappingRes.futureValue.jsonStr.toString.contains(expected) should be(true)
+    }
+
+    "Support multi-fields mapping" in {
+      val fields = FieldsMapping(Map("raw" -> BasicFieldMapping(StringType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))))
+      val basicFieldMapping = BasicFieldMapping(StringType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName), fieldsOption = Some(fields))
+      val metadataMapping = Mapping(tpe,
+        IndexMapping(
+          Map("multi-fields" -> basicFieldMapping)
+        )
+      )
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+      val mappingRes = restClient.getMapping(index, tpe)
+      val expected = """{"multi-fields":{"type":"string","fields":{"raw":{"type":"string","analyzer":"keyword_lowercase","ignore_above":10000}},"analyzer":"keyword_lowercase","ignore_above":10000}}"""
+      mappingRes.futureValue.jsonStr.toString.contains(expected) should be(true)
     }
 
     def indexDocs(docs: Seq[Document]): Unit = {

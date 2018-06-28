@@ -156,8 +156,9 @@ trait MappingDsl extends DslCommons {
       index.map(_index -> _.rep) ++
       analyzer.map(_analyzer -> _.name) ++
       search_analyzer.map(_searchAnalyzer -> _.name) ++
-      indexOption.map(_fieldIndexOpions -> _.option)
-      ignoreAbove.map(_ignoreAbove -> _) ++ fieldsOption
+      indexOption.map(_fieldIndexOpions -> _.option) ++
+      ignoreAbove.map(_ignoreAbove -> _) ++
+      fieldsOption.map(_.toJson).getOrElse(Map[String, Any]())
   }
 
   case class FieldsMapping(fields: Map[String, FieldMapping]) extends FieldMapping {
