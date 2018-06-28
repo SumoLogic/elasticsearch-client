@@ -142,9 +142,13 @@ trait MappingDsl extends DslCommons {
   val _ignoreAbove = "ignore_above"
   val _fieldIndexOpions = "index_options"
 
-  case class BasicFieldMapping(tpe: FieldType, index: Option[IndexType], analyzer: Option[Name],
-                               ignoreAbove: Option[Int] = None, search_analyzer: Option[Name]= None,
-                               indexOption: Option[IndexOption] = None)
+  case class BasicFieldMapping(tpe: FieldType,
+                               index: Option[IndexType],
+                               analyzer: Option[Name],
+                               ignoreAbove: Option[Int] = None,
+                               search_analyzer: Option[Name]= None,
+                               indexOption: Option[IndexOption] = None,
+                               fieldsOption: Option[FieldsMapping] = None)
     extends FieldMapping {
 
     override def toJson: Map[String, Any] = Map(
@@ -153,11 +157,21 @@ trait MappingDsl extends DslCommons {
       analyzer.map(_analyzer -> _.name) ++
       search_analyzer.map(_searchAnalyzer -> _.name) ++
       indexOption.map(_fieldIndexOpions -> _.option)
-      ignoreAbove.map(_ignoreAbove -> _).toList.toMap
+      ignoreAbove.map(_ignoreAbove -> _) ++ fieldsOption
+  }
+
+  case class FieldsMapping(fields: Map[String, FieldMapping]) extends FieldMapping {
+    val _fields = "fields"
+    override def toJson: Map[String, Any] = Map(_fields -> fields.mapValues(_.toJson))
   }
 
   case class BasicObjectMapping(fields: Map[String, FieldMapping]) extends FieldMapping {
     override def toJson: Map[String, Any] = Map(_properties -> fields.mapValues(_.toJson))
+  }
+
+  case class NestedObjectMapping(fields: Map[String, FieldMapping]) extends FieldMapping {
+    val _nested = "nested"
+    override def toJson: Map[String, Any] = Map(_type -> _nested, _properties -> fields.mapValues(_.toJson))
   }
 
   trait Completion {
