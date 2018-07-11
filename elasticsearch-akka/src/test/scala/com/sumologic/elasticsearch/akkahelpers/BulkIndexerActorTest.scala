@@ -20,7 +20,7 @@ package com.sumologic.elasticsearch.akkahelpers
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Terminated}
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
 import com.sumologic.elasticsearch.akkahelpers.BulkIndexerActor.{BulkSession, CreateRequest, DocumentIndexed, ForceFlush}
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient
@@ -32,8 +32,8 @@ import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mock.MockitoSugar
 
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 
 
 class BulkIndexerActorTest extends TestKit(ActorSystem("TestSystem")) with WordSpecLike with Matchers
@@ -56,7 +56,8 @@ with BeforeAndAfterAll with BeforeAndAfterEach with MockitoSugar with ImplicitSe
   }
 
   override def afterAll(): Unit = {
-    system.shutdown()
+    val terminationFuture: Future[Terminated] = system.terminate()
+    Await.result(terminationFuture, 5.seconds)
   }
 
   "BulkIndexerActor" should {
