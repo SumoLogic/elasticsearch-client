@@ -30,12 +30,9 @@ class ScanAndScrollSourceStage(name: String = "UnnamedScanAndScrollSourceStage",
 
       // TODO: Add some failure management that prints log messages, or throws sensible exceptions
       private def next(): SearchResponse = {
-        val result = Await.result(resultFuture, timeout)
-        result match {
-          case (id, data) =>
-            resultFuture = scrollSource.scroll(id)
-            data
-        }
+        val (id, data)= Await.result(resultFuture, timeout)
+        resultFuture = scrollSource.scroll(id)
+        data
       }
 
       override def preStart(): Unit = {
