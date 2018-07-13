@@ -19,15 +19,15 @@
 
 package com.sumologic.elasticsearch.akkahelpers
 
-import akka.stream.{Attributes, Outlet, SourceShape}
 import akka.stream.stage.{GraphStage, GraphStageLogic, OutHandler}
+import akka.stream.{Attributes, Outlet, SourceShape}
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.SearchResponse
-import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch.restlastic.ScrollClient
+import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 class ScanAndScrollSourceStage(name: String = "UnnamedScanAndScrollSourceStage",
                                index: Index,
@@ -35,8 +35,10 @@ class ScanAndScrollSourceStage(name: String = "UnnamedScanAndScrollSourceStage",
                                query: QueryRoot,
                                scrollSource: ScrollClient,
                                sizeOpt: Option[Int],
-                               timeout: Duration = 10.seconds)
+                               timeout: Duration = 10.seconds) (implicit val ec: ExecutionContext)
   extends GraphStage[SourceShape[SearchResponse]] {
+
+  import ScanAndScrollSourceStage._
 
   val outlet: Outlet[SearchResponse] = Outlet[SearchResponse](s"$name.out")
 
@@ -45,30 +47,42 @@ class ScanAndScrollSourceStage(name: String = "UnnamedScanAndScrollSourceStage",
   override def createLogic(inheritedAttributes: Attributes): GraphStageLogic =
     new GraphStageLogic(shape) with OutHandler {
 
-      private var resultFuture: Future[(ReturnTypes.ScrollId, SearchResponse)] = _
-
-      // TODO: Add some failure management that prints log messages, or throws sensible exceptions
-      private def next(): SearchResponse = {
-        val (id, data)= Await.result(resultFuture, timeout)
-        resultFuture = scrollSource.scroll(id)
-        data
-      }
+      private var resultFuture: Future[Either[Throwable, IdAndData]] = _
 
       override def preStart(): Unit = {
-        resultFuture = scrollSource.startScrollRequest(index, tpe, query, sizeOpt = sizeOpt)
+        resultFuture = scrollSource.startScrollRequest(index, tpe, query, sizeOpt = sizeOpt).map {
+          case (id, data) => Right(IdAndData(id, data))
+        }.recover(recovery)
       }
 
       override def onPull(): Unit = {
-        val elem = next()
+        val result = Await.result(resultFuture, timeout)
 
-        if (elem.length == 0) completeStage()
+        result match {
+          case Left(ex) => failStage(ex)
+          case Right(IdAndData(scrollId, searchResponse)) =>
+            resultFuture = scrollSource.scroll(scrollId).map {
+              case (id, data) => Right(IdAndData(id, data))
+            }.recover(recovery)
 
-        if (isAvailable(outlet)) {
-          push(outlet, elem)
+            if (searchResponse.length == 0) {
+              completeStage()
+            } else {
+              push(outlet, searchResponse)
+            }
         }
+      }
+
+      private val recovery: PartialFunction[Throwable, Either[Throwable, IdAndData]] = {
+        case ex => Left(ScanAndScrollFailureException("Scroll future failed with exception", ex))
       }
 
       setHandler(outlet, this)
     }
 
+}
+
+object ScanAndScrollSourceStage {
+  private case class IdAndData(id: ReturnTypes.ScrollId, data: SearchResponse)
+  case class ScanAndScrollFailureException(message: String, cause: Throwable) extends Exception(message, cause)
 }

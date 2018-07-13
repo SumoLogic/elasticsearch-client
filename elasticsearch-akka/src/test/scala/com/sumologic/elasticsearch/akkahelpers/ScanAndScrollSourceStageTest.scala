@@ -12,16 +12,17 @@ import org.json4s._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 
 class ScanAndScrollSourceStageTest extends WordSpec with Matchers with ScalaFutures {
   val resultMaps: List[Map[String, AnyRef]] = List(Map("a" -> "1"), Map("a" -> "2"), Map("a" -> "3"))
-  implicit val formats = org.json4s.DefaultFormats
-  implicit val system = ActorSystem("test")
-  implicit val materializer = ActorMaterializer()
+  implicit val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.Implicits.global
+  implicit val formats: DefaultFormats.type = org.json4s.DefaultFormats
+  implicit val system: ActorSystem = ActorSystem("test")
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  def searchResponseFromMap(map: Map[String, AnyRef]) = {
+  def searchResponseFromMap(map: Map[String, AnyRef]): SearchResponse = {
     val raw = RawSearchResponse(Hits(List(ElasticJsonDocument("index", "type", "id", Some(0.1f), decompose(map).asInstanceOf[JObject], highlight = None)), 1))
     SearchResponse(raw, "{}")
   }
