@@ -16,7 +16,6 @@
   * specific language governing permissions and limitations
   * under the License.
   */
-
 package com.sumologic.elasticsearch.akkahelpers
 
 import akka.stream.stage.{GraphStage, GraphStageLogic, OutHandler}
