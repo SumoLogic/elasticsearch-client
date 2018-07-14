@@ -34,6 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ScanAndScrollSourceTest extends WordSpec with Matchers with ScalaFutures {
   val resultMaps: List[Map[String, AnyRef]] = List(Map("a" -> "1"), Map("a" -> "2"), Map("a" -> "3"))
+  implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
   implicit val formats = org.json4s.DefaultFormats
   implicit val system = ActorSystem("test")
   implicit val materializer = ActorMaterializer()
@@ -52,6 +53,25 @@ class ScanAndScrollSourceTest extends WordSpec with Matchers with ScalaFutures {
       val searchResponses = resultMaps.map(searchResponseFromMap)
       val client = new MockScrollClient(searchResponses)
       val source = Source.actorPublisher[SearchResponse](ScanAndScrollSource.props(index, tpe, queryRoot, client, sizeOpt = Some(5)))
+      val fut = source
+        .map(_.sourceAsMap)
+        .grouped(10)
+        .runWith(Sink.head)
+      whenReady(fut) { resp =>
+        resp.flatten should be(resultMaps)
+      }
+    }
+  }
+
+  "ScanAndScrollSourceGraph" should {
+    val index = Index("index")
+    val tpe = Type("tpe")
+    val queryRoot = new QueryRoot(MatchAll)
+
+    "Read to the end of a source" in {
+      val searchResponses = resultMaps.map(searchResponseFromMap)
+      val client = new MockScrollClient(searchResponses)
+      val source = Source.fromGraph(ScanAndScrollSourceGraph(index, tpe, queryRoot, client, sizeOpt = Some(5)))
       val fut = source
         .map(_.sourceAsMap)
         .grouped(10)

@@ -44,6 +44,7 @@ import scala.concurrent.ExecutionContext
  * @param scrollSource Raw ES scroll interface
  */
 
+@deprecated("Akka has deprecated ActorPublisher, use ScanAndScrollSourceGraph with Source.fromGraph instead", "2.0.11")
 class ScanAndScrollSource(index: Index, tpe: Type,
                           query: QueryRoot,
                           scrollSource: ScrollClient,
