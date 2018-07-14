@@ -19,8 +19,9 @@
 package com.sumologic.elasticsearch.akkahelpers
 
 import akka.NotUsed
-import akka.stream.{Graph, SourceShape}
+import akka.stream._
 import akka.stream.scaladsl.{Flow, GraphDSL, Merge, Source, Unzip}
+import akka.stream.stage.{GraphStage, GraphStageLogic, InHandler, OutHandler}
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ScrollId, SearchResponse}
 import com.sumologic.elasticsearch.restlastic.ScrollClient
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
@@ -29,12 +30,36 @@ import scala.concurrent.ExecutionContext
 
 object ScanAndScrollSourceGraph {
 
-  // TODO: Add failure management and shutdown management
+  // TODO: Add failure management
   def apply(index: Index, tpe: Type,
             query: QueryRoot,
             scrollSource: ScrollClient,
             sizeOpt: Option[Int] = None)
            (implicit ec: ExecutionContext): Graph[SourceShape[SearchResponse], NotUsed] = {
+
+    val completionDeciderGraph = new GraphStage[FlowShape[(ScrollId, SearchResponse), (ScrollId, SearchResponse)]] {
+      val in: Inlet[(ScrollId, SearchResponse)] = Inlet[(ScrollId, SearchResponse)]("completionDecider.in")
+      val out: Outlet[(ScrollId, SearchResponse)] = Outlet[(ScrollId, SearchResponse)]("completionDecider.out")
+      override val shape: FlowShape[(ScrollId, SearchResponse), (ScrollId, SearchResponse)] = FlowShape.of(in, out)
+
+      override def createLogic(inheritedAttributes: Attributes): GraphStageLogic =
+        new GraphStageLogic(shape) with InHandler with OutHandler {
+          override def onPull(): Unit = {
+            pull(in)
+          }
+
+          override def onPush(): Unit = {
+            val elem = grab(in)
+            if (elem._2.length == 0) {
+              completeStage()
+            } else {
+              push(out, elem)
+            }
+          }
+
+          setHandlers(in, out, this)
+        }
+    }
 
     GraphDSL.create() { implicit builder: GraphDSL.Builder[NotUsed] =>
 
@@ -49,9 +74,10 @@ object ScanAndScrollSourceGraph {
       val requestMore = builder.add(Flow[ScrollId].mapAsync(5) { id =>
         scrollSource.scroll(id)
       })
+      val completionDecider = builder.add(Flow.fromGraph(completionDeciderGraph))
 
       source ~> merge.in(0)
-      merge ~> unzip.in
+      merge ~> completionDecider ~> unzip.in
       unzip.out0 ~> requestMore
       requestMore ~> merge.in(1)
 
