@@ -267,17 +267,21 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _matchAll = "match_all"
     override def toJson: Map[String, Any] = Map(_matchAll -> Map())
   }
+
+  case class InnerHits(highlight: Highlight)
   
-  case class NestedQuery(path: String, scoreMode: Option[ScoreMode] = None, query: Bool) extends Query {
+  case class NestedQuery(path: String, scoreMode: Option[ScoreMode] = None, query: Bool, innerHits: Option[InnerHits] = None) extends Query {
     val _nested = "nested"
     val _path = "path"
     val _scoreMode = "score_mode"
     val _query = "query"
+    val _inner_hits = "inner_hits"
 
     lazy val innerMap: Map[String, Any] = Map(
       _path -> path,
-      _query -> query.toJson
-    ) ++ scoreMode.map(_scoreMode -> _.value)
+      _query -> query.toJson) ++
+      scoreMode.map(_scoreMode -> _.value) ++
+      innerHits.map(_inner_hits -> _.highlight.toJson)
 
     override def toJson: Map[String, Any] = Map(
       _nested -> innerMap
