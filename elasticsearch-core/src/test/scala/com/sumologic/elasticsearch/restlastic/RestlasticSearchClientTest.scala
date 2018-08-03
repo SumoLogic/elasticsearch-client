@@ -1141,12 +1141,38 @@ class RestlasticSearchClientTest extends WordSpec with Matchers with ScalaFuture
       mappingRes.futureValue.jsonStr.toString.contains(expected) should be(true)
     }
 
+    "Support nested query with inner hits" in {
+      // https://www.elastic.co/guide/en/elasticsearch/reference/2.3/nested.html
+      val metadataMapping = Mapping(tpe, IndexMapping(Map("user" -> NestedFieldMapping), None))
+      val mappingFuture = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFuture) { _ => refresh() }
+      val userDoc = List(Map("first" -> "john", "last" -> "Smith"), Map("first" -> "Alice", "last" -> "White"))
+      val matchDoc = Document("matchDoc", Map("user" -> userDoc))
+      val matchDocInsertionFuture = restClient.index(index, tpe, matchDoc)
+      whenReady(matchDocInsertionFuture) { _ => refresh() }
+
+      val highlight = Highlight(Seq(HighlightField("user", None, None, Some(0)), HighlightField("user.first", Some(PlainHighlighter))), Seq(""), Seq(""))
+
+      val matchResultFuture = restClient.query(index, tpe,
+        new QueryRoot(NestedQuery("user", Some(AvgScoreMode),
+          Bool(Must(MatchQuery("user.first", "Alice"))),
+          Some(InnerHits(highlight)))))
+
+      implicit val formats = org.json4s.DefaultFormats
+      whenReady(matchResultFuture) { resp =>
+        resp.extractSource[DocNestedType].head should be(DocNestedType(userDoc))
+        resp.rawSearchResponse.innerHits.flatMap(_.extract[InnerHitsResponse].user.highlightAsMaps) should equal(List(Map("user.first" -> List("Alice"))))
+      }
+    }
+
     def indexDocs(docs: Seq[Document]): Unit = {
       val bulkIndexFuture = restClient.bulkIndex(index, tpe, docs)
       whenReady(bulkIndexFuture) { _ => refresh() }
     }
   }
 }
+
+case class InnerHitsResponse(user: RawSearchResponse)
 
 case class DocNestedType(user: List[Map[String, String]])
 
