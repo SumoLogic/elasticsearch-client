@@ -268,7 +268,14 @@ trait QueryDsl extends DslCommons with SortDsl {
     override def toJson: Map[String, Any] = Map(_matchAll -> Map())
   }
 
-  case class InnerHits(highlight: Highlight)
+  case class InnerHits(highlight: Highlight, from: Option[Int] = None, size: Option[Int] = None) extends EsOperation {
+    val _from = "from"
+    val _size = "size"
+
+    override def toJson: Map[String, Any] = highlight.toJson ++
+      from.map(_from -> _) ++
+      size.map(_size -> _)
+  }
   
   case class NestedQuery(path: String, scoreMode: Option[ScoreMode] = None, query: Bool, innerHits: Option[InnerHits] = None) extends Query {
     val _nested = "nested"
@@ -281,7 +288,7 @@ trait QueryDsl extends DslCommons with SortDsl {
       _path -> path,
       _query -> query.toJson) ++
       scoreMode.map(_scoreMode -> _.value) ++
-      innerHits.map(_inner_hits -> _.highlight.toJson)
+      innerHits.map(_inner_hits -> _.toJson)
 
     override def toJson: Map[String, Any] = Map(
       _nested -> innerMap
@@ -387,13 +394,15 @@ trait QueryDsl extends DslCommons with SortDsl {
   }
 
   case class HighlightField(field: String, highlighter_type: Option[HighlighterType] = None, fragment_size: Option[Int] = None,
-                            number_of_fragments: Option[Int] = None, no_match_size: Option[Int] = None, matched_fields: Seq[String] = Seq())
+                            number_of_fragments: Option[Int] = None, no_match_size: Option[Int] = None, matched_fields: Seq[String] = Seq(),
+                            highlight_query: Option[Bool] = None)
     extends EsOperation {
     val _type = "type"
     val _fragment_size = "fragment_size"
     val _number_of_fragments = "number_of_fragments"
     val _no_match_size = "no_match_size"
     val _matched_fields = "matched_fields"
+    val _highlight_query = "highlight_query"
 
     override def toJson: Map[String, Any] = Map(
       field -> {
@@ -402,7 +411,8 @@ trait QueryDsl extends DslCommons with SortDsl {
           fragment_size.map(_fragment_size -> _) ++
           number_of_fragments.map(_number_of_fragments -> _) ++
           no_match_size.map(_no_match_size -> _) ++
-          matched_fields.map(_matched_fields -> _)
+          matched_fields.map(_matched_fields -> _) ++
+          highlight_query.map(_highlight_query -> _.toJson)
       }
     )
   }
