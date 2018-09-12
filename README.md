@@ -8,7 +8,7 @@ The Sumo Logic Elasticsearch library provides Elasticsearch bindings with a Scal
   1. Ability to upgrade Elasticsearch without the need to atomically also upgrade the client.
   2. Ability to use hosted Elasticsearch such as the version provided by [AWS](https://aws.amazon.com/elasticsearch-service/).
 
-_This project is currently targeted at Elasticsearch 6.0.x. For ES 2.3 compatibility see version 3 (`release-3.` branch)_
+_This project is currently targeted at Elasticsearch 6.0.x. For ES 2.3 compatibility see version 3 (`release-3.*` branch)._
 
 Along with a basic Elasticsearch client (`elasticsearch-core`), helper functionality for using Elasticsearch with Akka (`elasticssearch-akka`) and AWS (`elasticsearch-aws`) is also provided. The goal of the DSL is to keep it as simple as possible, occasionally sacrifing some end-user boilerplate to maintain a DSL that is easy to modify and add to. The DSL attempts to be type-safe in that it should be impossible to create an invalid Elasticsearch query. Rather than be as compact as possible, the DSL aims to closely reflect the JSON it generates when reasonable. This makes it easier discover how to access functionality than a traditional maximally compact DSL.
 ## Install / Download
