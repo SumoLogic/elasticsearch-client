@@ -4,7 +4,7 @@
     <groupId>com.sumologic.elasticsearch</groupId>
     <artifactId>all</artifactId>
     <name>all</name>
-    <version>6.0.0-SNAPSHOT</version>
+    <version>6.1.0</version>
     <packaging>pom</packaging>
     <licenses>
         <license>
@@ -19,8 +19,8 @@
         <module>elasticsearch-aws</module>
     </modules>
     <scm>
-        <url>https://github.com/SumoLogic/elasticsearch-client/tags/all-6.0.0-SNAPSHOT</url>
-        <connection>https://github.com/SumoLogic/elasticsearch-client.git/tags/all-6.0.0-SNAPSHOT</connection>
+        <url>https://github.com/SumoLogic/elasticsearch-client/tags/all-6.1.0</url>
+        <connection>https://github.com/SumoLogic/elasticsearch-client.git/tags/all-6.1.0</connection>
     </scm>
 
     <properties>

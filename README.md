@@ -21,19 +21,19 @@ The library components are offered a la carte:
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-core</artifactId>
-      <version>6.0.0</version>
+      <version>6.1.0</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-aws</artifactId>
-      <version>6.0.0</version>
+      <version>6.1.0</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-akka</artifactId>
-      <version>6.0.0</version>
+      <version>6.1.0</version>
     </dependency>
 
     <dependency>
