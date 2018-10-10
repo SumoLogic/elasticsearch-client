@@ -297,7 +297,8 @@ class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[
 
     logger.debug(f"Got Rs request: $request (op was $op)")
 
-    val responseFuture: Future[HttpResponse] = (IO(Http) ? request).mapTo[HttpResponse]
+
+    val responseFuture: Future[HttpResponse] = (IO(Http) ? request)(timeout).mapTo[HttpResponse]
 
     responseFuture.map { response =>
       logger.debug(f"Got Es response: $response")
