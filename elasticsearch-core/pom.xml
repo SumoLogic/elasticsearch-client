@@ -3,12 +3,12 @@
   <artifactId>elasticsearch-core</artifactId>
   <name>elasticsearch-core</name>
   <packaging>jar</packaging>
-  <version>3.0.1</version>
+  <version>3.0.2-SNAPSHOT</version>
 
   <parent>
     <artifactId>all</artifactId>
     <groupId>com.sumologic.elasticsearch</groupId>
-    <version>3.0.1</version>
+    <version>3.0.2-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
 
@@ -26,7 +26,7 @@
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-test</artifactId>
-      <version>3.0.1</version>
+      <version>3.0.2-SNAPSHOT</version>
       <scope>test</scope>
     </dependency>
 
