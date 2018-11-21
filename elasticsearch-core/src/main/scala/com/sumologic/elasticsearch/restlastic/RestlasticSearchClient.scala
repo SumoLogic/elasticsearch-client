@@ -18,8 +18,6 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
-import akka.actor.ActorSystem
-import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ScrollId, SearchResponse}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl
 import org.json4s._
@@ -28,7 +26,6 @@ import spray.http.HttpMethods._
 import spray.http.Uri.{Query => UriQuery}
 import spray.http._
 
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 trait ScrollClient {
@@ -61,19 +58,7 @@ trait RequestSigner {
   def withAuthHeader(httpRequest: HttpRequest): HttpRequest
 }
 
-/**
-  * The RestlasticSearchClient is an implementation of a subset of the ElasticSearch protocol using the REST client
-  * instead of the native client. The DSL classes provide a (relatively) typesafe mapping from scala code to the JSON
-  * used by ElasticSearch.
-  *
-  * @param endpointProvider EndpointProvider
-  */
-abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
-                                      override val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
-                                      searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
-                                     (implicit val system: ActorSystem = ActorSystem(),
-                                      val timeout: Timeout = Timeout(30.seconds))
-    extends ScrollClient {
+trait RestlasticSearchClient extends ScrollClient {
 
   import Dsl._
   import RestlasticSearchClient.ReturnTypes._

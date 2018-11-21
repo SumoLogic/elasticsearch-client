@@ -33,12 +33,20 @@ import spray.http._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
+
+/**
+  * The RestlasticSearchClient is an implementation of a subset of the ElasticSearch protocol using the REST client
+  * instead of the native client. The DSL classes provide a (relatively) typesafe mapping from scala code to the JSON
+  * used by ElasticSearch.
+  *
+  * @param endpointProvider EndpointProvider
+  */
 class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
                               override val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
                               searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
-                             (implicit override val system: ActorSystem = ActorSystem(),
-                              override val timeout: Timeout = Timeout(30.seconds))
-  extends RestlasticSearchClient(endpointProvider, signer, indexExecutionCtx, searchExecutionCtx) {
+                             (implicit val system: ActorSystem = ActorSystem(),
+                              val timeout: Timeout = Timeout(30.seconds))
+  extends RestlasticSearchClient {
 
   private implicit val formats = org.json4s.DefaultFormats
   private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
