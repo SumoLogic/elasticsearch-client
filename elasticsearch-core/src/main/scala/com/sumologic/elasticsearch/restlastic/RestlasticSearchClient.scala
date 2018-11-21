@@ -133,11 +133,11 @@ object RestlasticSearchClient {
     case class BulkIndexError(reason: String)
 
     case class BulkItem(_index: String, _type: String, _id: String, status: Int, error: Option[BulkIndexError]) {
-      def created = status > 200 && status < 299 && !alreadyExists
+      def created: Boolean = status > 200 && status < 299 && !alreadyExists
 
-      def alreadyExists = error.exists(_.reason.contains("document already exists"))
+      def alreadyExists: Boolean = error.exists(_.reason.contains("document already exists"))
 
-      def success = status >= 200 && status <= 299
+      def success: Boolean = status >= 200 && status <= 299
     }
 
     case class SearchResponse(rawSearchResponse: RawSearchResponse, jsonStr: String) {
@@ -149,7 +149,7 @@ object RestlasticSearchClient {
 
       def highlightAsMaps: Seq[Map[String, Any]] = rawSearchResponse.highlightAsMaps
 
-      def length = rawSearchResponse.hits.hits.length
+      def length: Int = rawSearchResponse.hits.hits.length
     }
 
     object SearchResponse {
@@ -161,7 +161,7 @@ object RestlasticSearchClient {
     case class SearchResponseWithScrollId(_scroll_id: String, hits: Hits)
 
     case class RawSearchResponse(hits: Hits) {
-      private implicit val formats = org.json4s.DefaultFormats
+      private implicit val formats: DefaultFormats.type = org.json4s.DefaultFormats
 
       def extractSource[T: Manifest]: Seq[T] = {
         hits.hits.map(_._source.extract[T])
@@ -204,7 +204,7 @@ object RestlasticSearchClient {
                                    highlight: Option[JObject])
 
     case class RawJsonResponse(jsonStr: String) {
-      private implicit val formats = org.json4s.DefaultFormats
+      private implicit val formats: DefaultFormats.type = org.json4s.DefaultFormats
 
       def mappedTo[T: Manifest]: T = {
         val jsonTree = parse(jsonStr)
@@ -221,16 +221,16 @@ object RestlasticSearchClient {
     case class SuggestOption(text: String, _score: Float)
 
     case class IndexResponse(result: String) {
-      def isSuccess = result == IndexApiResponse.Created.toString
+      def isSuccess: Boolean = result == IndexApiResponse.Created.toString
     }
 
     case class DeleteResponse(result: String) {
-      def isSuccess = result == IndexApiResponse.Deleted.toString
+      def isSuccess: Boolean = result == IndexApiResponse.Deleted.toString
     }
 
     object IndexApiResponse extends Enumeration {
-      val Created = Value("created")
-      val Deleted = Value("deleted")
+      val Created: IndexApiResponse.Value = Value("created")
+      val Deleted: IndexApiResponse.Value = Value("deleted")
     }
 
     case class IndexAlreadyExistsException(message: String) extends Exception(message)
