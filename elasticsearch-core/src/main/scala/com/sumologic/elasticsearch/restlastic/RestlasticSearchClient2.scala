@@ -178,7 +178,7 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
               index,
               tpe,
               id,
-              acc ++ items.map(item => Dsl.Index(item._id) -> DeleteResponse(item.success)),
+              acc ++ items.map(item => Dsl.Index(item._id) -> DeleteResponse(if (item.success) "deleted" else "error")),
               (scrollId) => scroll(scrollId))
           }
       }
