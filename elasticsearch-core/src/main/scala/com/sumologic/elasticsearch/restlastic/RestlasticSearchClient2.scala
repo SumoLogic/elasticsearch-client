@@ -192,7 +192,7 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
     implicit val ec = searchExecutionCtx
     val params = Map("scroll" -> resultWindowOpt.getOrElse(defaultResultWindow)) ++ fromOpt.map("from" -> _.toString) ++ sizeOpt.map("size" -> _.toString)
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = UriQuery(params)).map { resp =>
-      val sr = resp.mappedTo[SearchResponseWithScrollId]
+      val sr = resp.mappedTo[SearchResponseWithScrollId]2
       (ScrollId(sr._scroll_id), SearchResponse(RawSearchResponse(sr.hits), resp.jsonStr))
     }
   }

@@ -214,7 +214,7 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
   // Scroll requests have optimizations that make them faster when the sort order is _doc.
   // Put sort by _doc in query as described in the the following document
   // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html
-  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)] = {
+  def startScrollRequest(index: Index, tpe: Type, query: QueryRoot, resultWindowOpt: Option[String] = None, fromOpt: Option[Int] = None, sizeOpt: Option[Int] = None): Future[(ScrollId, SearchResponse)] = {
     implicit val ec = searchExecutionCtx
     val params = Map("scroll" -> resultWindowOpt.getOrElse(defaultResultWindow)) ++ sizeOpt.map("size" -> _.toString)
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = UriQuery(params)).map { resp =>
