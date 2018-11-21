@@ -44,7 +44,7 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
     override def ready: Boolean = true
   }
 
-  def restClient = new RestlasticSearchClient(endpointProvider)
+  def restClient = new RestlasticSearchClient6(endpointProvider)
 
   val IndexName = s"test-index-${Random.nextLong()}"
   val index = dsl.Dsl.Index(IndexName)

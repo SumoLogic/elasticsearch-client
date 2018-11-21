@@ -73,10 +73,11 @@ trait RequestSigner {
   *
   * @param endpointProvider EndpointProvider
   */
-class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
-                             override val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
-                             searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
-                            (implicit val system: ActorSystem = ActorSystem(), val timeout: Timeout = Timeout(30.seconds))
+abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
+                                      override val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
+                                      searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
+                                     (implicit val system: ActorSystem = ActorSystem(),
+                                      val timeout: Timeout = Timeout(30.seconds))
     extends ScrollClient {
 
   private implicit val formats = org.json4s.DefaultFormats
