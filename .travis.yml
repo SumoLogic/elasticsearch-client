@@ -1,9 +1,12 @@
 language: java
-services:
-  - elasticsearch
 before_install:
-  - curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.0.0.deb && sudo dpkg -i --force-confnew elasticsearch-6.0.0.deb && sudo service elasticsearch restart
+  - curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.3.0.tar.gz && tar -xzf elasticsearch-6.3.0.tar.gz
+  - elasticsearch-6.3.0/bin/elasticsearch -Ecluster.name=es-63 -Ehttp.port=9500 > /dev/null 2> /dev/null &
+  - curl -O https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.3.5/elasticsearch-2.3.5.tar.gz && tar -xzf elasticsearch-2.3.5.tar.gz
+  - elasticsearch-2.3.5/bin/elasticsearch --cluster.name=es-23 --http.port=9200 > /dev/null 2> /dev/null &
   - sleep 15
+  - ps aux | grep elasticsearch
 install: mvn install -DskipTests=true -Dgpg.skip=true
 after_success:
+  - pkill -f elasticsearch
   - bash <(curl -s https://codecov.io/bash)
