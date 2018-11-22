@@ -52,15 +52,8 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
     }
   }
 
-  def suggest(index: Index, tpe: Type, query: Suggest): Future[List[String]] = {
-    // I'm not totally sure why, but you don't specify the type for _suggest queries
-    implicit val ec = searchExecutionCtx
-    val fut = runEsCommand(query, s"/${index.name}/_suggest")
-    fut.map { resp =>
-      val extracted = resp.mappedTo[SuggestResult]
-      extracted.suggestions
-    }
-  }
+  // TODO(bartek, 2018-11-22): Seems unused and doesn't have to be ported now.
+  def suggest(index: Index, tpe: Type, query: SuggestRoot): Future[Map[String,List[String]]] = ???
 
   def count(index: Index, tpe: Type, query: QueryRoot): Future[Int] = {
     implicit val ec = searchExecutionCtx
