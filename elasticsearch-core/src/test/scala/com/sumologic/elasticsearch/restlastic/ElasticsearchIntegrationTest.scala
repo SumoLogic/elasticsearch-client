@@ -39,7 +39,7 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
   private val indexPrefix = "test-index"
 
   val endpointProvider = new EndpointProvider {
-    override def endpoint: Endpoint = Endpoint("127.0.0.1", 9200)
+    override def endpoint: Endpoint = Endpoint("127.0.0.1", 9500)
 
     override def ready: Boolean = true
   }

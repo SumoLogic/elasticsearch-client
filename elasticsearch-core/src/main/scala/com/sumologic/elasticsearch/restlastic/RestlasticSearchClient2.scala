@@ -4,19 +4,16 @@ import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ScrollId, SearchResponse}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl
 import org.json4s._
-import org.json4s.native.JsonMethods._
 import org.slf4j.LoggerFactory
-
 import spray.can.Http
 import spray.http.HttpMethods._
 import spray.http.Uri.{Query => UriQuery}
 import spray.http.{HttpResponse, _}
 
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
                               override val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
@@ -185,7 +182,7 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
     implicit val ec = searchExecutionCtx
     val params = Map("scroll" -> resultWindowOpt.getOrElse(defaultResultWindow)) ++ fromOpt.map("from" -> _.toString) ++ sizeOpt.map("size" -> _.toString)
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = UriQuery(params)).map { resp =>
-      val sr = resp.mappedTo[SearchResponseWithScrollId]2
+      val sr = resp.mappedTo[SearchResponseWithScrollId]
       (ScrollId(sr._scroll_id), SearchResponse(RawSearchResponse(sr.hits), resp.jsonStr))
     }
   }
