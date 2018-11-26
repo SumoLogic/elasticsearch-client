@@ -45,8 +45,8 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
   val index = dsl.Dsl.Index(IndexName)
 
   override def beforeAll(): Unit = {
-    Try(delete(Index(s"$indexPrefix*")))
     super.beforeAll()
+    Try(delete(Index(s"$indexPrefix*")))
   }
 
   override def afterAll(): Unit = {
