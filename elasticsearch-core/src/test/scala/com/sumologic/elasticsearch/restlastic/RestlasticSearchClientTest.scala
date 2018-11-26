@@ -39,7 +39,7 @@ trait RestlasticSearchClientTest {
   override implicit val patienceConfig = PatienceConfig(
     timeout = scaled(Span(10, Seconds)), interval = scaled(Span(50, Millis)))
 
-  def restlasticClient(restClient: => RestlasticSearchClient, index: Dsl.Index): Unit = {
+  def restlasticClient(restClient: => RestlasticSearchClient, indexName: String, index: Dsl.Index): Unit = {
     val analyzerName = Name("keyword_lowercase")
     val basicTextFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
     val basicKeywordFieldMapping = BasicFieldMapping(KeywordType, None, None, ignoreAbove = None, None)
@@ -66,7 +66,7 @@ trait RestlasticSearchClientTest {
       val analyzers = Analyzers(
         AnalyzerArray(keywordLowercaseAnalyzer, edgeNgramLowercaseAnalyzer), FilterArray(edgeNgram))
       val indexSetting = IndexSetting(12, 1, analyzers, 30)
-      val indexFut = restClient.createIndex(Index(s"${index.name}_${EdgeNGram.rep}"), Some(indexSetting))
+      val indexFut = restClient.createIndex(Index(s"${indexName}_${EdgeNGram.rep}"), Some(indexSetting))
       whenReady(indexFut) { _ => refreshWithClient() }
     }
 
@@ -281,7 +281,7 @@ trait RestlasticSearchClientTest {
     "Support raw requests" in {
       val future = restClient.runRawEsRequest(op = "", endpoint = "/_cat/indices", GET)
       whenReady(future) { res =>
-        res.jsonStr should include(index.name)
+        res.jsonStr should include(indexName)
       }
     }
 

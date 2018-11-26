@@ -18,18 +18,10 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
-import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.scalatest._
 
 class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndAfterAll
     with ElasticsearchIntegrationTest with OneInstancePerTest with RestlasticSearchClientTest {
-
-  val analyzerName = Name("keyword_lowercase")
-
-  val analyzer = Analyzer(analyzerName, Keyword, Lowercase)
-  val indexSetting = IndexSetting(12, 1, analyzer, 30)
-  val indexFut = restClient.createIndex(index, Some(indexSetting))
-  indexFut.futureValue
 
   override def restClient: RestlasticSearchClient = {
     val endpointProvider = new EndpointProvider {
@@ -40,7 +32,7 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
   }
 
   "RestlasticSearchClient6" should {
-    behave like restlasticClient(restClient, index)
+    behave like restlasticClient(restClient, IndexName, createIndex())
   }
 }
 

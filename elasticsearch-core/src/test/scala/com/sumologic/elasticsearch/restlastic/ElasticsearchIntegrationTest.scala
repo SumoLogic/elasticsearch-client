@@ -41,8 +41,17 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
 
   def restClient: RestlasticSearchClient
 
-  val IndexName = s"test-index-${Random.nextLong()}"
-  val index = dsl.Dsl.Index(IndexName)
+  val IndexName = s"$indexPrefix-${Random.nextLong()}"
+
+  protected def createIndex(): Index = {
+    val index = dsl.Dsl.Index(IndexName)
+    val analyzerName = Name("keyword_lowercase")
+    val analyzer = Analyzer(analyzerName, Keyword, Lowercase)
+    val indexSetting = IndexSetting(12, 1, analyzer, 30)
+    val indexFut = restClient.createIndex(index, Some(indexSetting))
+    indexFut.futureValue
+    index
+  }
 
   override def beforeAll(): Unit = {
     super.beforeAll()
