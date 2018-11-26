@@ -29,7 +29,7 @@ import spray.http.HttpMethods._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class RestlasticSearchClientTest extends WordSpec with Matchers with BeforeAndAfterAll
+class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndAfterAll
     with ElasticsearchIntegrationTest with OneInstancePerTest {
   val tpe = Type("foo")
   val analyzerName = Name("keyword_lowercase")
