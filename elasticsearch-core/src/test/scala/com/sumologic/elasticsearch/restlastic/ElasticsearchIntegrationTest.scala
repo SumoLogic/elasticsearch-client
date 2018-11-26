@@ -54,11 +54,7 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
     super.afterAll()
   }
 
-  def refresh(): Unit = {
-    restClient.refresh(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
-  }
-
-  def delete(index: Index): ReturnTypes.RawJsonResponse = {
+  private def delete(index: Index): ReturnTypes.RawJsonResponse = {
     restClient.deleteIndex(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
   }
 }
