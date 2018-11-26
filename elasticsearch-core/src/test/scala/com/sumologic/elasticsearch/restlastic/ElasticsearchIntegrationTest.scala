@@ -18,6 +18,7 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
+import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Span}
@@ -44,7 +45,7 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
     override def ready: Boolean = true
   }
 
-  def restClient = new RestlasticSearchClient6(endpointProvider)
+  def restClient: RestlasticSearchClient = new RestlasticSearchClient6(endpointProvider)
 
   val IndexName = s"test-index-${Random.nextLong()}"
   val index = dsl.Dsl.Index(IndexName)
@@ -59,8 +60,12 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
     super.afterAll()
   }
 
-  def refresh(): Unit = restClient.refresh(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
+  def refresh(): Unit = {
+    restClient.refresh(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
+  }
 
-  def delete(index: Index) = restClient.deleteIndex(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
+  def delete(index: Index): ReturnTypes.RawJsonResponse = {
+    restClient.deleteIndex(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
+  }
 }
 
