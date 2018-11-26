@@ -23,16 +23,20 @@ import org.scalatest._
 class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndAfterAll
     with ElasticsearchIntegrationTest with OneInstancePerTest with RestlasticSearchClientTest {
 
-  override def restClient: RestlasticSearchClient = {
+  override val restClient = RestlasticSearchClient6Test.restClient
+
+  "RestlasticSearchClient6" should {
+    behave like restlasticClient(restClient, IndexName, createIndex())
+  }
+}
+
+object RestlasticSearchClient6Test {
+  val restClient = {
     val endpointProvider = new EndpointProvider {
       override def endpoint: Endpoint = Endpoint("127.0.0.1", 9500)
       override def ready: Boolean = true
     }
     new RestlasticSearchClient6(endpointProvider)
-  }
-
-  "RestlasticSearchClient6" should {
-    behave like restlasticClient(restClient, IndexName, createIndex())
   }
 }
 
