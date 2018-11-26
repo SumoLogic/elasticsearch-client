@@ -39,13 +39,7 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
   this: Suite =>
   private val indexPrefix = "test-index"
 
-  val endpointProvider = new EndpointProvider {
-    override def endpoint: Endpoint = Endpoint("127.0.0.1", 9500)
-
-    override def ready: Boolean = true
-  }
-
-  def restClient: RestlasticSearchClient = new RestlasticSearchClient6(endpointProvider)
+  def restClient: RestlasticSearchClient
 
   val IndexName = s"test-index-${Random.nextLong()}"
   val index = dsl.Dsl.Index(IndexName)
