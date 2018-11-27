@@ -112,7 +112,7 @@ trait RestlasticSearchClientTest {
       whenReady(mappingFut) { _ => refresh() }
       val mappingRes = restClient.getMapping(index, tpe)
 
-      mappingRes.futureValue.jsonStr.toString.contains(""""f2":{"type":"text","index_options":"offsets","analyzer":"keyword_lowercase"}""") should be(true)
+      mappingRes.futureValue.jsonStr.toString.contains(s""""f2":{"type":"${textType.rep}","index_options":"offsets","analyzer":"keyword_lowercase"}""") should be(true)
     }
 
     "Be able to create an index, index a document, and search it" in {
