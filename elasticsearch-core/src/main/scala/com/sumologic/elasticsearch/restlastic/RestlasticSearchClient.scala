@@ -20,6 +20,7 @@ package com.sumologic.elasticsearch.restlastic
 
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ScrollId, SearchResponse}
 import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, EsVersion}
+import org.json4s.FieldSerializer.{renameFrom, renameTo}
 import org.json4s._
 import org.json4s.native.JsonMethods._
 import spray.http.HttpMethods._
@@ -204,7 +205,11 @@ object RestlasticSearchClient {
                                    highlight: Option[JObject])
 
     case class RawJsonResponse(jsonStr: String) {
-      private implicit val formats: DefaultFormats.type = org.json4s.DefaultFormats
+      private val SuggesionOptionDeserializer = FieldSerializer[SuggestOption](
+        renameTo("_score", "score"),
+        renameFrom("score", "_score"))
+
+      private implicit val formats: Formats = org.json4s.DefaultFormats + SuggesionOptionDeserializer
 
       def mappedTo[T: Manifest]: T = {
         val jsonTree = parse(jsonStr)
@@ -213,7 +218,9 @@ object RestlasticSearchClient {
     }
 
     case class SuggestResult(suggest: Map[String, List[Suggestion]]) {
-      def suggestions: Map[String, List[String]] = suggest.map{ case (name, suggestions) => name -> suggestions.flatMap(_.options.map(_.text))}
+      def suggestions: Map[String, List[String]] = {
+        suggest.map{ case (name, suggestions) => name -> suggestions.flatMap(_.options.map(_.text))}
+      }
     }
 
     case class Suggestion(text: String, options: List[SuggestOption])

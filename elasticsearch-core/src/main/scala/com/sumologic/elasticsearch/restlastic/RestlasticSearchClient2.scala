@@ -39,7 +39,6 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
                              (implicit val system: ActorSystem = ActorSystem(), val timeout: Timeout = Timeout(30.seconds))
   extends RestlasticSearchClient {
 
-  private implicit val formats = org.json4s.DefaultFormats
   private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
   import Dsl._
   import RestlasticSearchClient.ReturnTypes._
@@ -69,8 +68,15 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
     }
   }
 
-  // TODO(bartek, 2018-11-22): Seems unused and doesn't have to be ported now.
-  def suggest(index: Index, tpe: Type, query: SuggestRoot): Future[Map[String,List[String]]] = ???
+  def suggest(index: Index, tpe: Type, query: SuggestRoot): Future[Map[String,List[String]]] = {
+    // I'm not totally sure why, but you don't specify the type for _suggest queries
+    implicit val ec = searchExecutionCtx
+    val fut = runEsCommand(query, s"/${index.name}/_search")
+    fut.map { resp =>
+      val extracted = resp.mappedTo[SuggestResult]
+      extracted.suggestions
+    }
+  }
 
   def count(index: Index, tpe: Type, query: QueryRoot): Future[Int] = {
     implicit val ec = searchExecutionCtx

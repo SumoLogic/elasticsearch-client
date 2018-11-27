@@ -19,7 +19,7 @@
 package com.sumologic.elasticsearch.restlastic
 
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{Suggestion => _, _}
-import com.sumologic.elasticsearch.restlastic.dsl.Dsl
+import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V2, V6}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.json4s.DefaultFormats
 import org.json4s.native.JsonMethods.parse
@@ -436,12 +436,16 @@ trait RestlasticSearchClientTest {
       val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
       whenReady(mappingFut) { _ => refresh() }
 
-
+      // TODO: case classes + toJson should be used rather than such a low-level approach
+      val contextKey = restClient.version match {
+        case V2 => "context"
+        case V6 => "contexts"
+      }
       val contexts = List("Case1", "case2")
       val input1 = Map(
         "name" -> "test",
         "suggest" -> Map(
-          "contexts" -> Map("f" -> contexts),
+          contextKey -> Map("f" -> contexts),
           "input" -> List("class")
         )
       )
@@ -449,7 +453,7 @@ trait RestlasticSearchClientTest {
       val input2 = Map(
         "name" -> "test",
         "suggest" -> Map(
-          "contexts" -> Map("f" -> contexts),
+          contextKey -> Map("f" -> contexts),
           "input" -> List("Case", "#Case`case")
         )
       )
@@ -475,18 +479,29 @@ trait RestlasticSearchClientTest {
         SuggestRoot(None, List(suggestionWithText3)) -> Set("#Case`case"),
         SuggestRoot(lowerCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("Case", "class"),
         SuggestRoot(specialCharCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("Case", "class"),
-        SuggestRoot(specialCharCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("#Case`case"),
-        SuggestRoot(lowerCaseSuggestionOpt, List(defaultNoContextSuggestion)) -> Set("Case", "class"),
-        SuggestRoot(specialCharCaseSuggestionOpt, List(defaultNoContextSuggestion)) -> Set("Case", "class"),
-        SuggestRoot(specialCharCaseSuggestionOpt, List(defaultNoContextSuggestion)) -> Set("#Case`case")
+        SuggestRoot(specialCharCaseSuggestionOpt, List(defaulNoTextSuggestion)) -> Set("#Case`case")
       )
 
-      suggestionRootWithResult.foreach {
+      val noContextTests = restClient.version match {
+        case V6 =>
+          Map(
+            SuggestRoot(lowerCaseSuggestionOpt, List(defaultNoContextSuggestion)) -> Set("Case", "class"),
+            SuggestRoot(specialCharCaseSuggestionOpt, List(defaultNoContextSuggestion)) -> Set("Case", "class"),
+            SuggestRoot(specialCharCaseSuggestionOpt, List(defaultNoContextSuggestion)) -> Set("#Case`case"))
+        case V2 =>
+          // These suggest queries don't seem to be supported correctly in ES 2.3.
+          Map.empty[SuggestRoot, Set[String]]
+      }
+
+      (suggestionRootWithResult ++ noContextTests).foreach {
         case (suggestionRoot, suggestionResult) => {
-          val result = restClient.suggest(index, tpe, suggestionRoot)
-          whenReady(result) {
-            resp => withClue(s"Suggest root $suggestionRoot, result = ${resp.head._2.toSet}"){
-              resp.head._2.toSet should be(suggestionResult)
+          withClue(suggestionRoot) {
+            val result = restClient.suggest(index, tpe, suggestionRoot)
+            whenReady(result) {
+              resp =>
+                withClue(s"Suggest root $suggestionRoot, result = ${resp.head._2.toSet}") {
+                  resp.head._2.toSet should be(suggestionResult)
+                }
             }
           }
         }

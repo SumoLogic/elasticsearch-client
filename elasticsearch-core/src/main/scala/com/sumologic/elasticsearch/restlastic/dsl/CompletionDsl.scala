@@ -39,8 +39,7 @@ trait CompletionDsl extends DslCommons with QueryDsl {
       val textJson = Map.empty[String, Any] ++ textOpt.map(text => _text -> text)
 
       // TODO: Merge both the termOpt and completionOpt
-      require(!(termOpt.isDefined && completionOpt.isDefined),
-      "Both the completionOpt and termOpt can not be defined.")
+      require(!(termOpt.isDefined && completionOpt.isDefined), "Both the completionOpt and termOpt can not be defined.")
 
       val termJson = Map.empty[String, Any] ++ termOpt.map(term => _completion -> term.toJson(version))
       val completionJson =
@@ -60,19 +59,30 @@ trait CompletionDsl extends DslCommons with QueryDsl {
   case class Completion(field: String, size: Int, name: String, contexts: List[Context]) extends Query {
     val _field = "field"
     val _contexts = "contexts"
+    val _context = "context"
     val _size = "size"
 
-    override def toJson(version: EsVersion): Map[String, Any] = Map(
-      _field -> field,
-      _contexts -> Map(name -> contexts.map(_.toJson(version))),
-      _size -> size
-    )
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      val contextJson = version match {
+        case V6 => Map(_contexts -> Map(name -> contexts.map(_.toJson(version))))
+        case V2 => Map(_context -> Map(name -> contexts.flatMap(_.values)))
+      }
+      Map(
+        _field -> field,
+        _size -> size
+      ) ++ contextJson
+    }
   }
 
   case class Context(values: List[String]) extends Query {
     val _context = "context"
 
-    override def toJson(version: EsVersion): Map[String, Any] = values.flatMap(value => Map(_context -> value)).toMap
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      version match {
+        case V6 => values.flatMap(value => Map(_context -> value)).toMap
+        case V2 => throw new UnsupportedOperationException
+      }
+    }
   }
 
 }
