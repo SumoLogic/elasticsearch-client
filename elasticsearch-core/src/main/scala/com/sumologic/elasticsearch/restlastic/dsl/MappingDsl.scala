@@ -32,6 +32,11 @@ trait MappingDsl extends DslCommons {
     val rep = "text"
   }
 
+  // TODO This is because of ES2. We should probably keep the types supported by some versions only separately.
+  case object StringType extends FieldType {
+    val rep = "string"
+  }
+
   // Numeric datatypes - https://www.elastic.co/guide/en/elasticsearch/reference/current/number.html
   case object LongType extends FieldType {
     val rep = "long"

@@ -39,9 +39,12 @@ trait RestlasticSearchClientTest {
   override implicit val patienceConfig = PatienceConfig(
     timeout = scaled(Span(10, Seconds)), interval = scaled(Span(50, Millis)))
 
-  def restlasticClient(restClient: => RestlasticSearchClient, indexName: String, index: Dsl.Index): Unit = {
+  def restlasticClient(restClient: => RestlasticSearchClient,
+                       indexName: String,
+                       index: Dsl.Index,
+                       textType: FieldType): Unit = {
     val analyzerName = Name("keyword_lowercase")
-    val basicTextFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
+    val basicTextFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
     val basicKeywordFieldMapping = BasicFieldMapping(KeywordType, None, None, ignoreAbove = None, None)
     val basicNumericFieldMapping = BasicFieldMapping(IntegerType, None, None, None, None)
     val tpe = Type("foo")
@@ -71,7 +74,7 @@ trait RestlasticSearchClientTest {
     }
 
     "Be able to setup document mapping" in {
-      val basicFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName))
+      val basicFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName))
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map(
           "name" -> basicFieldMapping,
@@ -83,7 +86,7 @@ trait RestlasticSearchClientTest {
     }
 
     "Be able to setup document mapping with ignoreAbove" in {
-      val basicFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
+      val basicFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName))))
 
@@ -92,11 +95,11 @@ trait RestlasticSearchClientTest {
     }
 
     "Be able to setup document mapping with field index options" in {
-      val basicFieldDocsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
+      val basicFieldDocsMapping = BasicFieldMapping(textType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(DocsIndexOption))
-      val basicFieldFreqsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
+      val basicFieldFreqsMapping = BasicFieldMapping(textType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(FreqsIndexOption))
-      val basicFieldOffsetsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
+      val basicFieldOffsetsMapping = BasicFieldMapping(textType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(OffsetsIndexOption))
 
       val metadataMapping = Mapping(tpe, IndexMapping(
@@ -426,7 +429,7 @@ trait RestlasticSearchClientTest {
     }
 
     "Support case insensitive autocomplete" in {
-      val basicFieldMapping = BasicFieldMapping(TextType, None, Some(analyzerName))
+      val basicFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName))
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName)), Some(false)))
 
@@ -1128,9 +1131,9 @@ trait RestlasticSearchClientTest {
     }
 
     "support query with highlights with extended query root" in {
-      val basicFieldFreqsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
+      val basicFieldFreqsMapping = BasicFieldMapping(textType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(FreqsIndexOption))
-      val basicFieldOffsetsMapping = BasicFieldMapping(TextType, None, Some(analyzerName), None,
+      val basicFieldOffsetsMapping = BasicFieldMapping(textType, None, Some(analyzerName), None,
         Some(analyzerName), indexOption = Some(OffsetsIndexOption))
 
       val metadataMapping = Mapping(tpe, IndexMapping(

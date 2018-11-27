@@ -17,6 +17,7 @@
  * under the License.
  */
 package com.sumologic.elasticsearch.restlastic
+import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 
 import org.scalatest._
 
@@ -26,7 +27,7 @@ class RestlasticSearchClient2Test extends WordSpec with Matchers with BeforeAndA
   override val restClient = RestlasticSearchClient2Test.restClient
 
   "RestlasticSearchClient2" should {
-    behave like restlasticClient(restClient, IndexName, createIndex())
+    behave like restlasticClient(restClient, IndexName, createIndex(), StringType)
   }
 }
 
