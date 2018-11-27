@@ -172,6 +172,7 @@ trait MappingDsl extends DslCommons {
 
   trait Completion {
     val _type = "type" -> "completion"
+    val _context = "context"
     val _contexts = "contexts"
     val _analzyer = "analyzer" -> analyzer.name
     val _sanalyzer = "search_analyzer" -> analyzer.name
@@ -190,14 +191,25 @@ trait MappingDsl extends DslCommons {
       extends FieldMapping with Completion {
 
     override def toJson(version: EsVersion): Map[String, Any] = {
-      val jsonStr = Map(_contexts -> context.map {
-        case (name, value) =>
-          Map(
-            "type" -> "category",
-            "path" -> value.path,
-            "name" -> name
+      val jsonStr = version match {
+        case V6 =>
+          Map(_contexts -> context.map {
+            case (name, value) =>
+              Map(
+                "type" -> "category",
+                "path" -> value.path,
+                "name" -> name
+              )
+          })
+        case V2 =>
+          Map(_context -> context.mapValues { value =>
+            Map(
+              "type" -> "category",
+              "path" -> value.path
+            )
+          }
           )
-      })
+      }
       super.toJson(version) ++ jsonStr
     }
   }
