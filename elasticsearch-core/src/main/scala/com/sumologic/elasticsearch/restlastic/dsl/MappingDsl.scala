@@ -174,7 +174,7 @@ trait MappingDsl extends DslCommons {
     val _type = "type" -> "completion"
     val _context = "context"
     val _contexts = "contexts"
-    val _analzyer = "analyzer" -> analyzer.name
+    val _analyzer = "analyzer" -> analyzer.name
     val _sanalyzer = "search_analyzer" -> analyzer.name
 
     def analyzer: Name
@@ -182,7 +182,7 @@ trait MappingDsl extends DslCommons {
     def toJson(version: EsVersion): Map[String, Any] = {
       Map(
         _type,
-        _analzyer,
+        _analyzer,
         _sanalyzer)
     }
   }
