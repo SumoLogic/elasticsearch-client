@@ -409,6 +409,9 @@ trait QueryDsl extends DslCommons with SortDsl {
     val name = "plain"
   }
 
+  /**
+    * Elasticsearch unified highlighter. Not supported in Elasticsearch 2.
+    */
   case object UnifiedHighlighter extends HighlighterType {
     val name = "unified"
   }

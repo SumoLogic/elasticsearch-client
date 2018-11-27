@@ -1145,7 +1145,7 @@ trait RestlasticSearchClientTest {
       indexDocs(Seq(Document("doc1", Map("f1" -> "text", "text" -> "here"))))
       val resp = restClient.query(index, tpe, new QueryRoot(PrefixQuery("text", "h"))).futureValue
       resp.sourceAsMap should not be empty
-      val highlights = Highlight(Seq(HighlightField("text", Some(UnifiedHighlighter), None, Some(0)),
+      val highlights = Highlight(Seq(HighlightField("text", Some(PlainHighlighter), None, Some(0)),
         HighlightField("f1", Some(PlainHighlighter))), Seq(""), Seq(""))
       val resFut = restClient.query(index, tpe,
         HighlightRoot(new QueryRoot(
