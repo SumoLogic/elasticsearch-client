@@ -171,7 +171,7 @@ trait IndexDsl extends DslCommons {
     override def toJson(version: EsVersion): Map[String, Any] = Map(
       _filter -> filters.map(_
           .toJson(version).getOrElse(_filter, Map())
-          .asInstanceOf[Map[String, Any]]).reduce(_ ++ _)
+          .asInstanceOf[Map[String, Any]]).foldLeft(Map.empty[String, Any])(_ ++ _)
     )
   }
 
