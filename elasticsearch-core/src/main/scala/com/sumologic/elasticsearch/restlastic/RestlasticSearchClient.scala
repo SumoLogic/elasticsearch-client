@@ -221,6 +221,8 @@ object RestlasticSearchClient {
     case class SuggestOption(text: String, _score: Float)
 
     case class IndexResponse(result: String) {
+      def this(created: Boolean) = this(if (created) IndexApiResponse.Created.toString else "error")
+      
       def isSuccess: Boolean = result == IndexApiResponse.Created.toString
     }
 
