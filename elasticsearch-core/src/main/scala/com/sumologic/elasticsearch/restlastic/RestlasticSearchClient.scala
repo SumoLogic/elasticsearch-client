@@ -225,6 +225,10 @@ object RestlasticSearchClient {
     }
 
     case class DeleteResponse(result: String) {
+      def this(found: Boolean) {
+        this(if (found) "deleted" else "not_found")
+      }
+
       def isSuccess: Boolean = result == IndexApiResponse.Deleted.toString
     }
 
