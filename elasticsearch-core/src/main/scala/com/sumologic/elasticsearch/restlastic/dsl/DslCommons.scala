@@ -25,7 +25,7 @@ import org.json4s.native.JsonMethods._
 trait DslCommons {
 
   trait EsOperation {
-    def toJson: Map[String, Any]
+    def toJson(version: EsVersion): Map[String, Any]
   }
 
   trait FieldType {
@@ -42,22 +42,22 @@ trait DslCommons {
 
     import EsOperation._
 
-    def toJsonStr: String = compactJson(toJson)
+    def toJsonStr(version: EsVersion): String = compactJson(toJson(version))
   }
 
   case object EmptyObject extends RootObject {
-    override def toJson: Map[String, Any] = Map()
+    override def toJson(version: EsVersion): Map[String, Any] = Map()
   }
 
   case object NoOp extends RootObject {
-    override def toJson: Map[String, Any] = throw new UnsupportedOperationException
+    override def toJson(version: EsVersion): Map[String, Any] = throw new UnsupportedOperationException
 
-    override def toJsonStr = ""
+    override def toJsonStr(version: EsVersion): String = ""
   }
 
   abstract class SingleField(field: String, value: EsOperation) extends EsOperation {
-    override def toJson: Map[String, Any] = Map(
-      field -> value.toJson
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
+      field -> value.toJson(version)
     )
   }
 
@@ -69,4 +69,7 @@ trait DslCommons {
 
 }
 
-
+// TODO Not the most beautiful solution in the world but it should do the trick.
+trait EsVersion
+case object V2 extends EsVersion
+case object V6 extends EsVersion

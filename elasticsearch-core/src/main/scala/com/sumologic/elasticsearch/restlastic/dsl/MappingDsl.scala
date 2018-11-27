@@ -125,7 +125,7 @@ trait MappingDsl extends DslCommons {
   }
 
   case class Mapping(tpe: Type, mapping: IndexMapping) extends RootObject {
-    override def toJson: Map[String, Any] = Map(tpe.name -> mapping.toJson)
+    override def toJson(version: EsVersion): Map[String, Any] = Map(tpe.name -> mapping.toJson(version))
   }
 
   case class IndexMapping(fields: Map[String, FieldMapping],
@@ -134,8 +134,8 @@ trait MappingDsl extends DslCommons {
     val _all = "_all"
     val _enabled = "enabled"
 
-    override def toJson: Map[String, Any] = {
-      Map(_properties -> fields.mapValues(_.toJson)) ++
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(_properties -> fields.mapValues(_.toJson(version))) ++
           enableAllFieldOpt.map(f => _all -> Map(_enabled -> f))
     }
   }
@@ -156,7 +156,7 @@ trait MappingDsl extends DslCommons {
                                indexOption: Option[IndexOption] = None)
       extends FieldMapping {
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       _type -> tpe.rep) ++
         index.map(_index -> _.rep) ++
         analyzer.map(_analyzer -> _.name) ++
@@ -167,7 +167,7 @@ trait MappingDsl extends DslCommons {
   }
 
   case class BasicObjectMapping(fields: Map[String, FieldMapping]) extends FieldMapping {
-    override def toJson: Map[String, Any] = Map(_properties -> fields.mapValues(_.toJson))
+    override def toJson(version: EsVersion): Map[String, Any] = Map(_properties -> fields.mapValues(_.toJson(version)))
   }
 
   trait Completion {
@@ -178,7 +178,7 @@ trait MappingDsl extends DslCommons {
 
     def analyzer: Name
 
-    def toJson: Map[String, Any] = {
+    def toJson(version: EsVersion): Map[String, Any] = {
       Map(
         _type,
         _analzyer,
@@ -189,7 +189,7 @@ trait MappingDsl extends DslCommons {
   case class CompletionMapping(context: Map[String, CompletionContext], analyzer: Name = Name("keyword"))
       extends FieldMapping with Completion {
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       val jsonStr = Map(_contexts -> context.map {
         case (name, value) =>
           Map(
@@ -198,15 +198,15 @@ trait MappingDsl extends DslCommons {
             "name" -> name
           )
       })
-      super.toJson ++ jsonStr
+      super.toJson(version) ++ jsonStr
     }
   }
 
   case class CompletionMappingWithoutPath(context: Map[String, Unit], analyzer: Name = Name("keyword"))
       extends FieldMapping with Completion {
 
-    override def toJson: Map[String, Any] = {
-      super.toJson ++
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      super.toJson(version) ++
           Map(_contexts -> context.mapValues { case cc =>
             Map("type" -> "category")
           }
@@ -219,7 +219,7 @@ trait MappingDsl extends DslCommons {
   case object NestedFieldMapping extends FieldMapping {
     val _nested = "nested"
 
-    override def toJson: Map[String, Any] = Map(_type -> _nested)
+    override def toJson(version: EsVersion): Map[String, Any] = Map(_type -> _nested)
   }
 
 }

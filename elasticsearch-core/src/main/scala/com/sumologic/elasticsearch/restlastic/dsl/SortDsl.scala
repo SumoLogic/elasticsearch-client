@@ -28,7 +28,7 @@ trait SortDsl extends DslCommons {
   case class SimpleSort(field: String, order: SortOrder) extends Sort {
     val _order = "order"
 
-    override def toJson: Map[String, Any] = Map(field ->
+    override def toJson(version: EsVersion): Map[String, Any] = Map(field ->
         Map(_order -> order.value)
     )
   }
@@ -39,9 +39,9 @@ trait SortDsl extends DslCommons {
     val _unit = "unit"
     val _distanceType = "distance_type"
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       _geoDistance -> Map(
-        field -> location.toJson,
+        field -> location.toJson(version),
         _order -> order.value,
         _unit -> unit,
         _distanceType -> distanceType)

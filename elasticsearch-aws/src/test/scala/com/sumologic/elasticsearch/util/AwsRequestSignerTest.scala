@@ -20,6 +20,7 @@ package com.sumologic.elasticsearch.util
 
 import com.amazonaws.auth.{AWSCredentials, AWSSessionCredentials}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
+import com.sumologic.elasticsearch.restlastic.dsl.V6
 import org.scalatest.{Matchers, WordSpec}
 import spray.http.HttpHeaders.{Host, RawHeader}
 import spray.http.Uri.Query
@@ -86,7 +87,7 @@ class AwsRequestSignerTest extends WordSpec with Matchers {
         host = "search-kwan-metrics-es-l2fecxdxfit54aod5dgpqchndq.us-east-1.es.amazonaws.com",
         path = "/metrics-catalog-index"
       ),
-      entity = HttpEntity(CreateIndex().toJsonStr)
+      entity = HttpEntity(CreateIndex().toJsonStr(V6))
     )
 
     val expectedCanonical = "POST" +

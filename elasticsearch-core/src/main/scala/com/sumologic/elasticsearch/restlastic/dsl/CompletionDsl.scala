@@ -24,9 +24,9 @@ trait CompletionDsl extends DslCommons with QueryDsl {
     val _suggest = "suggest"
     val _text = "text"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       val globalTextJson: Map[String, Any] = Map.empty[String, Any] ++ textOpt.map(text => _text -> text)
-      val suggestionsMap: Map[String, Any] = suggestions.map(p => p.name -> p.toJson).toMap
+      val suggestionsMap: Map[String, Any] = suggestions.map(p => p.name -> p.toJson(version)).toMap
       Map(_suggest -> (globalTextJson ++ suggestionsMap))
     }
   }
@@ -35,15 +35,16 @@ trait CompletionDsl extends DslCommons with QueryDsl {
     val _text = "text"
     val _completion = "completion"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       val textJson = Map.empty[String, Any] ++ textOpt.map(text => _text -> text)
 
       // TODO: Merge both the termOpt and completionOpt
       require(!(termOpt.isDefined && completionOpt.isDefined),
       "Both the completionOpt and termOpt can not be defined.")
 
-      val termJson = Map.empty[String, Any] ++ termOpt.map(term => _completion -> term.toJson)
-      val completionJson = Map.empty[String, Any] ++ completionOpt.map(completion => _completion -> completion.toJson)
+      val termJson = Map.empty[String, Any] ++ termOpt.map(term => _completion -> term.toJson(version))
+      val completionJson =
+        Map.empty[String, Any] ++ completionOpt.map(completion => _completion -> completion.toJson(version))
       termJson ++ textJson ++ completionJson
     }
   }
@@ -51,7 +52,7 @@ trait CompletionDsl extends DslCommons with QueryDsl {
   case class SuggestionTerm(fieldName: String) extends Query {
     val _field = "field"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_field -> fieldName)
     }
   }
@@ -61,9 +62,9 @@ trait CompletionDsl extends DslCommons with QueryDsl {
     val _contexts = "contexts"
     val _size = "size"
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       _field -> field,
-      _contexts -> Map(name -> contexts.map(_.toJson)),
+      _contexts -> Map(name -> contexts.map(_.toJson(version))),
       _size -> size
     )
   }
@@ -71,7 +72,7 @@ trait CompletionDsl extends DslCommons with QueryDsl {
   case class Context(values: List[String]) extends Query {
     val _context = "context"
 
-    override def toJson: Map[String, Any] = values.flatMap(value => Map(_context -> value)).toMap
+    override def toJson(version: EsVersion): Map[String, Any] = values.flatMap(value => Map(_context -> value)).toMap
   }
 
 }

@@ -50,12 +50,12 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _source = "_source"
     val _terminate_after = "terminate_after"
 
-    override def toJson: Map[String, Any] = {
-      Map(_query -> query.toJson) ++
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(_query -> query.toJson(version)) ++
           fromOpt.map(_from -> _) ++
           sizeOpt.map(_size -> _) ++
           timeoutOpt.map(t => _timeout -> s"${t}ms") ++
-          sortOpt.map(_sort -> _.map(_.toJson)) ++
+          sortOpt.map(_sort -> _.map(_.toJson(version))) ++
           sourceFilterOpt.map(_source -> _) ++
           terminateAfterOpt.map(_terminate_after -> _)
     }
@@ -69,9 +69,9 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _query = "query"
     val _searchType = "search-type"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(
-        _filter -> filter.map(_.toJson)
+        _filter -> filter.map(_.toJson(version))
       )
     }
   }
@@ -81,9 +81,9 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _query = "query"
     val _must = "must"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(
-        _filter -> Map(_must -> filter.map(_.toJson))
+        _filter -> Map(_must -> filter.map(_.toJson(version)))
       )
     }
   }
@@ -91,7 +91,7 @@ trait QueryDsl extends DslCommons with SortDsl {
   case class TermFilter(term: String, value: String) extends Filter {
     val _term = "term"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_term -> Map(term -> value))
     }
   }
@@ -99,7 +99,7 @@ trait QueryDsl extends DslCommons with SortDsl {
   case class PrefixFilter(field: String, prefix: String) extends Filter {
     val _prefix = "prefix"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_prefix -> Map(field -> prefix))
     }
   }
@@ -107,54 +107,63 @@ trait QueryDsl extends DslCommons with SortDsl {
   case class RegexFilter(field: String, regexp: String) extends Filter {
     val _regexp = "regexp"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_regexp -> Map(field -> regexp))
     }
   }
 
   case class RangeFilter(key: String, bounds: RangeBound*) extends Filter {
     val _range = "range"
-    val boundsMap = Map(key -> (bounds :\ Map[String, Any]()) (_.toJson ++ _))
 
-    override def toJson: Map[String, Any] = Map(_range -> boundsMap)
+    override def toJson(version: EsVersion): Map[String, Any] = Map(_range -> boundsMap(version))
+
+    private def  boundsMap(version: EsVersion): Map[String, Map[String, Any]] = {
+      Map(key -> (bounds :\ Map[String, Any]()) (_.toJson(version) ++ _))
+    }
   }
 
   case class Bool(queries: List[BoolQuery], filterContext: FilteredContext = FilteredContext(List())) extends CompoundQuery {
     val _bool = "bool"
-    val queryMap = queries.map(_.toJson).map(map => (map.keys.head, map(map.keys.head))).toMap
 
-    override def toJson: Map[String, Any] = Map(_bool -> (queryMap ++ filterContext.toJson))
+    override def toJson(version: EsVersion): Map[String, Any] = Map(_bool -> (queryMap(version) ++ filterContext.toJson(version)))
+
+    private def queryMap(version: EsVersion): Map[String, Any] = {
+      queries.map(_.toJson(version)).map(map => (map.keys.head, map(map.keys.head))).toMap
+    }
   }
 
   case class Should(opts: Query*) extends BoolQuery {
     val _should = "should"
 
-    override def toJson: Map[String, Any] = {
-      Map(_should -> opts.map(_.toJson))
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(_should -> opts.map(_.toJson(version)))
     }
   }
 
   case class Must(opts: Query*) extends BoolQuery {
     val _must = "must"
 
-    override def toJson: Map[String, Any] = {
-      Map(_must -> opts.map(_.toJson))
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(_must -> opts.map(_.toJson(version)))
     }
   }
 
   case class MustNot(opts: Query*) extends BoolQuery {
     val _mustnot = "must_not"
 
-    override def toJson: Map[String, Any] = {
-      Map(_mustnot -> opts.map(_.toJson))
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(_mustnot -> opts.map(_.toJson(version)))
     }
   }
 
   case class RangeQuery(key: String, bounds: RangeBound*) extends Query {
     val _range = "range"
-    val boundsMap = Map(key -> (bounds :\ Map[String, Any]()) (_.toJson ++ _))
 
-    override def toJson: Map[String, Any] = Map(_range -> boundsMap)
+    override def toJson(version: EsVersion): Map[String, Any] = Map(_range -> boundsMap(version))
+
+    private def boundsMap(version: EsVersion): Map[String, Map[String, Any]] = {
+      Map(key -> (bounds :\ Map[String, Any]()) (_.toJson(version) ++ _))
+    }
   }
 
   sealed trait RangeBound extends EsOperation
@@ -162,31 +171,31 @@ trait QueryDsl extends DslCommons with SortDsl {
   case class Gt(value: String) extends RangeBound {
     val _gt = "gt"
 
-    override def toJson: Map[String, Any] = Map(_gt -> value)
+    override def toJson(version: EsVersion): Map[String, Any] = Map(_gt -> value)
   }
 
   case class Gte(value: String) extends RangeBound {
     val _gte = "gte"
 
-    override def toJson: Map[String, Any] = Map(_gte -> value)
+    override def toJson(version: EsVersion): Map[String, Any] = Map(_gte -> value)
   }
 
   case class Lt(value: String) extends RangeBound {
     val _lt = "lt"
 
-    override def toJson: Map[String, Any] = Map(_lt -> value)
+    override def toJson(version: EsVersion): Map[String, Any] = Map(_lt -> value)
   }
 
   case class Lte(value: String) extends RangeBound {
     val _lte = "lte"
 
-    override def toJson: Map[String, Any] = Map(_lte -> value)
+    override def toJson(version: EsVersion): Map[String, Any] = Map(_lte -> value)
   }
 
   case class WildcardQuery(key: String, value: String) extends Query {
     val _wildcard = "wildcard"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_wildcard -> Map(key -> value))
     }
   }
@@ -194,7 +203,7 @@ trait QueryDsl extends DslCommons with SortDsl {
   case class RegexQuery(field: String, regexp: String) extends Query {
     val _regexp = "regexp"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_regexp -> Map(field -> regexp))
     }
   }
@@ -202,7 +211,7 @@ trait QueryDsl extends DslCommons with SortDsl {
   case class TermQuery(key: String, value: String) extends Query {
     val _term = "term"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_term -> Map(key -> value))
     }
   }
@@ -212,7 +221,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _query = "query"
     val _boost = "boost"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_match ->
           Map(key ->
               Map(_query -> value,
@@ -223,7 +232,7 @@ trait QueryDsl extends DslCommons with SortDsl {
   case class PhraseQuery(key: String, value: String) extends Query {
     val _matchPhrase = "match_phrase"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_matchPhrase -> Map(key -> value))
     }
   }
@@ -232,7 +241,7 @@ trait QueryDsl extends DslCommons with SortDsl {
       extends Query {
     val _prefix = "prefix"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_prefix ->
           Map(key -> prefix)
       )
@@ -246,7 +255,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _query = "query"
     val _maxExpansions = "max_expansions"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_matchPhrasePrefix ->
           Map(key ->
               (Map(_query -> prefix) ++ maxExpansions.map(_maxExpansions -> _))
@@ -258,7 +267,7 @@ trait QueryDsl extends DslCommons with SortDsl {
   case object MatchAll extends Query {
     val _matchAll = "match_all"
 
-    override def toJson: Map[String, Any] = Map(_matchAll -> Map())
+    override def toJson(version: EsVersion): Map[String, Any] = Map(_matchAll -> Map())
   }
 
   case class NestedQuery(path: String, scoreMode: Option[ScoreMode] = None, query: Bool) extends Query {
@@ -267,14 +276,14 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _scoreMode = "score_mode"
     val _query = "query"
 
-    lazy val innerMap: Map[String, Any] = Map(
-      _path -> path,
-      _query -> query.toJson
-    ) ++ scoreMode.map(_scoreMode -> _.value)
-
-    override def toJson: Map[String, Any] = Map(
-      _nested -> innerMap
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
+      _nested -> innerMap(version)
     )
+
+    private def innerMap(version: EsVersion): Map[String, Any] = Map(
+      _path -> path,
+      _query -> query.toJson(version)
+    ) ++ scoreMode.map(_scoreMode -> _.value)
   }
 
   sealed trait ScoreMode {
@@ -302,7 +311,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _query = "query"
     val _fields = "fields"
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       _multiMatch -> (Map(
         _query -> query,
         _fields -> fields.toList) ++
@@ -315,7 +324,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _lat = "lat"
     val _lon = "lon"
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       _lat -> lat,
       _lon -> lon
     )
@@ -325,10 +334,10 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _geoDistance = "geo_distance"
     val _distance = "distance"
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       _geoDistance -> Map(
         _distance -> distance,
-        field -> location.toJson
+        field -> location.toJson(version)
       )
     )
   }
@@ -339,20 +348,20 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _tie_breaker = "tie_breaker"
     val _boost = "boost"
 
-    lazy val innerMap: Map[String, Any] = Map(
-      _queries -> queries.map(_.toJson)
-    ) ++ tie_breaker.map(_tie_breaker -> _) ++ boost.map(_boost -> _)
-
-    override def toJson: Map[String, Any] = Map(
-      _dis_max -> innerMap
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
+      _dis_max -> innerMap(version)
     )
+
+    private def innerMap(version: EsVersion): Map[String, Any] = Map(
+      _queries -> queries.map(_.toJson(version))
+    ) ++ tie_breaker.map(_tie_breaker -> _) ++ boost.map(_boost -> _)
   }
 
   case class HighlightRoot(queryRoot: QueryRoot, highlight: Highlight)
       extends RootObject {
 
-    override def toJson: Map[String, Any] = {
-      queryRoot.toJson ++ highlight.toJson
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      queryRoot.toJson(version) ++ highlight.toJson(version)
     }
   }
 
@@ -367,9 +376,9 @@ trait QueryDsl extends DslCommons with SortDsl {
     val pre_tags = if (preTags.isEmpty) Map[String, Any]() else Map(_pre_tags -> preTags)
     val post_tags = if (postTags.isEmpty) Map[String, Any]() else Map(_post_tags -> postTags)
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       _highlight -> {
-        Map(_fields -> fields.map(_.toJson).reduce(_ ++ _)) ++
+        Map(_fields -> fields.map(_.toJson(version)).reduce(_ ++ _)) ++
             pre_tags ++ post_tags
       }
     )
@@ -384,7 +393,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _no_match_size = "no_match_size"
     val _matched_fields = "matched_fields"
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       field -> {
         Map[String, Any]() ++
             highlighter_type.map(_type -> _.name) ++

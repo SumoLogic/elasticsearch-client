@@ -30,9 +30,9 @@ trait AggregationDsl extends DslCommons with QueryDsl {
     val _size = "size"
     val _timeout = "timeout"
 
-    override def toJson: Map[String, Any] = {
-      Map(_query -> query.toJson,
-        _aggs -> aggs.toJson,
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(_query -> query.toJson(version),
+        _aggs -> aggs.toJson(version),
         _size -> 0) ++
           timeout.map(t => _timeout -> s"${t}ms")
     }
@@ -57,7 +57,7 @@ trait AggregationDsl extends DslCommons with QueryDsl {
     val _term = "_term"
     val _aggs = "aggs"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_aggsName ->
           (Map(_terms ->
               (Map(_field -> field)
@@ -66,7 +66,7 @@ trait AggregationDsl extends DslCommons with QueryDsl {
                   ++ shardSize.map(_shardSize -> _)
                   ++ hint.map(_hint -> _)
                   ++ order.map(o => _order -> Map(_term -> o.value))))
-              ++ aggs.map(_aggs -> _.toJson))
+              ++ aggs.map(_aggs -> _.toJson(version)))
       )
     }
   }
@@ -79,11 +79,11 @@ trait AggregationDsl extends DslCommons with QueryDsl {
     val _path = "path"
     val _aggs = "aggs"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_aggsName ->
           (Map(_nested ->
               Map(_path -> path))
-              ++ aggs.map(_aggs -> _.toJson))
+              ++ aggs.map(_aggs -> _.toJson(version)))
       )
     }
   }
@@ -99,7 +99,7 @@ trait AggregationDsl extends DslCommons with QueryDsl {
     val _source = "_source"
     val _sort = "sort"
 
-    override def toJson: Map[String, Any] = {
+    override def toJson(version: EsVersion): Map[String, Any] = {
       Map(name ->
           Map(_topHits ->
               (Map()

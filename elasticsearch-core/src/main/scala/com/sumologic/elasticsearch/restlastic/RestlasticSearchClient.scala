@@ -19,7 +19,7 @@
 package com.sumologic.elasticsearch.restlastic
 
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ScrollId, SearchResponse}
-import com.sumologic.elasticsearch.restlastic.dsl.Dsl
+import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, EsVersion}
 import org.json4s._
 import org.json4s.native.JsonMethods._
 import spray.http.HttpMethods._
@@ -118,6 +118,8 @@ trait RestlasticSearchClient extends ScrollClient {
                       method: HttpMethod = POST,
                       query: UriQuery = UriQuery.Empty)
                      (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse]
+
+  def version: EsVersion
 }
 
 object RestlasticSearchClient {

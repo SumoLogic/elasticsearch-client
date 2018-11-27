@@ -22,7 +22,7 @@ import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.sumologic.elasticsearch.restlastic.dsl.Dsl
+import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V2}
 import org.json4s._
 import org.slf4j.LoggerFactory
 import spray.can.Http
@@ -43,6 +43,8 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
   private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
   import Dsl._
   import RestlasticSearchClient.ReturnTypes._
+
+  override val version = V2
 
   def ready: Boolean = endpointProvider.ready
   def query(index: Index, tpe: Type, query: RootObject, rawJsonStr: Boolean = true, uriQuery: UriQuery = UriQuery.Empty): Future[SearchResponse] = {
@@ -229,7 +231,7 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
                            method: HttpMethod = POST,
                            query: UriQuery = UriQuery.Empty)
                           (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
-    runRawEsRequest(op.toJsonStr, endpoint, method, query)
+    runRawEsRequest(op.toJsonStr(V2), endpoint, method, query)
   }
 
   def runRawEsRequest(op: String,

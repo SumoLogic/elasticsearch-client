@@ -22,7 +22,7 @@ import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
-import com.sumologic.elasticsearch.restlastic.dsl.Dsl
+import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V6}
 import org.json4s.JString
 import org.slf4j.LoggerFactory
 import spray.can.Http
@@ -53,6 +53,8 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
 
   import Dsl._
   import RestlasticSearchClient.ReturnTypes._
+
+  override val version = V6
 
   def ready: Boolean = endpointProvider.ready
 
@@ -247,7 +249,7 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
                            method: HttpMethod = POST,
                            query: UriQuery = UriQuery.Empty)
                           (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
-    runRawEsRequest(op.toJsonStr, endpoint, method, query)
+    runRawEsRequest(op.toJsonStr(V6), endpoint, method, query)
   }
 
   def runRawEsRequest(op: String,

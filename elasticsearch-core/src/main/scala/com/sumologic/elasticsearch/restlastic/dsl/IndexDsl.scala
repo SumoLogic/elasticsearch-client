@@ -23,13 +23,13 @@ trait IndexDsl extends DslCommons {
   case class CreateIndex(settings: Option[IndexSetting] = None) extends RootObject {
     val _settings = "settings"
 
-    override def toJson: Map[String, Any] = if (settings.nonEmpty) {
-      Map(_settings -> settings.get.toJson)
+    override def toJson(version: EsVersion): Map[String, Any] = if (settings.nonEmpty) {
+      Map(_settings -> settings.get.toJson(version))
     } else Map()
   }
 
   case class Document(id: String, data: Map[String, Any]) extends EsOperation with RootObject {
-    override def toJson: Map[String, Any] = data
+    override def toJson(version: EsVersion): Map[String, Any] = data
   }
 
   // Op types are lowercased to avoid a conflict with the Index case class
@@ -54,9 +54,9 @@ trait IndexDsl extends DslCommons {
   }
 
   case class Bulk(operations: Seq[BulkOperation]) extends EsOperation with RootObject {
-    override def toJson: Map[String, Any] = throw new UnsupportedOperationException
+    override def toJson(version: EsVersion): Map[String, Any] = throw new UnsupportedOperationException
 
-    override lazy val toJsonStr = operations.map(_.toJsonStr).mkString("", "\n", "\n")
+    override def toJsonStr(version: EsVersion): String = operations.map(_.toJsonStr(version)).mkString("", "\n", "\n")
   }
 
   // When upsertOpt is specified, its content is used for upsert as described in
@@ -65,9 +65,9 @@ trait IndexDsl extends DslCommons {
   case class BulkOperation(operation: OperationType, location: Option[(Index, Type)], document: Document, retryOnConflictOpt: Option[Int] = None, upsertOpt: Option[Document] = None, docAsUpsertOpt: Option[Boolean] = None) extends EsOperation {
     import EsOperation.compactJson
 
-    override def toJson: Map[String, Any] = throw new UnsupportedOperationException
+    override def toJson(version: EsVersion): Map[String, Any] = throw new UnsupportedOperationException
 
-    def toJsonStr: String = {
+    def toJsonStr(version: EsVersion): String = {
       val (doc, retryOpt) = operation match {
         case `update` =>
           val updateOps = upsertOpt match {
@@ -85,7 +85,7 @@ trait IndexDsl extends DslCommons {
       )
       operation match {
         case `delete` => s"${compactJson(jsonObjects)}"
-        case _ => s"${compactJson(jsonObjects)}\n${doc.toJsonStr}"
+        case _ => s"${compactJson(jsonObjects)}\n${doc.toJsonStr(version)}"
       }
     }
   }
@@ -100,10 +100,10 @@ trait IndexDsl extends DslCommons {
     val _analysis = "analysis"
     val _interval = "refresh_interval"
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       _shards -> numberOfShards,
       _replicas -> numberOfReplicas,
-      _analysis -> analyzerMapping.toJson,
+      _analysis -> analyzerMapping.toJson(version),
       _interval -> s"${refreshInterval}s")
   }
 
@@ -112,7 +112,7 @@ trait IndexDsl extends DslCommons {
   case class Analyzers(analyzers: AnalyzerArray, filters: FilterArray)
       extends Analysis with EsOperation {
 
-    override def toJson: Map[String, Any] = analyzers.toJson ++ filters.toJson
+    override def toJson(version: EsVersion): Map[String, Any] = analyzers.toJson(version) ++ filters.toJson(version)
   }
 
   case class Analyzer(name: Name, tokenizer: FieldType, filter: FieldType*)
@@ -122,7 +122,7 @@ trait IndexDsl extends DslCommons {
     val _tokenizer = "tokenizer"
     val _filter = "filter"
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       _analyzer -> Map(
         name.name -> Map(
           _tokenizer -> tokenizer.rep,
@@ -144,7 +144,7 @@ trait IndexDsl extends DslCommons {
     val _minGram = "min_gram"
     val _maxGramp = "max_gram"
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       _filter -> Map(
         name.name -> Map(
           _type -> _edgeNGram,
@@ -158,9 +158,9 @@ trait IndexDsl extends DslCommons {
   case class AnalyzerArray(analyzers: Analyzer*) extends EsOperation {
     val _analyzer = "analyzer"
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       _analyzer -> analyzers.map(_
-          .toJson.getOrElse(_analyzer, Map())
+          .toJson(version).getOrElse(_analyzer, Map())
           .asInstanceOf[Map[String, Any]]).reduce(_ ++ _)
     )
   }
@@ -168,9 +168,9 @@ trait IndexDsl extends DslCommons {
   case class FilterArray(filters: Filter*) extends EsOperation {
     val _filter = "filter"
 
-    override def toJson: Map[String, Any] = Map(
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
       _filter -> filters.map(_
-          .toJson.getOrElse(_filter, Map())
+          .toJson(version).getOrElse(_filter, Map())
           .asInstanceOf[Map[String, Any]]).reduce(_ ++ _)
     )
   }

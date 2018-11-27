@@ -100,7 +100,7 @@ class BulkIndexerActor(restlasticSearchClient: RestlasticSearchClient, bulkConfi
     }
     val startTime = now
     val respFuture = instrument.measureAction("sendRequest") {
-      val respMb = bulkRequest.toJsonStr.length / 1024.0 / 1024
+      val respMb = bulkRequest.toJsonStr(restlasticSearchClient.version).length / 1024.0 / 1024
       logger.info(f"Flushing ${messages.length} messages ($respMb%.2fMB).")
       restlasticSearchClient.bulkIndex(bulkRequest).map { items =>
         if (items.length == messages.length) {
