@@ -42,10 +42,11 @@ trait RestlasticSearchClientTest {
   def restlasticClient(restClient: => RestlasticSearchClient,
                        indexName: String,
                        index: Dsl.Index,
-                       textType: FieldType): Unit = {
+                       textType: FieldType,
+                       keywordType: FieldType): Unit = {
     val analyzerName = Name("keyword_lowercase")
     val basicTextFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
-    val basicKeywordFieldMapping = BasicFieldMapping(KeywordType, None, None, ignoreAbove = None, None)
+    val basicKeywordFieldMapping = BasicFieldMapping(keywordType, None, None, ignoreAbove = None, None)
     val basicNumericFieldMapping = BasicFieldMapping(IntegerType, None, None, None, None)
     val tpe = Type("foo")
 
@@ -778,7 +779,7 @@ trait RestlasticSearchClientTest {
 
 
     "Support Top Hits Aggregation Query" in {
-      val basicKeywordFieldMapping = BasicFieldMapping(KeywordType, None, None, ignoreAbove = None, None)
+      val basicKeywordFieldMapping = BasicFieldMapping(keywordType, None, None, ignoreAbove = None, None)
       val basicNumericFieldMapping = BasicFieldMapping(IntegerType, None, None, None, None)
 
       val metadataMapping = Mapping(tpe, IndexMapping(

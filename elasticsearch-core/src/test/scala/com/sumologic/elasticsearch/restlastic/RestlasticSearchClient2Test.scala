@@ -27,7 +27,7 @@ class RestlasticSearchClient2Test extends WordSpec with Matchers with BeforeAndA
   override val restClient = RestlasticSearchClient2Test.restClient
 
   "RestlasticSearchClient2" should {
-    behave like restlasticClient(restClient, IndexName, createIndex(), StringType)
+    behave like restlasticClient(restClient, IndexName, createIndex(), StringType, StringType)
   }
 }
 

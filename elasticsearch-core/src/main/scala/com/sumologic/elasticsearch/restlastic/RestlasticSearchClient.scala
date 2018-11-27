@@ -222,7 +222,7 @@ object RestlasticSearchClient {
 
     case class IndexResponse(result: String) {
       def this(created: Boolean) = this(if (created) IndexApiResponse.Created.toString else "error")
-      
+
       def isSuccess: Boolean = result == IndexApiResponse.Created.toString
     }
 
