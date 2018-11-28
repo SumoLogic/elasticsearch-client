@@ -289,11 +289,24 @@ trait QueryDsl extends DslCommons with SortDsl {
     override def toJson(version: EsVersion): Map[String, Any] = Map(_matchAll -> Map())
   }
 
-  case class NestedQuery(path: String, scoreMode: Option[ScoreMode] = None, query: Bool) extends Query {
+  case class InnerHits(highlight: Highlight, from: Option[Int] = None, size: Option[Int] = None) extends EsOperation {
+    val _from = "from"
+    val _size = "size"
+
+    override def toJson(version: EsVersion): Map[String, Any] = highlight.toJson(version) ++
+      from.map(_from -> _) ++
+      size.map(_size -> _)
+  }
+
+  case class NestedQuery(path: String,
+                         scoreMode: Option[ScoreMode] = None,
+                         query: Bool,
+                         innerHits: Option[InnerHits] = None) extends Query {
     val _nested = "nested"
     val _path = "path"
     val _scoreMode = "score_mode"
     val _query = "query"
+    val _inner_hits = "inner_hits"
 
     override def toJson(version: EsVersion): Map[String, Any] = Map(
       _nested -> innerMap(version)
@@ -302,7 +315,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     private def innerMap(version: EsVersion): Map[String, Any] = Map(
       _path -> path,
       _query -> query.toJson(version)
-    ) ++ scoreMode.map(_scoreMode -> _.value)
+    ) ++ scoreMode.map(_scoreMode -> _.value) ++ innerHits.map(_inner_hits -> _.toJson(version))
   }
 
   sealed trait ScoreMode {
@@ -404,22 +417,25 @@ trait QueryDsl extends DslCommons with SortDsl {
   }
 
   case class HighlightField(field: String, highlighter_type: Option[HighlighterType] = None, fragment_size: Option[Int] = None,
-                            number_of_fragments: Option[Int] = None, no_match_size: Option[Int] = None, matched_fields: Seq[String] = Seq())
+                            number_of_fragments: Option[Int] = None, no_match_size: Option[Int] = None, matched_fields: Seq[String] = Seq(),
+                            highlight_query: Option[Bool] = None)
       extends EsOperation {
     val _type = "type"
     val _fragment_size = "fragment_size"
     val _number_of_fragments = "number_of_fragments"
     val _no_match_size = "no_match_size"
     val _matched_fields = "matched_fields"
+    val _highlight_query = "highlight_query"
 
     override def toJson(version: EsVersion): Map[String, Any] = Map(
       field -> {
         Map[String, Any]() ++
-            highlighter_type.map(_type -> _.name) ++
-            fragment_size.map(_fragment_size -> _) ++
-            number_of_fragments.map(_number_of_fragments -> _) ++
-            no_match_size.map(_no_match_size -> _) ++
-            matched_fields.map(_matched_fields -> _)
+          highlighter_type.map(_type -> _.name) ++
+          fragment_size.map(_fragment_size -> _) ++
+          number_of_fragments.map(_number_of_fragments -> _) ++
+          no_match_size.map(_no_match_size -> _) ++
+          matched_fields.map(_matched_fields -> _) ++
+          highlight_query.map(_highlight_query -> _.toJson(version))
       }
     )
   }
