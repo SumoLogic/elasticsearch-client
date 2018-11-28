@@ -171,6 +171,8 @@ object RestlasticSearchClient {
       def sourceAsMap: Seq[Map[String, Any]] = hits.hits.map(_._source.values)
 
       def highlightAsMaps: Seq[Map[String, Any]] = hits.hits.flatMap(_.highlight.map(_.values))
+
+      def innerHits: List[JObject] = hits.hits.flatMap(_.inner_hits)
     }
 
     case class BucketNested(underlying: BucketNestedMap)
@@ -202,7 +204,8 @@ object RestlasticSearchClient {
                                    _id: String,
                                    _score: Option[Float],
                                    _source: JObject,
-                                   highlight: Option[JObject])
+                                   highlight: Option[JObject],
+                                   inner_hits: Option[JObject])
 
     case class RawJsonResponse(jsonStr: String) {
       private val SuggesionOptionDeserializer = FieldSerializer[SuggestOption](
