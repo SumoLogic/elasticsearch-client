@@ -88,6 +88,25 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
+  case class MultiTermFilteredQuery(query: Query, filter: Filter*) extends Query {
+    val _filtered = "filtered"
+    val _filter = "filter"
+    val _query = "query"
+    val _searchType = "search-type"
+    val _bool = "bool"
+    val _must = "must"
+
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      // TODO: deprecated in V6 but should work for now
+      Map(
+        _filtered -> Map(
+          _query -> query.toJson(version),
+          _filter -> Map(_bool -> Map(_must -> filter.map(_.toJson(version))))
+        )
+      )
+    }
+  }
+
   case class TermFilter(term: String, value: String) extends Filter {
     val _term = "term"
 
