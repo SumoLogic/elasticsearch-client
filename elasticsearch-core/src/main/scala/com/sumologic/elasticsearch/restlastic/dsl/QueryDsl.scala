@@ -424,6 +424,13 @@ trait QueryDsl extends DslCommons with SortDsl {
     )
   }
 
+  /**
+    * Elasticsearch postings highlighter. Not supported in Elasticsearch 6.
+    */
+  case object PostingsHighlighter extends HighlighterType {
+    val name = "postings"
+  }
+
   case object PlainHighlighter extends HighlighterType {
     val name = "plain"
   }
