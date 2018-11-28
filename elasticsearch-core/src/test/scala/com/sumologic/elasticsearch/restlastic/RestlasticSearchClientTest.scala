@@ -44,8 +44,9 @@ trait RestlasticSearchClientTest {
                        index: Dsl.Index,
                        textType: FieldType,
                        basicKeywordFieldMapping: BasicFieldMapping): Unit = {
+    val keywordType = basicKeywordFieldMapping.tpe
     val analyzerName = Name("keyword_lowercase")
-    val basicTextFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
+    val basicTextFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName), ignoreAbove = None, Some(analyzerName))
     val basicNumericFieldMapping = BasicFieldMapping(IntegerType, None, None, None, None)
     val tpe = Type("foo")
 
@@ -86,7 +87,7 @@ trait RestlasticSearchClientTest {
     }
 
     "Be able to setup document mapping with ignoreAbove" in {
-      val basicFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName), ignoreAbove = Some(10000), Some(analyzerName))
+      val basicFieldMapping = BasicFieldMapping(keywordType, None, None, ignoreAbove = Some(10000), None)
       val metadataMapping = Mapping(tpe, IndexMapping(
         Map("name" -> basicFieldMapping, "f1" -> basicFieldMapping, "suggest" -> CompletionMapping(Map("f" -> CompletionContext("name")), analyzerName))))
 
@@ -1212,6 +1213,38 @@ trait RestlasticSearchClientTest {
     "Support deleting a doc that doesn't exist" in {
       val delFut = restClient.deleteDocuments(index, tpe, new QueryRoot(TermQuery("text7", "here7")))
       Await.result(delFut, 10.seconds) // May not need Await?
+    }
+
+    "Support nested mapping" in {
+      val basicFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName), ignoreAbove = None, Some(analyzerName))
+      val metadataMapping = Mapping(tpe,
+        IndexMapping(
+          Map("name" -> basicFieldMapping,
+            "kv" -> NestedObjectMapping(Map("key" -> basicFieldMapping, "val" -> basicFieldMapping))
+          )
+        )
+      )
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+      val mappingRes = restClient.getMapping(index, tpe)
+      val expected = s""""kv":{"type":"nested","properties":{"key":{"type":"${textType.rep}","analyzer":"keyword_lowercase"},"val":{"type":"${textType.rep}","analyzer":"keyword_lowercase"}}}"""
+      mappingRes.futureValue.jsonStr.toString.contains(expected) should be(true)
+    }
+
+    "Support multi-fields mapping" in {
+      val fields = FieldsMapping(Map("raw" -> BasicFieldMapping(textType, None, Some(analyzerName), ignoreAbove = None, Some(analyzerName))))
+      val basicFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName), ignoreAbove = None, Some(analyzerName), fieldsOption = Some(fields))
+      val metadataMapping = Mapping(tpe,
+        IndexMapping(
+          Map("multi-fields" -> basicFieldMapping)
+        )
+      )
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+      val mappingRes = restClient.getMapping(index, tpe)
+      val expected = s"""{"multi-fields":{"type":"${textType.rep}","fields":{"raw":{"type":"${textType.rep}","analyzer":"keyword_lowercase"}},"analyzer":"keyword_lowercase"}}"""
+      mappingRes.futureValue.jsonStr.toString.contains(expected) should be(true)
     }
   }
 }
