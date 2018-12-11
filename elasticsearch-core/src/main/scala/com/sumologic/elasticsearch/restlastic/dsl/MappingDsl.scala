@@ -86,15 +86,21 @@ trait MappingDsl extends DslCommons {
   }
 
   sealed trait IndexType {
-    val rep: String
+    def rep(version: EsVersion): String
   }
 
   case object NotAnalyzedIndex extends IndexType {
-    val rep = "not_analyzed"
+    override def rep(version: EsVersion): String = version match {
+      case V2 => "not_analyzed"
+      case V6 => "true"
+    }
   }
 
   case object NotIndexedIndex extends IndexType {
-    val rep = "no"
+    override def rep(version: EsVersion): String = version match {
+      case V2 => "no"
+      case V6 => "false"
+    }
   }
 
   case object MappingPath {
@@ -162,7 +168,7 @@ trait MappingDsl extends DslCommons {
 
     override def toJson(version: EsVersion): Map[String, Any] =
       Map(_type -> tpe.rep) ++
-        index.map(_index -> _.rep) ++
+        index.map(_index -> _.rep(version)) ++
         analyzer.map(_analyzer -> _.name) ++
         search_analyzer.map(_searchAnalyzer -> _.name) ++
         indexOption.map(_fieldIndexOpions -> _.option) ++
