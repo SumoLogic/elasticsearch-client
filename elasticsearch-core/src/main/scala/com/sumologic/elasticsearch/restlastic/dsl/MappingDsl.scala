@@ -90,7 +90,10 @@ trait MappingDsl extends DslCommons {
   }
 
   case object NotAnalyzedIndex extends IndexType {
-    override def rep(version: EsVersion): String = "not_analyzed"
+    override def rep(version: EsVersion): String = version match {
+      case V2 => "not_analyzed"
+      case V6 => "false"
+    }
   }
 
   case object NotIndexedIndex extends IndexType {
