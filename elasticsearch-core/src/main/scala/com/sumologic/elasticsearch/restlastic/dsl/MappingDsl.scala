@@ -103,6 +103,13 @@ trait MappingDsl extends DslCommons {
     }
   }
 
+  case object IndexedIndex extends IndexType {
+    override def rep(version: EsVersion): String = version match {
+      case V2 => "???"
+      case V6 => "true"
+    }
+  }
+
   case object MappingPath {
     val sep = "."
 
