@@ -97,13 +97,19 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _must = "must"
 
     override def toJson(version: EsVersion): Map[String, Any] = {
-      // TODO: deprecated in V6 but should work for now
-      Map(
-        _filtered -> Map(
-          _query -> query.toJson(version),
-          _filter -> Map(_bool -> Map(_must -> filter.map(_.toJson(version))))
-        )
-      )
+      version match {
+        case V2 => {
+          Map(
+            _filtered -> Map(
+              _query -> query.toJson(version),
+              _filter -> Map(_bool -> Map(_must -> filter.map(_.toJson(version))))
+            )
+          )
+        }
+        case V6 => {
+          Bool(List(Must(query)), FilteredContext(filter.toList)).toJson(version)
+        }
+      }
     }
   }
 
