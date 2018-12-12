@@ -156,6 +156,7 @@ trait MappingDsl extends DslCommons {
   val _searchAnalyzer = "search_analyzer"
   val _ignoreAbove = "ignore_above"
   val _fieldIndexOpions = "index_options"
+  val _fielddata = "fielddata"
 
   case class BasicFieldMapping(tpe: FieldType,
                                index: Option[IndexType],
@@ -163,7 +164,8 @@ trait MappingDsl extends DslCommons {
                                ignoreAbove: Option[Int] = None,
                                search_analyzer: Option[Name] = None,
                                indexOption: Option[IndexOption] = None,
-                               fieldsOption: Option[FieldsMapping] = None)
+                               fieldsOption: Option[FieldsMapping] = None,
+                               fieldDataOption: Option[Boolean] = None)
       extends FieldMapping {
 
     override def toJson(version: EsVersion): Map[String, Any] =
@@ -173,7 +175,8 @@ trait MappingDsl extends DslCommons {
         search_analyzer.map(_searchAnalyzer -> _.name) ++
         indexOption.map(_fieldIndexOpions -> _.option) ++
         ignoreAbove.map(_ignoreAbove -> _).toList.toMap ++
-        fieldsOption.map(_.toJson(version)).getOrElse(Map[String, Any]())
+        fieldsOption.map(_.toJson(version)).getOrElse(Map[String, Any]()) ++
+        fieldDataOption.map(_fielddata -> _)
 
     // TODO: ignoreAbove was ignored by mistake, however, in ES 6, it's invalid for Text type (only for Keyword type).
     //   We should probably introduce more type safety to this.
