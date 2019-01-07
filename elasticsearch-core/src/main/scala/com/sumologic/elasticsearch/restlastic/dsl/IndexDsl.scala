@@ -18,6 +18,8 @@
  */
 package com.sumologic.elasticsearch.restlastic.dsl
 
+import scala.collection.concurrent.TrieMap
+
 trait IndexDsl extends DslCommons {
 
   case class CreateIndex(settings: Option[IndexSetting] = None) extends RootObject {
@@ -54,9 +56,13 @@ trait IndexDsl extends DslCommons {
   }
 
   case class Bulk(operations: Seq[BulkOperation]) extends EsOperation with RootObject {
+    private val jsonStrCache = TrieMap.empty[EsVersion, String]
+
     override def toJson(version: EsVersion): Map[String, Any] = throw new UnsupportedOperationException
 
-    override def toJsonStr(version: EsVersion): String = operations.map(_.toJsonStr(version)).mkString("", "\n", "\n")
+    override def toJsonStr(version: EsVersion): String = {
+      jsonStrCache.getOrElseUpdate(version, operations.map(_.toJsonStr(version)).mkString("", "\n", "\n"))
+    }
   }
 
   // When upsertOpt is specified, its content is used for upsert as described in
