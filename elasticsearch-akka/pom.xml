@@ -4,12 +4,12 @@
   <artifactId>elasticsearch-akka</artifactId>
   <name>elasticsearch-akka</name>
   <packaging>jar</packaging>
-  <version>7.0.0-M3-SNAPSHOT</version>
+  <version>7.0.0-M4-SNAPSHOT</version>
 
   <parent>
     <artifactId>all</artifactId>
     <groupId>com.sumologic.elasticsearch</groupId>
-    <version>7.0.0-M3-SNAPSHOT</version>
+    <version>7.0.0-M4-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
 
@@ -22,7 +22,7 @@
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-core</artifactId>
-      <version>7.0.0-M3-SNAPSHOT</version>
+      <version>7.0.0-M4-SNAPSHOT</version>
     </dependency>
 
     <dependency>
