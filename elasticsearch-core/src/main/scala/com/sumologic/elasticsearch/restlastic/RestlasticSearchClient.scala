@@ -22,7 +22,7 @@ import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes
 import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, EsVersion}
 import org.json4s.FieldSerializer.{renameFrom, renameTo}
 import org.json4s._
-import org.json4s.native.JsonMethods._
+import org.json4s.jackson.JsonMethods._
 import spray.http.HttpMethods._
 import spray.http.Uri.{Query => UriQuery}
 import spray.http._

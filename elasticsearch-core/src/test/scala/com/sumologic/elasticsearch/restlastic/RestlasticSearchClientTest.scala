@@ -22,7 +22,7 @@ import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes
 import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V2, V6}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.json4s.DefaultFormats
-import org.json4s.native.JsonMethods.parse
+import org.json4s.jackson.JsonMethods.parse
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpec}
