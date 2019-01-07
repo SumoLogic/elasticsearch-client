@@ -22,7 +22,7 @@ import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes
 import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V2, V6}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.json4s.DefaultFormats
-import org.json4s.native.JsonMethods.parse
+import org.json4s.jackson.JsonMethods.parse
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpec}
@@ -233,11 +233,6 @@ trait RestlasticSearchClientTest {
       val docUpdate1 = Document("doc", Map("text" -> "retry on version conflict 1"))
       val docUpdate2 = Document("doc", Map("text" -> "retry on version conflict 2"))
       val docUpdate3 = Document("doc", Map("text" -> "retry on version conflict 3"))
-
-      val bulkUpdateFuture = (1 to 5).map { _ =>
-        restClient.bulkUpdate(index, tpe, Seq(docUpdate1, docUpdate2, docUpdate3))
-      }
-      Future.sequence(bulkUpdateFuture).futureValue.toString().contains("version conflict") should be(true)
 
       val bulkUpdateFutureWithRetry = (1 to 5).map { _ =>
         restClient.bulkUpdate(index, tpe, Seq(docUpdate1, docUpdate2, docUpdate3), retryOnConflictOpt = Some(100))

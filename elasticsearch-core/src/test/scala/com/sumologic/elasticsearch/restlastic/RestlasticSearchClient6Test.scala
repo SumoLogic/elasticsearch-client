@@ -32,7 +32,7 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
       IndexName,
       createIndex(),
       TextType,
-      BasicFieldMapping(KeywordType, None, None, ignoreAbove = None, None))
+      BasicFieldMapping(KeywordType, None, None))
   }
 }
 
