@@ -103,6 +103,13 @@ trait MappingDsl extends DslCommons {
     }
   }
 
+  case object IndexedIndex extends IndexType {
+    override def rep(version: EsVersion): String = version match {
+      case V2 => ""
+      case V6 => "true"
+    }
+  }
+
   case object MappingPath {
     val sep = "."
 
@@ -170,7 +177,14 @@ trait MappingDsl extends DslCommons {
 
     override def toJson(version: EsVersion): Map[String, Any] =
       Map(_type -> tpe.rep) ++
-        index.map(_index -> _.rep(version)) ++
+        index.flatMap { i =>
+          val rep = i.rep(version)
+          if (rep == "") {
+            None
+          } else {
+            Some(_index -> i.rep(version))
+          }
+        } ++
         analyzer.map(_analyzer -> _.name) ++
         search_analyzer.map(_searchAnalyzer -> _.name) ++
         indexOption.map(_fieldIndexOpions -> _.option) ++
