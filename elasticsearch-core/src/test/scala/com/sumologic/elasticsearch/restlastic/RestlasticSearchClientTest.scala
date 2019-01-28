@@ -1241,6 +1241,24 @@ trait RestlasticSearchClientTest {
       val expected = s"""{"multi-fields":{"type":"${textType.rep}","fields":{"raw":{"type":"${textType.rep}","analyzer":"keyword_lowercase"}},"analyzer":"keyword_lowercase"}}"""
       mappingRes.futureValue.jsonStr.toString.contains(expected) should be(true)
     }
+
+    "Support query profiling" in {
+      indexDocs(
+        Seq(
+          Document("doc1", Map("animal" -> "wombat")),
+          Document("doc2", Map("animal" -> "koala"))))
+      val resFut = restClient.query(
+        index,
+        tpe,
+        new QueryRoot(TermQuery("animal", "wombat"), timeoutOpt = Some(5000)),
+        profile = true)
+
+      whenReady(resFut) { res =>
+        res.sourceAsMap.toList should be(List(Map("animal" -> "wombat")))
+        res.rawSearchResponse.profile should not be empty
+        res.rawSearchResponse.profile should contain key "shards"
+      }
+    }
   }
 }
 

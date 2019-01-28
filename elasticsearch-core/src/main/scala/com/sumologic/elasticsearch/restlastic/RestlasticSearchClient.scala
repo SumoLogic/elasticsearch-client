@@ -68,14 +68,26 @@ trait RequestSigner {
   def withAuthHeader(httpRequest: HttpRequest): HttpRequest
 }
 
-trait RestlasticSearchClient extends ScrollClient {
+abstract class RestlasticSearchClient(searchExecutionCtx: ExecutionContext) extends ScrollClient {
 
   import Dsl._
   import RestlasticSearchClient.ReturnTypes._
 
   def ready: Boolean
 
-  def query(index: Index, tpe: Type, query: RootObject, rawJsonStr: Boolean = true, uriQuery: UriQuery = UriQuery.Empty): Future[SearchResponse]
+  def query(index: Index,
+            tpe: Type,
+            query: RootObject,
+            rawJsonStr: Boolean = true,
+            uriQuery: UriQuery = UriQuery.Empty,
+            profile: Boolean = false): Future[SearchResponse] = {
+    implicit val ec = searchExecutionCtx
+    val endpoint = s"/${index.name}/${tpe.name}/_search"
+    runEsCommand(query, endpoint, query = uriQuery, profile = profile).map { rawJson =>
+      val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
+      SearchResponse(rawJson.mappedTo[RawSearchResponse], jsonStr)
+    }
+  }
 
   def bucketNestedAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketNested]
 
@@ -127,6 +139,20 @@ trait RestlasticSearchClient extends ScrollClient {
                      (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse]
 
   def version: EsVersion
+
+  protected def runEsCommand(op: RootObject,
+                             endpoint: String,
+                             method: HttpMethod = POST,
+                             query: UriQuery = UriQuery.Empty,
+                             profile: Boolean = false)
+                            (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
+    val jsonStr = if (profile) {
+      EsOperation.compactJson(op.toJson(version) + ("profile" -> true))
+    } else {
+      op.toJsonStr(version)
+    }
+    runRawEsRequest(jsonStr, endpoint, method, query)
+  }
 }
 
 object RestlasticSearchClient {
@@ -167,7 +193,7 @@ object RestlasticSearchClient {
 
     case class SearchResponseWithScrollId(_scroll_id: String, hits: Hits)
 
-    case class RawSearchResponse(hits: Hits) {
+    case class RawSearchResponse(hits: Hits, profile: Map[String, Any] = Map.empty[String, Any]) {
       private implicit val formats: DefaultFormats.type = org.json4s.DefaultFormats
 
       def extractSource[T: Manifest]: Seq[T] = {
@@ -217,6 +243,8 @@ object RestlasticSearchClient {
       private val SuggesionOptionDeserializer = FieldSerializer[SuggestOption](
         renameTo("_score", "score"),
         renameFrom("score", "_score"))
+
+      private val ProfileDeserializer = FieldSerializer
 
       private implicit val formats: Formats = org.json4s.DefaultFormats + SuggesionOptionDeserializer
 

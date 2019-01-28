@@ -46,7 +46,7 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
                               searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
                              (implicit val system: ActorSystem = ActorSystem(),
                               val timeout: Timeout = Timeout(30.seconds))
-  extends RestlasticSearchClient {
+  extends RestlasticSearchClient(searchExecutionCtx) {
 
   private implicit val formats = org.json4s.DefaultFormats
   private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
@@ -57,14 +57,6 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
   override val version = V6
 
   def ready: Boolean = endpointProvider.ready
-
-  def query(index: Index, tpe: Type, query: RootObject, rawJsonStr: Boolean = true, uriQuery: UriQuery = UriQuery.Empty): Future[SearchResponse] = {
-    implicit val ec = searchExecutionCtx
-    runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = uriQuery).map { rawJson =>
-      val jsonStr = if (rawJsonStr) rawJson.jsonStr else ""
-      SearchResponse(rawJson.mappedTo[RawSearchResponse], jsonStr)
-    }
-  }
 
   def bucketNestedAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketNested] = {
     implicit val ec = searchExecutionCtx
@@ -250,14 +242,6 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
   def refresh(index: Index): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(EmptyObject, s"/${index.name}/_refresh")
-  }
-
-  private def runEsCommand(op: RootObject,
-                           endpoint: String,
-                           method: HttpMethod = POST,
-                           query: UriQuery = UriQuery.Empty)
-                          (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
-    runRawEsRequest(op.toJsonStr(V6), endpoint, method, query)
   }
 
   def runRawEsRequest(op: String,
