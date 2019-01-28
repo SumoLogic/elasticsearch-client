@@ -65,7 +65,8 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
                      uriQuery: UriQuery = UriQuery.Empty,
                      profile: Boolean = false): Future[SearchResponse] = {
     implicit val ec = searchExecutionCtx
-    runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query = uriQuery).map { rawJson =>
+    val endpoint = s"/${index.name}/${tpe.name}/_search"
+    runEsCommand(query, endpoint, query = uriQuery, profile = profile).map { rawJson =>
       val jsonStr = if (rawJsonStr) rawJson.jsonStr else ""
       SearchResponse(rawJson.mappedTo[RawSearchResponse], jsonStr)
     }
@@ -260,9 +261,15 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
   private def runEsCommand(op: RootObject,
                            endpoint: String,
                            method: HttpMethod = POST,
-                           query: UriQuery = UriQuery.Empty)
+                           query: UriQuery = UriQuery.Empty,
+                           profile: Boolean = false)
                           (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
-    runRawEsRequest(op.toJsonStr(V6), endpoint, method, query)
+    val jsonStr = if (profile) {
+      EsOperation.compactJson(op.toJson(V6) + ("profile" -> true))
+    } else {
+      op.toJsonStr(V6)
+    }
+    runRawEsRequest(jsonStr, endpoint, method, query)
   }
 
   def runRawEsRequest(op: String,
