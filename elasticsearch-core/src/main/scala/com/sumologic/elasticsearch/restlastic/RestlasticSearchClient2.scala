@@ -248,20 +248,6 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
     runEsCommand(EmptyObject, s"/${index.name}/_refresh")
   }
 
-  private def runEsCommand(op: RootObject,
-                           endpoint: String,
-                           method: HttpMethod = POST,
-                           query: UriQuery = UriQuery.Empty,
-                           profile: Boolean = true)
-                          (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
-    val jsonStr = if (profile) {
-      EsOperation.compactJson(op.toJson(V2) + ("profile" -> true))
-    } else {
-      op.toJsonStr(V2)
-    }
-    runRawEsRequest(jsonStr, endpoint, method, query)
-  }
-
   def runRawEsRequest(op: String,
                       endpoint: String,
                       method: HttpMethod = POST,

@@ -132,6 +132,20 @@ trait RestlasticSearchClient extends ScrollClient {
                      (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse]
 
   def version: EsVersion
+
+  protected def runEsCommand(op: RootObject,
+                             endpoint: String,
+                             method: HttpMethod = POST,
+                             query: UriQuery = UriQuery.Empty,
+                             profile: Boolean = false)
+                            (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
+    val jsonStr = if (profile) {
+      EsOperation.compactJson(op.toJson(version) + ("profile" -> true))
+    } else {
+      op.toJsonStr(version)
+    }
+    runRawEsRequest(jsonStr, endpoint, method, query)
+  }
 }
 
 object RestlasticSearchClient {
