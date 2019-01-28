@@ -75,7 +75,12 @@ trait RestlasticSearchClient extends ScrollClient {
 
   def ready: Boolean
 
-  def query(index: Index, tpe: Type, query: RootObject, rawJsonStr: Boolean = true, uriQuery: UriQuery = UriQuery.Empty): Future[SearchResponse]
+  def query(index: Index,
+            tpe: Type,
+            query: RootObject,
+            rawJsonStr: Boolean = true,
+            uriQuery: UriQuery = UriQuery.Empty,
+            profile: Boolean = false): Future[SearchResponse]
 
   def bucketNestedAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketNested]
 

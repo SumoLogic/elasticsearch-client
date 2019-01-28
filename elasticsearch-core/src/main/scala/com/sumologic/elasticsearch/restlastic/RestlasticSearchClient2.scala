@@ -46,7 +46,13 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
   override val version = V2
 
   def ready: Boolean = endpointProvider.ready
-  def query(index: Index, tpe: Type, query: RootObject, rawJsonStr: Boolean = true, uriQuery: UriQuery = UriQuery.Empty): Future[SearchResponse] = {
+
+  override def query(index: Index,
+                     tpe: Type,
+                     query: RootObject,
+                     rawJsonStr: Boolean = true,
+                     uriQuery: UriQuery = UriQuery.Empty,
+                     profile: Boolean = false): Future[SearchResponse] = {
     implicit val ec = searchExecutionCtx
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search", query=uriQuery).map { rawJson =>
       val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
