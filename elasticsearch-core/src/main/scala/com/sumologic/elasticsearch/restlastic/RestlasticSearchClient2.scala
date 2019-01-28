@@ -37,7 +37,7 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
                               override val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
                               searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
                              (implicit val system: ActorSystem = ActorSystem(), val timeout: Timeout = Timeout(30.seconds))
-  extends RestlasticSearchClient {
+  extends RestlasticSearchClient(searchExecutionCtx) {
 
   private val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
   import Dsl._
@@ -46,20 +46,6 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
   override val version = V2
 
   def ready: Boolean = endpointProvider.ready
-
-  override def query(index: Index,
-                     tpe: Type,
-                     query: RootObject,
-                     rawJsonStr: Boolean = true,
-                     uriQuery: UriQuery = UriQuery.Empty,
-                     profile: Boolean = false): Future[SearchResponse] = {
-    implicit val ec = searchExecutionCtx
-    val endpoint = s"/${index.name}/${tpe.name}/_search"
-    runEsCommand(query, endpoint, query = uriQuery, profile = profile).map { rawJson =>
-      val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
-      SearchResponse(rawJson.mappedTo[RawSearchResponse], jsonStr)
-    }
-  }
 
   def bucketNestedAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketNested] = {
     implicit val ec = searchExecutionCtx

@@ -68,7 +68,7 @@ trait RequestSigner {
   def withAuthHeader(httpRequest: HttpRequest): HttpRequest
 }
 
-trait RestlasticSearchClient extends ScrollClient {
+abstract class RestlasticSearchClient(searchExecutionCtx: ExecutionContext) extends ScrollClient {
 
   import Dsl._
   import RestlasticSearchClient.ReturnTypes._
@@ -80,7 +80,14 @@ trait RestlasticSearchClient extends ScrollClient {
             query: RootObject,
             rawJsonStr: Boolean = true,
             uriQuery: UriQuery = UriQuery.Empty,
-            profile: Boolean = false): Future[SearchResponse]
+            profile: Boolean = false): Future[SearchResponse] = {
+    implicit val ec = searchExecutionCtx
+    val endpoint = s"/${index.name}/${tpe.name}/_search"
+    runEsCommand(query, endpoint, query = uriQuery, profile = profile).map { rawJson =>
+      val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
+      SearchResponse(rawJson.mappedTo[RawSearchResponse], jsonStr)
+    }
+  }
 
   def bucketNestedAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketNested]
 
