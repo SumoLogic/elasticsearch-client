@@ -193,7 +193,7 @@ object RestlasticSearchClient {
 
     case class SearchResponseWithScrollId(_scroll_id: String, hits: Hits)
 
-    case class RawSearchResponse(hits: Hits) {
+    case class RawSearchResponse(hits: Hits, profile: Map[String, Any] = Map.empty[String, Any]) {
       private implicit val formats: DefaultFormats.type = org.json4s.DefaultFormats
 
       def extractSource[T: Manifest]: Seq[T] = {
@@ -243,6 +243,8 @@ object RestlasticSearchClient {
       private val SuggesionOptionDeserializer = FieldSerializer[SuggestOption](
         renameTo("_score", "score"),
         renameFrom("score", "_score"))
+
+      private val ProfileDeserializer = FieldSerializer
 
       private implicit val formats: Formats = org.json4s.DefaultFormats + SuggesionOptionDeserializer
 
