@@ -1,7 +1,7 @@
 language: java
 before_install:
   - curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.3.0.tar.gz && tar -xzf elasticsearch-6.3.0.tar.gz
-  - elasticsearch-6.3.0/bin/elasticsearch -Ecluster.name=es-63 -Ehttp.port=9500 > /dev/null 2> /dev/null &
+  - elasticsearch-6.3.0/bin/elasticsearch -Ecluster.name=es-63 -Ehttp.port=9800 > /dev/null 2> /dev/null &
   - curl -O https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.3.5/elasticsearch-2.3.5.tar.gz && tar -xzf elasticsearch-2.3.5.tar.gz
   - elasticsearch-2.3.5/bin/elasticsearch --cluster.name=es-23 --http.port=9200 > /dev/null 2> /dev/null &
   - sleep 15

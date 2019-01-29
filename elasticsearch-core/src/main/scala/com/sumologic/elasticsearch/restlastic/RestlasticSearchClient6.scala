@@ -99,6 +99,11 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
     runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", DELETE).map(_.mappedTo[DeleteResponse])
   }
 
+  def deleteByQuery(index: Index, tpe: Type, deleteQuery: QueryRoot): Future[RawJsonResponse] = {
+    implicit val ec = indexExecutionCtx
+    runEsCommand(deleteQuery, s"/${index.name}/${tpe.name}/_delete_by_query", POST)
+  }
+
   def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", HEAD).map(_ => true).recover {
