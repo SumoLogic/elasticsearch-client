@@ -39,7 +39,7 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
 object RestlasticSearchClient6Test {
   val restClient = {
     val endpointProvider = new EndpointProvider {
-      override def endpoint: Endpoint = Endpoint("127.0.0.1", 9500)
+      override def endpoint: Endpoint = Endpoint("127.0.0.1", 9800)
       override def ready: Boolean = true
     }
     new RestlasticSearchClient6(endpointProvider)
