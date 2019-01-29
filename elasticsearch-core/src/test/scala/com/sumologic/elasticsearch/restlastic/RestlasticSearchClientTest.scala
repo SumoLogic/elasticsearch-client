@@ -1178,24 +1178,32 @@ trait RestlasticSearchClientTest {
     }
 
     "Support deleting more than 10000 docs" in {
-      val documents = (1 to 10011).map(i => Document(s"doc$i", Map("text7" -> "here7")))
+      val docsCount = 10011
+      val documents = (1 to docsCount).map(i => Document(s"doc$i", Map("text7" -> "here7")))
       val bulkInsertResult = restClient.bulkIndex(index, tpe,documents)
       Await.result(bulkInsertResult, 20.seconds)
       refresh()
+
+      val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
+      count should be(docsCount)
 
       val delFut = restClient.deleteDocuments(index, tpe, new QueryRoot(MatchAll, sizeOpt = Some(1000)))
       Await.result(delFut, 20.seconds)
       refresh()
 
-      val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
-      count should be(0)
+      val count1 = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
+      count1 should be(0)
     }
 
     "Support deleting by a query" in {
-      val documents = (1 to 10011).map(i => Document(s"doc$i", Map("text7" -> "here7")))
+      val docsCount = 10011
+      val documents = (1 to docsCount).map(i => Document(s"doc$i", Map("text7" -> "here7")))
       val bulkInsertResult = restClient.bulkIndex(index, tpe,documents)
       Await.result(bulkInsertResult, 20.seconds)
       refresh()
+
+      val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
+      count should be(docsCount)
 
       val termQuery = TermQuery("text7", "here7")
 
@@ -1203,8 +1211,8 @@ trait RestlasticSearchClientTest {
       Await.result(delFut, 20.seconds)
       refresh()
 
-      val count = Await.result(restClient.count(index, tpe, new QueryRoot(termQuery)), 10.seconds)
-      count should be(0)
+      val count1 = Await.result(restClient.count(index, tpe, new QueryRoot(termQuery)), 10.seconds)
+      count1 should be(0)
     }
 
     "Delete only first page of query results" in {
