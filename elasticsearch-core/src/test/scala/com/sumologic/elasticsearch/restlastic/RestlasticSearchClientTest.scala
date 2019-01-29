@@ -1207,7 +1207,7 @@ trait RestlasticSearchClientTest {
 
       val termQuery = TermQuery("text7", "here7")
 
-      val delFut = restClient.deleteByQuery(index, tpe, new QueryRoot(termQuery))
+      val delFut = restClient.deleteByQuery(index, tpe, new QueryRoot(termQuery), true)
       Await.result(delFut, 20.seconds)
       refresh()
 
