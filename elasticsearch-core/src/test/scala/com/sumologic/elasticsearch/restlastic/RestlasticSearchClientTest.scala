@@ -1191,6 +1191,22 @@ trait RestlasticSearchClientTest {
       count should be(0)
     }
 
+    "Support deleting by a query" in {
+      val documents = (1 to 10011).map(i => Document(s"doc$i", Map("text7" -> "here7")))
+      val bulkInsertResult = restClient.bulkIndex(index, tpe,documents)
+      Await.result(bulkInsertResult, 20.seconds)
+      refresh()
+
+      val termQuery = TermQuery("text7", "here7")
+
+      val delFut = restClient.deleteByQuery(index, tpe, new QueryRoot(termQuery))
+      Await.result(delFut, 20.seconds)
+      refresh()
+
+      val count = Await.result(restClient.count(index, tpe, new QueryRoot(termQuery)), 10.seconds)
+      count should be(0)
+    }
+
     "Delete only first page of query results" in {
       val insertFutures = (1 to 100).map(i => restClient.index(index, tpe, Document(s"doc$i", Map("text7" -> "here7"))))
       val ir = Future.sequence(insertFutures)

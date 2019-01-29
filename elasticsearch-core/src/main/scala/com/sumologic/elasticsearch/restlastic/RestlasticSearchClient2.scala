@@ -89,7 +89,8 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
   }
 
   def deleteByQuery(index: Index, tpe: Type, deleteQuery: QueryRoot): Future[RawJsonResponse] = {
-    Future.failed(new IllegalStateException("Delete by query is not supported"))
+    implicit val ec = indexExecutionCtx
+    deleteDocuments(index, tpe, deleteQuery).map(resp => RawJsonResponse(resp.toString()))
   }
 
   def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
