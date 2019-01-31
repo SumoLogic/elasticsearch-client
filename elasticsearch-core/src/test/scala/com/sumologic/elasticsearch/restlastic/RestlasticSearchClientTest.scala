@@ -36,6 +36,8 @@ trait RestlasticSearchClientTest {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
+  protected val basicNumericFieldMapping = BasicFieldMapping(IntegerType, None, None, None, None)
+
   override implicit val patienceConfig = PatienceConfig(
     timeout = scaled(Span(10, Seconds)), interval = scaled(Span(50, Millis)))
 
@@ -47,7 +49,6 @@ trait RestlasticSearchClientTest {
     val keywordType = basicKeywordFieldMapping.tpe
     val analyzerName = Name("keyword_lowercase")
     val basicTextFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName), ignoreAbove = None, Some(analyzerName))
-    val basicNumericFieldMapping = BasicFieldMapping(IntegerType, None, None, None, None)
     val tpe = Type("foo")
 
     def refreshWithClient(): Unit = {

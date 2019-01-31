@@ -160,6 +160,7 @@ trait MappingDsl extends DslCommons {
   val _type = "type"
   val _index = "index"
   val _analyzer = "analyzer"
+  val _normalizer = "normalizer"
   val _searchAnalyzer = "search_analyzer"
   val _ignoreAbove = "ignore_above"
   val _fieldIndexOpions = "index_options"
@@ -172,7 +173,8 @@ trait MappingDsl extends DslCommons {
                                search_analyzer: Option[Name] = None,
                                indexOption: Option[IndexOption] = None,
                                fieldsOption: Option[FieldsMapping] = None,
-                               fieldDataOption: Option[Boolean] = None)
+                               fieldDataOption: Option[Boolean] = None,
+                               normalizer: Option[Name] = None)
       extends FieldMapping {
 
     override def toJson(version: EsVersion): Map[String, Any] =
@@ -186,11 +188,19 @@ trait MappingDsl extends DslCommons {
           }
         } ++
         analyzer.map(_analyzer -> _.name) ++
+        normalizerMapping(version) ++
         search_analyzer.map(_searchAnalyzer -> _.name) ++
         indexOption.map(_fieldIndexOpions -> _.option) ++
         ignoreAbove.map(_ignoreAbove -> _).toList.toMap ++
         fieldsOption.map(_.toJson(version)).getOrElse(Map[String, Any]()) ++
         fieldDataOption.map(_fielddata -> _)
+
+    private def normalizerMapping(version: EsVersion): Map[String, String] = version match {
+      case V2 => Map.empty[String, String] // not supported
+      case V6 => normalizer.map { n =>
+        _normalizer -> n.name
+      }.toMap
+    }
 
     // TODO: ignoreAbove was ignored by mistake, however, in ES 6, it's invalid for Text type (only for Keyword type).
     //   We should probably introduce more type safety to this.
