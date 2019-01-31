@@ -101,8 +101,10 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
 
   def deleteByQuery(index: Index, tpe: Type, deleteQuery: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
-    val params = s"wait_for_completion=$waitForCompletion"
-    runEsCommand(deleteQuery, s"/${index.name}/${tpe.name}/_delete_by_query?$params", POST)
+
+    val uriQuery = UriQuery("wait_for_completion" -> waitForCompletion.toString)
+
+    runEsCommand(deleteQuery, s"/${index.name}/${tpe.name}/_delete_by_query", query = uriQuery, method = POST)
   }
 
   def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
