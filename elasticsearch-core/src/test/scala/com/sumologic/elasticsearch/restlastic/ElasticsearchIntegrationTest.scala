@@ -48,7 +48,10 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
     val analyzerName = Name("keyword_lowercase")
     val lowercaseAnalyzer = Analyzer(analyzerName, Keyword, Lowercase)
     val notAnalyzed = Analyzer(Name("not_analyzed"), Keyword)
-    val analyzers = Analyzers(AnalyzerArray(lowercaseAnalyzer, notAnalyzed), FilterArray())
+    val analyzers = Analyzers(
+      AnalyzerArray(lowercaseAnalyzer, notAnalyzed),
+      FilterArray(),
+      NormalizerArray(Normalizer(Name("lowercase"), Lowercase)))
     val indexSetting = IndexSetting(12, 1, analyzers, 30)
     val indexFut = restClient.createIndex(index, Some(indexSetting))
     indexFut.futureValue

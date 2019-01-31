@@ -115,10 +115,14 @@ trait IndexDsl extends DslCommons {
 
   sealed trait Analysis extends EsOperation
 
-  case class Analyzers(analyzers: AnalyzerArray, filters: FilterArray)
+  case class Analyzers(analyzers: AnalyzerArray,
+                       filters: FilterArray,
+                       normalizers: NormalizerArray = NormalizerArray())
       extends Analysis with EsOperation {
 
-    override def toJson(version: EsVersion): Map[String, Any] = analyzers.toJson(version) ++ filters.toJson(version)
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      analyzers.toJson(version) ++ filters.toJson(version) ++ normalizers.toJson(version)
+    }
   }
 
   case class Analyzer(name: Name, tokenizer: FieldType, filter: FieldType*)
@@ -135,6 +139,20 @@ trait IndexDsl extends DslCommons {
           _filter -> filter.map(_.rep)
         )
       )
+    )
+  }
+
+  case class Normalizers(normalizers: Normalizer)
+
+  case class Normalizer(name: Name, filter: FieldType*) extends Analysis {
+    val _normalizer = "normalizer"
+    val _filter = "filter"
+
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
+      _normalizer -> Map(
+        name.name -> Map(
+          "type" -> "custom",
+          _filter -> filter.map(_.rep)))
     )
   }
 
@@ -169,6 +187,19 @@ trait IndexDsl extends DslCommons {
           .toJson(version).getOrElse(_analyzer, Map())
           .asInstanceOf[Map[String, Any]]).reduce(_ ++ _)
     )
+  }
+
+  case class NormalizerArray(normalizers: Normalizer*) extends EsOperation {
+    val _normalizer = "normalizer"
+
+    override def toJson(version: EsVersion): Map[String, Any] = version match {
+      case V2 => Map.empty[String, Any]
+      case V6 => Map(
+        _normalizer -> normalizers.
+          map(_.toJson(version).getOrElse(_normalizer, Map()).
+            asInstanceOf[Map[String, Any]]).foldLeft(Map.empty[String, Any]) { _ ++ _ }
+      )
+    }
   }
 
   case class FilterArray(filters: Filter*) extends EsOperation {
