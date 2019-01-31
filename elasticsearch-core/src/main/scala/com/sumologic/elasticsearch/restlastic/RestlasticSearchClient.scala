@@ -101,7 +101,7 @@ abstract class RestlasticSearchClient(searchExecutionCtx: ExecutionContext) exte
 
   def deleteById(index: Index, tpe: Type, id: String): Future[DeleteResponse]
 
-  def deleteByQuery(index: Index, tpe: Type, query: QueryRoot): Future[RawJsonResponse]
+  def deleteByQuery(index: Index, tpe: Type, query: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse]
 
   def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean]
 
