@@ -45,7 +45,7 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
                               override val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
                               searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
                              (implicit val system: ActorSystem = ActorSystem(),
-                              val timeout: Timeout = Timeout(30.seconds))
+                              val timeout: Timeout = Timeout(30.seconds)) // ololo
   extends RestlasticSearchClient(searchExecutionCtx) {
 
   private implicit val formats = org.json4s.DefaultFormats
