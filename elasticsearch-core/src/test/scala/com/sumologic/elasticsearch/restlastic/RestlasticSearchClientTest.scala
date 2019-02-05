@@ -1209,7 +1209,8 @@ trait RestlasticSearchClientTest {
       val termQuery = TermQuery("text7", "here7")
 
       val delFut = restClient.deleteByQuery(index, tpe, new QueryRoot(termQuery), true)
-      Await.result(delFut, 20.seconds)
+      val deleteDocsResponse = Await.result(delFut, 20.seconds)
+      deleteDocsResponse.deletedDocumentsCount should be(docsCount)
       refresh()
 
       val count1 = Await.result(restClient.count(index, tpe, new QueryRoot(termQuery)), 10.seconds)
