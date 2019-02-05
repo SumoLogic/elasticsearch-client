@@ -148,7 +148,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
     runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", DELETE).map(_.mappedTo[DeleteResponse])
   }
 
-  def deleteByQuery(index: Index, tpe: Type, query: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse]
+  def deleteByQuery(index: Index, tpe: Type, query: QueryRoot, waitForCompletion: Boolean): Future[DeleteByQuerySearchResponse]
 
   def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
     implicit val ec = indexExecutionCtx
@@ -452,6 +452,8 @@ object RestlasticSearchClient {
     case class IndexAlreadyExistsException(message: String) extends Exception(message)
 
     case class ElasticErrorResponse(error: JValue, status: Int) extends Exception(s"ElasticsearchError(status=$status): ${error.toString}")
+
+    case class DeleteByQuerySearchResponse(deletedDocumentsCount: BigInt)
 
   }
 

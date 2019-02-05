@@ -22,6 +22,7 @@ import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V6}
 import spray.http.HttpMethods._
 import spray.http.Uri.{Query => UriQuery}
 import spray.http._
+import org.json4s.jackson.JsonMethods.parse
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -45,12 +46,21 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
 
   override val version = V6
 
-  def deleteByQuery(index: Index, tpe: Type, deleteQuery: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse] = {
+  def deleteByQuery(index: Index, tpe: Type, deleteQuery: QueryRoot, waitForCompletion: Boolean): Future[DeleteByQuerySearchResponse] = {
     implicit val ec = indexExecutionCtx
 
     val uriQuery = UriQuery("wait_for_completion" -> waitForCompletion.toString)
 
-    runEsCommand(deleteQuery, s"/${index.name}/${tpe.name}/_delete_by_query", query = uriQuery, method = POST)
+    val commandResult = runEsCommand(deleteQuery, s"/${index.name}/${tpe.name}/_delete_by_query", query = uriQuery, method = POST)
+
+    commandResult.map(result => {
+      val mappedResult = parse(result.jsonStr).extract[Map[String, Any]]
+      val deletedDocumentsCount: BigInt = mappedResult.get("deleted") match {
+        case Some(count) => count.asInstanceOf[BigInt]
+        case _ => -1
+      }
+      DeleteByQuerySearchResponse(deletedDocumentsCount)
+    })
   }
 
   def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse] = {
