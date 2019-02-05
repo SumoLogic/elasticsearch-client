@@ -55,8 +55,8 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
 
     commandResult.map(result => {
       val mappedResult = parse(result.jsonStr).extract[Map[String, Any]]
-      val deletedDocumentsCount: BigInt = mappedResult.get("deleted") match {
-        case Some(count) => count.asInstanceOf[BigInt]
+      val deletedDocumentsCount: Long = mappedResult.get("deleted") match {
+        case Some(count) => count.asInstanceOf[BigInt].toLong
         case _ => -1
       }
       DeleteByQuerySearchResponse(deletedDocumentsCount)

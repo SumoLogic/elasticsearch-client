@@ -453,7 +453,7 @@ object RestlasticSearchClient {
 
     case class ElasticErrorResponse(error: JValue, status: Int) extends Exception(s"ElasticsearchError(status=$status): ${error.toString}")
 
-    case class DeleteByQuerySearchResponse(deletedDocumentsCount: BigInt)
+    case class DeleteByQuerySearchResponse(deletedDocumentsCount: Long)
 
   }
 
