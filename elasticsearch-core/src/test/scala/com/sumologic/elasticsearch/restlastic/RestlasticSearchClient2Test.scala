@@ -25,6 +25,7 @@ class RestlasticSearchClient2Test extends WordSpec with Matchers with BeforeAndA
     with ElasticsearchIntegrationTest with OneInstancePerTest with RestlasticSearchClientTest {
 
   override val restClient = RestlasticSearchClient2Test.restClient
+  override val numberOfDocumentsHaveBeenDeletedByAQuery: Long = 10011
 
   "RestlasticSearchClient2" should {
     behave like restlasticClient(

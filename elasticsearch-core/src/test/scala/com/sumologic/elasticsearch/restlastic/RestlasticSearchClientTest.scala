@@ -37,6 +37,7 @@ trait RestlasticSearchClientTest {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   protected val basicNumericFieldMapping = BasicFieldMapping(IntegerType, None, None, None, None)
+  protected val numberOfDocumentsHaveBeenDeletedByAQuery: Long = 0
 
   override implicit val patienceConfig = PatienceConfig(
     timeout = scaled(Span(10, Seconds)), interval = scaled(Span(50, Millis)))
@@ -1196,7 +1197,7 @@ trait RestlasticSearchClientTest {
       count1 should be(0)
     }
 
-    def checkDeletingByAQueryResponse(termQuery: TermQuery): Unit = {
+    "Support deleting by a query" in {
       val docsCount = 10011
       val documents = (1 to docsCount).map(i => Document(s"doc$i", Map("text7" -> "here7")))
       val bulkInsertResult = restClient.bulkIndex(index, tpe,documents)
@@ -1206,22 +1207,31 @@ trait RestlasticSearchClientTest {
       val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
       count should be(docsCount)
 
+      val termQuery = TermQuery("text7", "here7")
       val delFut = restClient.deleteByQuery(index, tpe, new QueryRoot(termQuery), true)
       val deleteDocsResponse = Await.result(delFut, 20.seconds)
       deleteDocsResponse.deletedDocumentsCount should be(docsCount)
       refresh()
-    }
-
-    "Support deleting by a query" in {
-      val termQuery = TermQuery("text7", "here7")
-      checkDeletingByAQueryResponse(termQuery)
 
       val count1 = Await.result(restClient.count(index, tpe, new QueryRoot(termQuery)), 10.seconds)
       count1 should be(0)
     }
 
     "Deleting by a query without waiting generates correct response" in {
-      checkDeletingByAQueryResponse(TermQuery("text7", "here7"))
+      val docsCount = 10011
+      val documents = (1 to docsCount).map(i => Document(s"doc$i", Map("text7" -> "here7")))
+      val bulkInsertResult = restClient.bulkIndex(index, tpe,documents)
+      Await.result(bulkInsertResult, 20.seconds)
+      refresh()
+
+      val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
+      count should be(docsCount)
+
+      val termQuery = TermQuery("text7", "here7")
+      val delFut = restClient.deleteByQuery(index, tpe, new QueryRoot(termQuery), false)
+      val deleteDocsResponse = Await.result(delFut, 20.seconds)
+
+      deleteDocsResponse.deletedDocumentsCount should be(numberOfDocumentsHaveBeenDeletedByAQuery)
     }
 
     "Delete only first page of query results" in {
