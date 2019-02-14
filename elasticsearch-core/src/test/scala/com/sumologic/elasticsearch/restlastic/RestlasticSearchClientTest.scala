@@ -37,7 +37,6 @@ trait RestlasticSearchClientTest {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   protected val basicNumericFieldMapping = BasicFieldMapping(IntegerType, None, None, None, None)
-  protected val numberOfDocumentsHaveBeenDeletedByAQuery: Long = 0
 
   override implicit val patienceConfig = PatienceConfig(
     timeout = scaled(Span(10, Seconds)), interval = scaled(Span(50, Millis)))
@@ -1231,7 +1230,7 @@ trait RestlasticSearchClientTest {
       val delFut = restClient.deleteByQuery(index, tpe, new QueryRoot(termQuery), false)
       val deleteDocsResponse = Await.result(delFut, 20.seconds)
 
-      deleteDocsResponse.deletedDocumentsCount should be(numberOfDocumentsHaveBeenDeletedByAQuery)
+      deleteDocsResponse.deletedDocumentsCount should be(-1)
     }
 
     "Delete only first page of query results" in {

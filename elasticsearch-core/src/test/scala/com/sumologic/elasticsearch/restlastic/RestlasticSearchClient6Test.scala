@@ -26,7 +26,6 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
     with ElasticsearchIntegrationTest with OneInstancePerTest with RestlasticSearchClientTest {
 
   override val restClient = RestlasticSearchClient6Test.restClient
-  override val numberOfDocumentsHaveBeenDeletedByAQuery: Long = -1
 
   val basicKeywordFieldMapping = BasicFieldMapping(KeywordType, None, None)
 

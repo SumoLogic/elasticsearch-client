@@ -37,7 +37,15 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
 
   def deleteByQuery(index: Index, tpe: Type, deleteQuery: QueryRoot, waitForCompletion: Boolean): Future[DeleteByQuerySearchResponse] = {
     implicit val ec = indexExecutionCtx
-    deleteDocuments(index, tpe, deleteQuery).map(resp => DeleteByQuerySearchResponse(resp.size))
+
+    deleteDocuments(index, tpe, deleteQuery).map(resp => {
+      val deletedDocumentsCount = if (waitForCompletion) {
+        resp.size
+      } else {
+        -1
+      }
+      DeleteByQuerySearchResponse(deletedDocumentsCount)
+    })
   }
 
   def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse] = {
