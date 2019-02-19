@@ -235,8 +235,8 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
 
   def scroll(scrollId: ScrollId, resultWindowOpt: Option[String] = None): Future[(ScrollId, SearchResponse)] = {
     implicit val ec = searchExecutionCtx
-    val uriQuery = UriQuery("scroll_id" -> scrollId.id, "scroll" -> resultWindowOpt.getOrElse(defaultResultWindow))
-    runEsCommand(NoOp, s"/_search/scroll", query = uriQuery).map { resp =>
+    val params = Map("scroll_id" -> scrollId.id, "scroll" -> resultWindowOpt.getOrElse(defaultResultWindow))
+    runEsCommand(EmptyObject, s"/_search/scroll", opParams = params).map { resp =>
       val sr = resp.mappedTo[SearchResponseWithScrollId]
       (ScrollId(sr._scroll_id), SearchResponse(RawSearchResponse(sr.hits), resp.jsonStr))
     }
