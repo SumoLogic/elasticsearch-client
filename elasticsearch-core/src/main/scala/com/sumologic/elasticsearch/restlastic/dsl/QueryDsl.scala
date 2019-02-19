@@ -468,4 +468,8 @@ trait QueryDsl extends DslCommons with SortDsl {
     val name = "fvh"
   }
 
+  case class Scroll(id: String, window: String) extends RootObject {
+    override def toJson(version: EsVersion): Map[String, Any] = Map("scroll_id" -> id, "scroll" -> window)
+  }
+
 }
