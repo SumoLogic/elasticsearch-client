@@ -242,7 +242,7 @@ trait RestlasticSearchClientTest {
     }
 
     "Support scroll requests" in {
-      val docFutures = (1 to 10).map { n =>
+      val docFutures = (1 to 15).map { n =>
         Document(s"doc-$n", Map("ct" -> "ct", "id" -> n))
       }.map { doc =>
         restClient.index(index, tpe, doc)
@@ -258,6 +258,9 @@ trait RestlasticSearchClientTest {
       }
       whenReady(restClient.scroll(scrollId)) { case (id, data) =>
         data.sourceAsMap.flatMap(_.values).filter(_ != "ct") should be(List(6, 7, 8, 9, 10))
+      }
+      whenReady(restClient.scroll(scrollId)) { case (id, data) =>
+        data.sourceAsMap.flatMap(_.values).filter(_ != "ct") should be(List(11, 12, 13, 14, 15))
       }
     }
 

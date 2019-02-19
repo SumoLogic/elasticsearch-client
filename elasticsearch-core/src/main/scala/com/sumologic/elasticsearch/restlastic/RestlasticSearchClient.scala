@@ -146,17 +146,12 @@ abstract class RestlasticSearchClient(searchExecutionCtx: ExecutionContext) exte
                              endpoint: String,
                              method: HttpMethod = POST,
                              query: UriQuery = UriQuery.Empty,
-                             profile: Boolean = false,
-                             opParams: Map[String, Any] = Map())
+                             profile: Boolean = false)
                             (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     val jsonStr = if (profile) {
-      EsOperation.compactJson(op.toJson(version) ++ opParams + ("profile" -> true))
+      EsOperation.compactJson(op.toJson(version) + ("profile" -> true))
     } else {
-      if (opParams.nonEmpty) {
-        EsOperation.compactJson(op.toJson(version) ++ opParams)
-      } else {
-        op.toJsonStr(version)
-      }
+      op.toJsonStr(version)
     }
     runRawEsRequest(jsonStr, endpoint, method, query)
   }

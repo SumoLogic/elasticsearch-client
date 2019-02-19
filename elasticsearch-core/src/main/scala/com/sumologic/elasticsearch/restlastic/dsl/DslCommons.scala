@@ -55,6 +55,10 @@ trait DslCommons {
     override def toJsonStr(version: EsVersion): String = ""
   }
 
+  case class Json(map: Map[String, Any]) extends RootObject {
+    override def toJson(version: EsVersion): Map[String, Any] = map
+  }
+
   abstract class SingleField(field: String, value: EsOperation) extends EsOperation {
     override def toJson(version: EsVersion): Map[String, Any] = Map(
       field -> value.toJson(version)
