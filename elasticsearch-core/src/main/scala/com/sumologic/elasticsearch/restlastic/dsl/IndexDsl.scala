@@ -179,6 +179,24 @@ trait IndexDsl extends DslCommons {
     )
   }
 
+  case class PatternFilter(name: Name, preserveOriginal: Boolean, patterns: Seq[String]) extends Filter with EsOperation {
+    val _filter = "filter"
+    val _type = "type"
+    val _patternCapture = "pattern_capture"
+    val _preserveOriginal = "preserve_original"
+    val _patterns = "patterns"
+
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
+      _filter -> Map(
+        name.name -> Map(
+          _type -> _patternCapture,
+          _preserveOriginal -> preserveOriginal,
+          _patterns -> patterns
+        )
+      )
+    )
+  }
+
   case class AnalyzerArray(analyzers: Analyzer*) extends EsOperation {
     val _analyzer = "analyzer"
 
@@ -222,6 +240,10 @@ trait IndexDsl extends DslCommons {
 
   case object EdgeNGram extends FieldType {
     val rep = "edgengram"
+  }
+
+  case object PatternFilter extends FieldType {
+    val rep = "pattern_filter"
   }
 
 }
