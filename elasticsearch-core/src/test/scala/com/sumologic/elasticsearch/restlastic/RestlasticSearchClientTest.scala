@@ -75,6 +75,15 @@ trait RestlasticSearchClientTest {
       whenReady(indexFut) { _ => refreshWithClient() }
     }
 
+    "Be able to create an index with pattern_capture analyzer" in {
+      val pattern = PatternFilter(Name(PatternFilter.rep), preserveOriginal = false, Seq("(\\W+)"))
+      val analyzer = Analyzer(Name("pattern_lowercase"), Keyword, PatternFilter)
+      val analyzers = Analyzers(AnalyzerArray(analyzer), FilterArray(pattern))
+      val indexSetting = IndexSetting(12, 1, analyzers, 30)
+      val indexFut = restClient.createIndex(Index(s"${indexName}_${EdgeNGram.rep}"), Some(indexSetting))
+      whenReady(indexFut) { _ => refreshWithClient() }
+    }
+
     "Be able to setup document mapping" in {
       val basicFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName))
       val metadataMapping = Mapping(tpe, IndexMapping(
