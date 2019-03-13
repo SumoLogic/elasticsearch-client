@@ -62,10 +62,10 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
   }
 
   override protected def scrollDelete(index: Index,
-                           tpe: Type,
-                           scrollId: ScrollId,
-                           acc: Map[Index, DeleteResponse],
-                           scrollingFn: (ScrollId) => Future[(ScrollId, SearchResponse)]): Future[Map[Index, DeleteResponse]] = {
+                                      tpe: Type,
+                                      scrollId: ScrollId,
+                                      acc: Map[Index, DeleteResponse],
+                                      scrollingFn: (ScrollId) => Future[(ScrollId, SearchResponse)]): Future[Map[Index, DeleteResponse]] = {
     implicit val ec = indexExecutionCtx
     scrollingFn(scrollId).flatMap { case (id, response) =>
       val rawResponse = response.rawSearchResponse

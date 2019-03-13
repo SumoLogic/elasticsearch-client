@@ -49,10 +49,10 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
   }
 
   override protected def scrollDelete(index: Index,
-                           tpe: Type,
-                           scrollId: ScrollId,
-                           acc: Map[Index, DeleteResponse],
-                           scrollingFn: (ScrollId) => Future[(ScrollId, SearchResponse)]): Future[Map[Index, DeleteResponse]] = {
+                                      tpe: Type,
+                                      scrollId: ScrollId,
+                                      acc: Map[Index, DeleteResponse],
+                                      scrollingFn: (ScrollId) => Future[(ScrollId, SearchResponse)]): Future[Map[Index, DeleteResponse]] = {
     implicit val ec = indexExecutionCtx
     scrollingFn(scrollId).flatMap { case (id, response) =>
       val rawResponse = response.rawSearchResponse
@@ -87,12 +87,12 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
   // Put sort by _doc in query as described in the the following document
   // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html
   override def startScrollRequest(index: Index,
-                         tpe: Type,
-                         query: QueryRoot,
-                         resultWindowOpt: Option[String] = None,
-                         fromOpt: Option[Int] = None,
-                         sizeOpt: Option[Int] = None,
-                         preference: Option[String] = None): Future[(ScrollId, SearchResponse)] = {
+                                  tpe: Type,
+                                  query: QueryRoot,
+                                  resultWindowOpt: Option[String] = None,
+                                  fromOpt: Option[Int] = None,
+                                  sizeOpt: Option[Int] = None,
+                                  preference: Option[String] = None): Future[(ScrollId, SearchResponse)] = {
     val params = Map("scroll" -> resultWindowOpt.getOrElse(defaultResultWindow)) ++
       fromOpt.map("from" -> _.toString) ++
       sizeOpt.map("size" -> _.toString) ++
@@ -101,10 +101,10 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
   }
 
   override def runRawEsRequest(op: String,
-                      endpoint: String,
-                      method: HttpMethod = POST,
-                      query: UriQuery = UriQuery.Empty)
-                     (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse] = {
+                               endpoint: String,
+                               method: HttpMethod = POST,
+                               query: UriQuery = UriQuery.Empty)
+                              (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse] = {
     val request = {
       val unauthed = HttpRequest(
         method = method,
