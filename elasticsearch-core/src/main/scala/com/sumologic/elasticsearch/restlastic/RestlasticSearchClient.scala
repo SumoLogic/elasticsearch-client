@@ -108,6 +108,20 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
     }
   }
 
+  def queryIndices(indices: List[Index],
+            tpe: Type,
+            query: RootObject,
+            rawJsonStr: Boolean = true,
+            uriQuery: UriQuery = UriQuery.Empty,
+            profile: Boolean = false): Future[SearchResponse] = {
+    implicit val ec = searchExecutionCtx
+    val endpoint = s"/${indices.map(i => i.name).mkString(",")}/${tpe.name}/_search"
+    runEsCommand(query, endpoint, query = uriQuery, profile = profile).map { rawJson =>
+      val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
+      SearchResponse(rawJson.mappedTo[RawSearchResponse], jsonStr)
+    }
+  }
+
   def bucketNestedAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketNested] = {
     implicit val ec = searchExecutionCtx
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
