@@ -109,11 +109,11 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
   }
 
   def queryIndices(indices: Seq[Index],
-            tpe: Type,
-            query: RootObject,
-            rawJsonStr: Boolean = true,
-            uriQuery: UriQuery = UriQuery.Empty,
-            profile: Boolean = false): Future[SearchResponse] = {
+                   tpe: Type,
+                   query: RootObject,
+                   rawJsonStr: Boolean = true,
+                   uriQuery: UriQuery = UriQuery.Empty,
+                   profile: Boolean = false): Future[SearchResponse] = {
     implicit val ec = searchExecutionCtx
     val endpoint = s"/${indices.map(i => i.name).mkString(",")}/${tpe.name}/_search"
     runEsCommand(query, endpoint, query = uriQuery, profile = profile).map { rawJson =>
