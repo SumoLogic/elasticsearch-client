@@ -280,6 +280,11 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
     runEsCommand(EmptyObject, s"/${index.name}/_refresh")
   }
 
+  def refresh(indices: Seq[Index]): Future[RawJsonResponse] = {
+    implicit val ec = indexExecutionCtx
+    runEsCommand(EmptyObject, s"/${indices.map(i => i.name).mkString(",")}}/_refresh")
+  }
+
   def version: EsVersion
 
   protected def runEsCommand(op: RootObject,
