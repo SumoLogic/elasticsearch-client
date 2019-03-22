@@ -108,7 +108,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
     }
   }
 
-  def queryIndices(indices: List[Index],
+  def queryIndices(indices: Seq[Index],
             tpe: Type,
             query: RootObject,
             rawJsonStr: Boolean = true,
