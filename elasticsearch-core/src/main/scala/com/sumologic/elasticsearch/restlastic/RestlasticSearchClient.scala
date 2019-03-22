@@ -152,6 +152,12 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
     fut.map(_.mappedTo[CountResponse].count)
   }
 
+  def count(indices: Seq[Index], tpe: Type, query: QueryRoot): Future[Int] = {
+    implicit val ec = searchExecutionCtx
+    val fut = runEsCommand(query, s"/${indices.map(i => i.name).mkString(",")}/${tpe.name}/_count")
+    fut.map(_.mappedTo[CountResponse].count)
+  }
+
   def index(index: Index, tpe: Type, doc: Document): Future[IndexResponse] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(doc, s"/${index.name}/${tpe.name}/${doc.id}").map(_.mappedTo[IndexResponse])

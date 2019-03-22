@@ -1320,6 +1320,26 @@ trait RestlasticSearchClientTest {
             Map("text" -> "lokomotywa stoi na stacji")))
       }
     }
+
+    "support the count API for many indices" in {
+      0 to 2 foreach { i =>
+        val docFutures = (1 to 7).map { n =>
+          Document(s"doc-$n", Map("ct" -> "ct", "id" -> n))
+        }.map { doc =>
+          restClient.index(indices.apply(i), tpe, doc)
+        }
+
+        val docs = Future.sequence(docFutures)
+        whenReady(docs) { _ =>
+          refresh()
+        }
+      }
+
+      val ctFut = restClient.count(indices, tpe, new QueryRoot(TermQuery("ct", "ct")))
+      whenReady(ctFut) { ct =>
+        ct should be(21)
+      }
+    }
   }
 }
 
