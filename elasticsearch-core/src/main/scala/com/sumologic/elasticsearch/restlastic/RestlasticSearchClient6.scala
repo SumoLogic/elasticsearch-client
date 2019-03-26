@@ -53,6 +53,13 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
     runEsCommand(deleteQuery, s"/${index.name}/${tpe.name}/_delete_by_query", query = uriQuery, method = POST)
   }
 
+  def deleteByQuery(indices: Seq[Index], tpe: Type, deleteQuery: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse] = {
+    implicit val ec = indexExecutionCtx
+
+    val uriQuery = UriQuery("wait_for_completion" -> waitForCompletion.toString)
+    runEsCommand(deleteQuery, s"/${indices.map(i => i.name).mkString(",")}/${tpe.name}/_delete_by_query", query = uriQuery, method = POST)
+  }
+
   def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(CreateIndex(settings), s"/${index.name}", PUT).recover {

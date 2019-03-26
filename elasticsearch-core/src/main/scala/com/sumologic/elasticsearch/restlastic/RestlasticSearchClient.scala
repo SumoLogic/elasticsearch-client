@@ -170,6 +170,8 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
 
   def deleteByQuery(index: Index, tpe: Type, query: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse]
 
+  def deleteByQuery(indices: Seq[Index], tpe: Type, query: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse]
+
   def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", HEAD).map(_ => true).recover {
@@ -240,7 +242,6 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
 
   def deleteDocuments(index: Index, tpe: Type, deleteQuery: QueryRoot, pluginEnabled: Boolean = false): Future[Map[Index, DeleteResponse]] = {
     def firstScroll(scId: ScrollId) = startScrollRequest(index, tpe, deleteQuery)
-
     scrollDelete(index, tpe, ScrollId(""), Map.empty[Index, DeleteResponse], firstScroll)
   }
 

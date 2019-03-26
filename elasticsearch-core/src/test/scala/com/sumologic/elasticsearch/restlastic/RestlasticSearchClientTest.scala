@@ -1340,6 +1340,25 @@ trait RestlasticSearchClientTest {
         ct should be(21)
       }
     }
+
+    "be able to delete document by query from two indices" in {
+      val index0 = indices.apply(0)
+      val index1 = indices.apply(1)
+      indexDocs(Seq(Document("doc1", Map("text" -> "here"))), index0)
+      indexDocs(Seq(Document("doc1", Map("text" -> "here"))), index1)
+      val termQuery = TermQuery("text", "here")
+
+      val count = Await.result(restClient.count(List(index0, index1), tpe, new QueryRoot(termQuery)), 10.seconds)
+      count should be(2)
+
+      val delFut = restClient.deleteByQuery(List(index0, index1), tpe, new QueryRoot(termQuery), true)
+      Await.result(delFut, 20.seconds)
+      refresh()
+
+      val count1 = Await.result(restClient.count(List(index0, index1), tpe, new QueryRoot(termQuery)), 10.seconds)
+      count1 should be(0)
+
+    }
   }
 }
 
