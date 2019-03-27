@@ -43,24 +43,29 @@ trait RestlasticSearchClientTest {
 
   def restlasticClient(restClient: => RestlasticSearchClient,
                        indexName: String,
-                       index: Dsl.Index,
+                       indices: IndexedSeq[Dsl.Index],
                        textType: FieldType,
                        basicKeywordFieldMapping: BasicFieldMapping): Unit = {
     val keywordType = basicKeywordFieldMapping.tpe
     val analyzerName = Name("keyword_lowercase")
     val basicTextFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName), ignoreAbove = None, Some(analyzerName))
     val tpe = Type("foo")
+    val index = indices.apply(0)
 
     def refreshWithClient(): Unit = {
-      Await.result(restClient.refresh(index), 2.seconds)
+      indices.foreach { index =>
+        Await.result(restClient.refresh(index), 2.seconds)
+      }
     }
 
     def refresh(): Unit = {
-      restClient.refresh(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
+      indices.foreach { index =>
+        restClient.refresh(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
+      }
     }
 
-    def indexDocs(docs: Seq[Document]): Unit = {
-      val bulkIndexFuture = restClient.bulkIndex(index, tpe, docs)
+    def indexDocs(docs: Seq[Document], toIndex: Index = index): Unit = {
+      val bulkIndexFuture = restClient.bulkIndex(toIndex, tpe, docs)
       whenReady(bulkIndexFuture) { _ => refresh() }
     }
 
@@ -1295,6 +1300,62 @@ trait RestlasticSearchClientTest {
         res.rawSearchResponse.profile should not be empty
         res.rawSearchResponse.profile should contain key "shards"
       }
+    }
+
+    "be able to query three indices" in {
+      val index0 = indices.apply(0)
+      val index1 = indices.apply(1)
+      val index2 = indices.apply(2)
+      indexDocs(Seq(Document("doc1", Map("text" -> "lokomotywa"))), index0)
+      indexDocs(Seq(Document("doc1", Map("text" -> "stoi na stacji lokomotywa"))), index1)
+      indexDocs(Seq(Document("doc1", Map("text" -> "lokomotywa stoi na stacji"))), index2)
+      val resFut = restClient.queryIndices(List(index0, index1, index2), tpe, new QueryRoot(TermQuery("text", "lokomotywa"), timeoutOpt = Some(5000)))
+
+      whenReady(resFut) { res =>
+        res.sourceAsMap.toList should be(
+          List(Map("text" -> "lokomotywa"),
+            Map("text" -> "stoi na stacji lokomotywa"),
+            Map("text" -> "lokomotywa stoi na stacji")))
+      }
+    }
+
+    "support the count API for many indices" in {
+      0 to 2 foreach { i =>
+        val docFutures = (1 to 7).map { n =>
+          Document(s"doc-$n", Map("ct" -> "ct", "id" -> n))
+        }.map { doc =>
+          restClient.index(indices.apply(i), tpe, doc)
+        }
+
+        val docs = Future.sequence(docFutures)
+        whenReady(docs) { _ =>
+          refresh()
+        }
+      }
+
+      val ctFut = restClient.count(indices, tpe, new QueryRoot(TermQuery("ct", "ct")))
+      whenReady(ctFut) { ct =>
+        ct should be(21)
+      }
+    }
+
+    "be able to delete document by query from two indices" in {
+      val index0 = indices.apply(0)
+      val index1 = indices.apply(1)
+      indexDocs(Seq(Document("doc1", Map("text" -> "here"))), index0)
+      indexDocs(Seq(Document("doc1", Map("text" -> "here"))), index1)
+      val termQuery = TermQuery("text", "here")
+
+      val count = Await.result(restClient.count(List(index0, index1), tpe, new QueryRoot(termQuery)), 10.seconds)
+      count should be(2)
+
+      val delFut = restClient.deleteByQuery(List(index0, index1), tpe, new QueryRoot(termQuery), true)
+      Await.result(delFut, 20.seconds)
+      refresh()
+
+      val count1 = Await.result(restClient.count(List(index0, index1), tpe, new QueryRoot(termQuery)), 10.seconds)
+      count1 should be(0)
+
     }
   }
 }

@@ -41,21 +41,23 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
 
   def restClient: RestlasticSearchClient
 
-  val IndexName = s"$indexPrefix-${Random.nextLong()}"
+  val IndexName = s"$indexPrefix-${math.abs(Random.nextLong())}"
 
-  protected def createIndex(): Index = {
-    val index = dsl.Dsl.Index(IndexName)
-    val analyzerName = Name("keyword_lowercase")
-    val lowercaseAnalyzer = Analyzer(analyzerName, Keyword, Lowercase)
-    val notAnalyzed = Analyzer(Name("not_analyzed"), Keyword)
-    val analyzers = Analyzers(
-      AnalyzerArray(lowercaseAnalyzer, notAnalyzed),
-      FilterArray(),
-      NormalizerArray(Normalizer(Name("lowercase"), Lowercase)))
-    val indexSetting = IndexSetting(12, 1, analyzers, 30)
-    val indexFut = restClient.createIndex(index, Some(indexSetting))
-    indexFut.futureValue
-    index
+  protected def createIndices(cnt: Int = 1): IndexedSeq[Index] = {
+    (1 to cnt).map(idx => {
+      val index = dsl.Dsl.Index(s"${IndexName}-${idx}")
+      val analyzerName = Name("keyword_lowercase")
+      val lowercaseAnalyzer = Analyzer(analyzerName, Keyword, Lowercase)
+      val notAnalyzed = Analyzer(Name("not_analyzed"), Keyword)
+      val analyzers = Analyzers(
+        AnalyzerArray(lowercaseAnalyzer, notAnalyzed),
+        FilterArray(),
+        NormalizerArray(Normalizer(Name("lowercase"), Lowercase)))
+      val indexSetting = IndexSetting(12, 1, analyzers, 30)
+      val indexFut = restClient.createIndex(index, Some(indexSetting))
+      indexFut.futureValue
+      index
+    })
   }
 
   override def beforeAll(): Unit = {

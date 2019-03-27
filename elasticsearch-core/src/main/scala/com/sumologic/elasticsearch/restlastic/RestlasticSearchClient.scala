@@ -108,6 +108,20 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
     }
   }
 
+  def queryIndices(indices: Seq[Index],
+                   tpe: Type,
+                   query: RootObject,
+                   rawJsonStr: Boolean = true,
+                   uriQuery: UriQuery = UriQuery.Empty,
+                   profile: Boolean = false): Future[SearchResponse] = {
+    implicit val ec = searchExecutionCtx
+    val endpoint = s"/${indices.map(i => i.name).mkString(",")}/${tpe.name}/_search"
+    runEsCommand(query, endpoint, query = uriQuery, profile = profile).map { rawJson =>
+      val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
+      SearchResponse(rawJson.mappedTo[RawSearchResponse], jsonStr)
+    }
+  }
+
   def bucketNestedAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketNested] = {
     implicit val ec = searchExecutionCtx
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
@@ -138,6 +152,12 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
     fut.map(_.mappedTo[CountResponse].count)
   }
 
+  def count(indices: Seq[Index], tpe: Type, query: QueryRoot): Future[Int] = {
+    implicit val ec = searchExecutionCtx
+    val fut = runEsCommand(query, s"/${indices.map(i => i.name).mkString(",")}/${tpe.name}/_count")
+    fut.map(_.mappedTo[CountResponse].count)
+  }
+
   def index(index: Index, tpe: Type, doc: Document): Future[IndexResponse] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(doc, s"/${index.name}/${tpe.name}/${doc.id}").map(_.mappedTo[IndexResponse])
@@ -149,6 +169,8 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
   }
 
   def deleteByQuery(index: Index, tpe: Type, query: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse]
+
+  def deleteByQuery(indices: Seq[Index], tpe: Type, query: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse]
 
   def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
     implicit val ec = indexExecutionCtx
@@ -220,7 +242,6 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
 
   def deleteDocuments(index: Index, tpe: Type, deleteQuery: QueryRoot, pluginEnabled: Boolean = false): Future[Map[Index, DeleteResponse]] = {
     def firstScroll(scId: ScrollId) = startScrollRequest(index, tpe, deleteQuery)
-
     scrollDelete(index, tpe, ScrollId(""), Map.empty[Index, DeleteResponse], firstScroll)
   }
 
@@ -258,6 +279,11 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
   def refresh(index: Index): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
     runEsCommand(EmptyObject, s"/${index.name}/_refresh")
+  }
+
+  def refresh(indices: Seq[Index]): Future[RawJsonResponse] = {
+    implicit val ec = indexExecutionCtx
+    runEsCommand(EmptyObject, s"/${indices.map(i => i.name).mkString(",")}}/_refresh")
   }
 
   def version: EsVersion

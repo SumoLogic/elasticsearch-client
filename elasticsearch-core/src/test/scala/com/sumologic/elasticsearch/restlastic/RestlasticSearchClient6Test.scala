@@ -29,13 +29,14 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
 
   val basicKeywordFieldMapping = BasicFieldMapping(KeywordType, None, None)
 
-  val index = createIndex()
+  val indices = createIndices(3)
+  val index = indices.apply(0)
 
   "RestlasticSearchClient6" should {
     behave like restlasticClient(
       restClient,
       IndexName,
-      index,
+      indices,
       TextType,
       basicKeywordFieldMapping)
 

@@ -25,12 +25,13 @@ class RestlasticSearchClient2Test extends WordSpec with Matchers with BeforeAndA
     with ElasticsearchIntegrationTest with OneInstancePerTest with RestlasticSearchClientTest {
 
   override val restClient = RestlasticSearchClient2Test.restClient
+  val indices = createIndices(3)
 
   "RestlasticSearchClient2" should {
     behave like restlasticClient(
       restClient,
       IndexName,
-      createIndex(),
+      indices,
       StringType,
       BasicFieldMapping(StringType, None, Some(Name("not_analyzed")), ignoreAbove = None, None))
   }
