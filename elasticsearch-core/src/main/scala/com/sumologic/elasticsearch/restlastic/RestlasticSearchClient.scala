@@ -59,16 +59,16 @@ trait ScrollClient {
                          fromOpt: Option[Int] = None,
                          sizeOpt: Option[Int] = None,
                          preference: Option[String] = None): Future[(ScrollId, SearchResponse)] = {
-    startScrollRequest(Seq(index), tpe, query, resultWindowOpt, fromOpt, sizeOpt, preference)
+    startScrollRequestIndices(Seq(index), tpe, query, resultWindowOpt, fromOpt, sizeOpt, preference)
   }
 
-  def startScrollRequest(indices: Seq[Index],
-                         tpe: Type,
-                         query: QueryRoot,
-                         resultWindowOpt: Option[String] = None,
-                         fromOpt: Option[Int] = None,
-                         sizeOpt: Option[Int] = None,
-                         preference: Option[String] = None): Future[(ScrollId, SearchResponse)]
+  def startScrollRequestIndices(indices: Seq[Index],
+                                tpe: Type,
+                                query: QueryRoot,
+                                resultWindowOpt: Option[String] = None,
+                                fromOpt: Option[Int] = None,
+                                sizeOpt: Option[Int] = None,
+                                preference: Option[String] = None): Future[(ScrollId, SearchResponse)]
 
   def scroll(scrollId: ScrollId, resultWindowOpt: Option[String] = None): Future[(ScrollId, SearchResponse)]
 }

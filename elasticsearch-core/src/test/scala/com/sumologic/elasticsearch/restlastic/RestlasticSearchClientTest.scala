@@ -301,7 +301,7 @@ trait RestlasticSearchClientTest {
       }
 
       val query = new QueryRoot(MatchAll, sortOpt = Some(Seq(SimpleSort("id", AscSortOrder))))
-      val fut = restClient.startScrollRequest(Seq(index1, index), tpe, query, sizeOpt = Some(5))
+      val fut = restClient.startScrollRequestIndices(Seq(index1, index), tpe, query, sizeOpt = Some(5))
       val scrollId = whenReady(fut) { case (id, data) =>
         data.sourceAsMap.flatMap(_.values).filter(_ != "ct") should be(List(1, 2, 3, 4, 5))
         id
