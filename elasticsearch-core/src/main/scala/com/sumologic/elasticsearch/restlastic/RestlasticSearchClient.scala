@@ -110,12 +110,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
             rawJsonStr: Boolean = true,
             uriQuery: UriQuery = UriQuery.Empty,
             profile: Boolean = false): Future[SearchResponse] = {
-    implicit val ec = searchExecutionCtx
-    val endpoint = s"/${index.name}/${tpe.name}/_search"
-    runEsCommand(query, endpoint, query = uriQuery, profile = profile).map { rawJson =>
-      val jsonStr = if(rawJsonStr) rawJson.jsonStr else ""
-      SearchResponse(rawJson.mappedTo[RawSearchResponse], jsonStr)
-    }
+    queryIndices(Seq(index), tpe, query, rawJsonStr, uriQuery, profile)
   }
 
   def queryIndices(indices: Seq[Index],
@@ -157,9 +152,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
   }
 
   def count(index: Index, tpe: Type, query: QueryRoot): Future[Int] = {
-    implicit val ec = searchExecutionCtx
-    val fut = runEsCommand(query, s"/${index.name}/${tpe.name}/_count")
-    fut.map(_.mappedTo[CountResponse].count)
+    count(Seq(index), tpe, query)
   }
 
   def count(indices: Seq[Index], tpe: Type, query: QueryRoot): Future[Int] = {
@@ -288,8 +281,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
   }
 
   def refresh(index: Index): Future[RawJsonResponse] = {
-    implicit val ec = indexExecutionCtx
-    runEsCommand(EmptyObject, s"/${index.name}/_refresh")
+    refresh(Seq(index))
   }
 
   def refresh(indices: Seq[Index]): Future[RawJsonResponse] = {
