@@ -1312,8 +1312,6 @@ trait RestlasticSearchClientTest {
       val resFut = restClient.queryIndices(List(index0, index1, index2), tpe, new QueryRoot(TermQuery("text", "lokomotywa"), timeoutOpt = Some(5000)))
 
       whenReady(resFut) { res =>
-        println(res)
-        println(res.sourceAsMap.toList)
         res.sourceAsMap.toList should be(
           List(Map("text" -> "lokomotywa"),
             Map("text" -> "stoi na stacji lokomotywa"),
