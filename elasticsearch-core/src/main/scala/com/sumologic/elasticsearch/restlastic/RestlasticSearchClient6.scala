@@ -46,11 +46,7 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
   override val version = V6
 
   def deleteByQuery(index: Index, tpe: Type, deleteQuery: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse] = {
-    implicit val ec = indexExecutionCtx
-
-    val uriQuery = UriQuery("wait_for_completion" -> waitForCompletion.toString)
-
-    runEsCommand(deleteQuery, s"/${index.name}/${tpe.name}/_delete_by_query", query = uriQuery, method = POST)
+    deleteByQuery(Seq(index), tpe, deleteQuery, waitForCompletion)
   }
 
   def deleteByQuery(indices: Seq[Index], tpe: Type, deleteQuery: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse] = {
@@ -106,17 +102,17 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
   // Scroll requests have optimizations that make them faster when the sort order is _doc.
   // Put sort by _doc in query as described in the the following document
   // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html
-  override def startScrollRequest(index: Index,
-                                  tpe: Type,
-                                  query: QueryRoot,
-                                  resultWindowOpt: Option[String] = None,
-                                  fromOpt: Option[Int] = None,
-                                  sizeOpt: Option[Int] = None,
-                                  preference: Option[String] = None): Future[(ScrollId, SearchResponse)] = {
+  override def startScrollRequestIndices(indices: Seq[Index],
+                                         tpe: Type,
+                                         query: QueryRoot,
+                                         resultWindowOpt: Option[String] = None,
+                                         fromOpt: Option[Int] = None,
+                                         sizeOpt: Option[Int] = None,
+                                         preference: Option[String] = None): Future[(ScrollId, SearchResponse)] = {
     val params = Map("scroll" -> resultWindowOpt.getOrElse(defaultResultWindow)) ++
       sizeOpt.map("size" -> _.toString) ++
       preference.map("preference" -> _)
-    super.startScrollRequest(index, tpe, query, resultWindowOpt, fromOpt, sizeOpt, preference, params)
+    super.startScrollRequest(indices, tpe, query, resultWindowOpt, fromOpt, sizeOpt, preference, params)
   }
 
   override def runRawEsRequest(op: String,

@@ -278,6 +278,48 @@ trait RestlasticSearchClientTest {
       }
     }
 
+    "Support scroll requests for multiple indices" in {
+      val index0 = indices.apply(0)
+      val index1 = indices.apply(1)
+
+      val docFutures = (1 to 15).map { n =>
+        Document(s"doc-$n", Map("ct" -> "ct", "id" -> n))
+      }.map { doc =>
+        restClient.index(index0, tpe, doc)
+      }
+      whenReady(Future.sequence(docFutures)) { _ =>
+        refresh()
+      }
+
+      val docFutures1 = (16 to 23).map { n =>
+        Document(s"doc-$n", Map("ct" -> "ct", "id" -> n))
+      }.map { doc =>
+        restClient.index(index1, tpe, doc)
+      }
+      whenReady(Future.sequence(docFutures1)) { _ =>
+        refresh()
+      }
+
+      val query = new QueryRoot(MatchAll, sortOpt = Some(Seq(SimpleSort("id", AscSortOrder))))
+      val fut = restClient.startScrollRequestIndices(Seq(index1, index0), tpe, query, sizeOpt = Some(5))
+      val scrollId = whenReady(fut) { case (id, data) =>
+        data.sourceAsMap.flatMap(_.values).filter(_ != "ct") should be(List(1, 2, 3, 4, 5))
+        id
+      }
+      whenReady(restClient.scroll(scrollId)) { case (id, data) =>
+        data.sourceAsMap.flatMap(_.values).filter(_ != "ct") should be(List(6, 7, 8, 9, 10))
+      }
+      whenReady(restClient.scroll(scrollId)) { case (id, data) =>
+        data.sourceAsMap.flatMap(_.values).filter(_ != "ct") should be(List(11, 12, 13, 14, 15))
+      }
+      whenReady(restClient.scroll(scrollId)) { case (id, data) =>
+        data.sourceAsMap.flatMap(_.values).filter(_ != "ct") should be(List(16, 17, 18, 19, 20))
+      }
+      whenReady(restClient.scroll(scrollId)) { case (id, data) =>
+        data.sourceAsMap.flatMap(_.values).filter(_ != "ct") should be(List(21, 22, 23))
+      }
+    }
+
     "Support the count API" in {
       val docFutures = (1 to 10).map { n =>
         Document(s"doc-$n", Map("ct" -> "ct", "id" -> n))
