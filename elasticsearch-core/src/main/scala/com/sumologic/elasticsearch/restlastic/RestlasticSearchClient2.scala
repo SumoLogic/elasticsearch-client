@@ -18,16 +18,19 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
+import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V2}
 import spray.http.HttpMethods._
 import spray.http.Uri.{Query => UriQuery}
 import spray.http._
 
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
                               override val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
                               searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
+                             (override implicit val timeout: Timeout = Timeout(30 seconds))
   extends RestlasticSearchClient(endpointProvider, signer, indexExecutionCtx, searchExecutionCtx) {
 
   import Dsl._

@@ -17,8 +17,10 @@
  * under the License.
  */
 package com.sumologic.elasticsearch.restlastic
+import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 
+import scala.concurrent.duration._
 import org.scalatest._
 
 class RestlasticSearchClient2Test extends WordSpec with Matchers with BeforeAndAfterAll
@@ -43,7 +45,7 @@ object RestlasticSearchClient2Test {
       override def endpoint: Endpoint = Endpoint("127.0.0.1", 9200)
       override def ready: Boolean = true
     }
-    new RestlasticSearchClient2(endpointProvider)
+    new RestlasticSearchClient2(endpointProvider)(timeout = Timeout(30 seconds))
   }
 }
 
