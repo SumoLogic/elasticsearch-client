@@ -1,15 +1,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>elasticsearch-akka</artifactId>
-  <name>elasticsearch-akka</name>
+  <artifactId>elasticsearch-aws</artifactId>
+  <name>elasticsearch-aws</name>
   <packaging>jar</packaging>
-  <version>7.0.0-M11</version>
+  <version>7.0.0-M11-SNAPSHOT</version>
+  <scm><connection>scm:git:git@github.com:Sanyaku/sumologic.git/tags/all-7.0.0-M11-SNAPSHOT/sumologic.git</connection></scm>
 
   <parent>
     <artifactId>all</artifactId>
     <groupId>com.sumologic.elasticsearch</groupId>
-    <version>7.0.0-M11</version>
+    <version>7.0.0-M11-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
 
@@ -19,10 +20,11 @@
   </properties>
 
   <dependencies>
+    <!-- Sumo Test Dependencies. -->
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
       <artifactId>elasticsearch-core</artifactId>
-      <version>7.0.0-M11</version>
+      <version>7.0.0-M11-SNAPSHOT</version>
     </dependency>
 
     <dependency>
@@ -31,12 +33,12 @@
       <version>2.2.6</version>
       <scope>test</scope>
     </dependency>
+
     <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>1.9.5</version>
-      <scope>test</scope>
-    </dependency>		
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-core</artifactId>
+      <version>1.10.62</version>
+    </dependency>
 
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -44,23 +46,17 @@
       <version>1.7.14</version>
     </dependency>
 
+    <!-- Non-Sumo Dependencies. -->
+    <dependency>
+      <groupId>io.spray</groupId>
+      <artifactId>spray-can_${scala.version.major}</artifactId>
+      <version>1.3.3</version>
+    </dependency>
+
     <dependency>
       <groupId>com.typesafe.akka</groupId>
       <artifactId>akka-actor_${scala.version.major}</artifactId>
       <version>${akka.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.typesafe.akka</groupId>
-      <artifactId>akka-stream_${scala.version.major}</artifactId>
-      <version>${akka.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.typesafe.akka</groupId>
-      <artifactId>akka-testkit_${scala.version.major}</artifactId>
-      <version>${akka.version}</version>
-      <scope>test</scope>
     </dependency>
 
   </dependencies>
