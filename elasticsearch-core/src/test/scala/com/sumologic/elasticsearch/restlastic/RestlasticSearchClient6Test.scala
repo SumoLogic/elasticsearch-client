@@ -17,10 +17,13 @@
  * under the License.
  */
 package com.sumologic.elasticsearch.restlastic
+import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{Bucket, BucketAggregationResultBody}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.scalatest._
 import org.scalatest.time.{Millis, Span}
+
+import scala.concurrent.duration._
 
 class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndAfterAll
     with ElasticsearchIntegrationTest with OneInstancePerTest with RestlasticSearchClientTest {
@@ -84,7 +87,7 @@ object RestlasticSearchClient6Test {
       override def endpoint: Endpoint = Endpoint("127.0.0.1", 9800)
       override def ready: Boolean = true
     }
-    new RestlasticSearchClient6(endpointProvider)
+    new RestlasticSearchClient6(endpointProvider)(timeout = Timeout(30 seconds))
   }
 }
 
