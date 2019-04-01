@@ -125,6 +125,10 @@ trait IndexDsl extends DslCommons {
     }
   }
 
+  object Analyzers {
+    def empty: Analyzers = Analyzers(AnalyzerArray(), FilterArray())
+  }
+
   case class Analyzer(name: Name, tokenizer: FieldType, filter: FieldType*)
       extends Analysis with EsOperation {
 
@@ -203,7 +207,7 @@ trait IndexDsl extends DslCommons {
     override def toJson(version: EsVersion): Map[String, Any] = Map(
       _analyzer -> analyzers.map(_
           .toJson(version).getOrElse(_analyzer, Map())
-          .asInstanceOf[Map[String, Any]]).reduce(_ ++ _)
+          .asInstanceOf[Map[String, Any]]).foldLeft(Map.empty[String, Any]) { _ ++ _ }
     )
   }
 
