@@ -141,6 +141,13 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
     }
   }
 
+  def sampleAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketAggregationResultBody] = {
+    implicit val ec = searchExecutionCtx
+    runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
+      rawJson.mappedTo[SampleAggregationResponse].aggregations.sample.aggs_name
+    }
+  }
+
   def suggest(index: Index, tpe: Type, query: SuggestRoot): Future[Map[String,List[String]]] = {
     // I'm not totally sure why, but you don't specify the type for _suggest queries
     implicit val ec = searchExecutionCtx
@@ -414,6 +421,10 @@ object RestlasticSearchClient {
     case class BucketAggregationResultBody(doc_count_error_upper_bound: Int,
                                            sum_other_doc_count: Int,
                                            buckets: List[Bucket])
+
+    case class SampleAggregationResponse(aggregations: SampleAggregations)
+
+    case class SampleAggregations(sample: Aggregations)
 
     case class Bucket(key: String, doc_count: Int)
 
