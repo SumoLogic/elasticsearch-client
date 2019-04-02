@@ -112,4 +112,28 @@ trait AggregationDsl extends DslCommons with QueryDsl {
     }
   }
 
+  case class SamplerAggregation(sampler: Sampler,
+                                aggregation: Aggregation,
+                                name: Option[String] = None) extends Aggregation {
+    val _aggsName = name.getOrElse("sample")
+    val _sampler = "sampler"
+    val _aggs = "aggs"
+
+    override def toJson(version: EsVersion): Map[String, Any] = Map(
+      _aggsName -> Map(
+        _sampler -> sampler.toJson(version),
+        _aggs -> aggregation.toJson(version)
+      )
+    )
+  }
+
+  case class Sampler(size: Int, field: Option[String] = None) extends EsOperation {
+    val _shardSize = "shard_size"
+    val _field = "field"
+
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(_shardSize -> size) ++ field.map(f => _field -> f)
+    }
+  }
+
 }

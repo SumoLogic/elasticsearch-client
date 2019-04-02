@@ -32,7 +32,7 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 trait RestlasticSearchClientTest {
-  this: WordSpec with ScalaFutures with Matchers =>
+  this: WordSpec with ScalaFutures with Matchers with ElasticsearchIntegrationTest =>
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -49,6 +49,7 @@ trait RestlasticSearchClientTest {
     val keywordType = basicKeywordFieldMapping.tpe
     val analyzerName = Name("keyword_lowercase")
     val basicTextFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName), ignoreAbove = None, Some(analyzerName))
+    val naturalLanguageFieldMapping = BasicFieldMapping(textType, None, Some(Name("standard")))
     val tpe = Type("foo")
     val index = indices.apply(0)
 
@@ -60,8 +61,12 @@ trait RestlasticSearchClientTest {
 
     def refresh(): Unit = {
       indices.foreach { index =>
-        restClient.refresh(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
+        refreshIndex(index)
       }
+    }
+
+    def refreshIndex(index: Index): Unit = {
+      restClient.refresh(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
     }
 
     def indexDocs(docs: Seq[Document], toIndex: Index = index): Unit = {
@@ -1398,6 +1403,39 @@ trait RestlasticSearchClientTest {
       val count1 = Await.result(restClient.count(List(index0, index1), tpe, new QueryRoot(termQuery)), 10.seconds)
       count1 should be(0)
 
+    }
+
+    "Support sampler aggregations" in {
+      val index = {
+        val index = dsl.Dsl.Index(s"$IndexName-sampler-one-shard")
+        val indexSetting = IndexSetting(
+          1, 1, Analyzers(AnalyzerArray(Analyzer(Name("not_analyzed"), Keyword)), FilterArray()), 1)
+        val indexFut = restClient.createIndex(index, Some(indexSetting))
+        indexFut.futureValue
+        index
+      }
+
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("f1" -> basicKeywordFieldMapping, "text" -> naturalLanguageFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refreshIndex(index) }
+
+      val aggrDoc1 = Document("aggrDoc1", Map("f1" -> "aggr1", "text" -> "Wombat is the cutest animal!"))
+      val aggrDoc2 = Document("aggrDoc2", Map("f1" -> "aggr2", "text" -> "Wombat! Wombat! Wombat!"))
+      val aggrDoc3 = Document("aggrDoc3", Map("f1" -> "aggr3", "text" -> "Wombat rocks!"))
+      val bulkIndexFuture = restClient.bulkIndex(index, tpe, Seq(aggrDoc1, aggrDoc2, aggrDoc3))
+      whenReady(bulkIndexFuture) { _ => refreshIndex(index) }
+
+      val termQuery = TermQuery("text", "wombat")
+      val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some(5), Some(5), Some("map"))
+      val samplerAggr = SamplerAggregation(Sampler(2), termsAggr)
+      val aggrQuery = AggregationQuery(termQuery, samplerAggr, Some(1000))
+
+      val expected = BucketAggregationResultBody(0, 0, List(Bucket("aggr2", 1), Bucket("aggr3", 1)))
+
+      val aggrQueryFuture = restClient.sampleAggregation(index, tpe, aggrQuery)
+      aggrQueryFuture.futureValue should be(expected)
     }
   }
 }
