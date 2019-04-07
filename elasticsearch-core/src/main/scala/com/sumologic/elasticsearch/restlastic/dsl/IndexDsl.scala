@@ -25,9 +25,9 @@ trait IndexDsl extends DslCommons {
   case class CreateIndex(settings: Option[IndexSetting] = None) extends RootObject {
     val _settings = "settings"
 
-    override def toJson(version: EsVersion): Map[String, Any] = if (settings.nonEmpty) {
-      Map(_settings -> settings.get.toJson(version))
-    } else Map()
+    override def toJson(version: EsVersion): Map[String, Any] = settings.map { s =>
+      Map(_settings -> s.toJson(version))
+    }.getOrElse(Map.empty[String, Any])
   }
 
   case class Document(id: String, data: Map[String, Any]) extends EsOperation with RootObject {
