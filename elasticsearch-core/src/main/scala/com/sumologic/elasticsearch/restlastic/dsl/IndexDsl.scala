@@ -25,9 +25,9 @@ trait IndexDsl extends DslCommons {
   case class CreateIndex(settings: Option[IndexSetting] = None) extends RootObject {
     val _settings = "settings"
 
-    override def toJson(version: EsVersion): Map[String, Any] = if (settings.nonEmpty) {
-      Map(_settings -> settings.get.toJson(version))
-    } else Map()
+    override def toJson(version: EsVersion): Map[String, Any] = settings.map { s =>
+      Map(_settings -> s.toJson(version))
+    }.getOrElse(Map.empty[String, Any])
   }
 
   case class Document(id: String, data: Map[String, Any]) extends EsOperation with RootObject {
@@ -96,21 +96,27 @@ trait IndexDsl extends DslCommons {
     }
   }
 
-  case class IndexSetting(numberOfShards: Int, numberOfReplicas: Int,
+  case class IndexSetting(numberOfShards: Int,
+                          numberOfReplicas: Int,
                           analyzerMapping: Analysis,
-                          refreshInterval: Int = 1)
+                          refreshInterval: Int = 1,
+                          preload: Seq[String] = Seq.empty[String])
       extends EsOperation {
 
     val _shards = "number_of_shards"
     val _replicas = "number_of_replicas"
     val _analysis = "analysis"
     val _interval = "refresh_interval"
+    val _preload = "index.store.preload"
 
-    override def toJson(version: EsVersion): Map[String, Any] = Map(
-      _shards -> numberOfShards,
-      _replicas -> numberOfReplicas,
-      _analysis -> analyzerMapping.toJson(version),
-      _interval -> s"${refreshInterval}s")
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(
+        _shards -> numberOfShards,
+        _replicas -> numberOfReplicas,
+        _analysis -> analyzerMapping.toJson(version),
+        _interval -> s"${refreshInterval}s") ++
+        (if (preload.isEmpty) Map.empty[String, Any] else Map(_preload -> preload))
+    }
   }
 
   sealed trait Analysis extends EsOperation

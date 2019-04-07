@@ -18,10 +18,11 @@
  */
 package com.sumologic.elasticsearch.restlastic
 import akka.util.Timeout
-import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{Bucket, BucketAggregationResultBody}
+import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{Bucket, BucketAggregationResultBody, RawJsonResponse}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.scalatest._
 import org.scalatest.time.{Millis, Span}
+import spray.http.HttpMethods.GET
 
 import scala.concurrent.duration._
 
@@ -73,6 +74,23 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
 
       val aggrQueryFuture = restClient.bucketAggregation(index, tpe, aggrQuery)
       aggrQueryFuture.futureValue should be(expected)
+    }
+
+    "Support creating data pre-loading indices" in {
+      val index = dsl.Dsl.Index(s"$IndexName-preloading")
+      val indexSetting = IndexSetting(
+        numberOfShards = 1,
+        numberOfReplicas = 1,
+        analyzerMapping = Analyzers(AnalyzerArray(Analyzer(Name("not_analyzed"), Keyword)), FilterArray()),
+        preload = Seq("dvd", "nvm"))
+      val indexFut = restClient.createIndex(index, Some(indexSetting))
+      indexFut.futureValue
+      restClient.runRawEsRequest(
+        op ="",
+        endpoint =s"/${index.name}/_settings/index.store.preload",
+        method = GET).futureValue should be(
+        RawJsonResponse(s"""{"${index.name}":{"settings":{"index":{"store":{"preload":["dvd","nvm"]}}}}}""")
+      )
     }
   }
 
