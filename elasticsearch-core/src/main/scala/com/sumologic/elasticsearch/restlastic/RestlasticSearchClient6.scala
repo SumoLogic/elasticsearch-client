@@ -24,6 +24,7 @@ import spray.http.HttpMethods._
 import spray.http.Uri.{Query => UriQuery}
 import spray.http._
 
+import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -48,14 +49,38 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
 
   override val version = V6
 
-  def deleteByQuery(index: Index, tpe: Type, deleteQuery: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse] = {
-    deleteByQuery(Seq(index), tpe, deleteQuery, waitForCompletion)
+  def deleteByQuery(index: Index,
+                    tpe: Type,
+                    deleteQuery: QueryRoot,
+                    waitForCompletion: Boolean,
+                    proceedOnConflicts: Boolean,
+                    refreshAfterDeletion: Boolean,
+                    useAutoSlices: Boolean): Future[RawJsonResponse] = {
+    deleteByQuery(Seq(index), tpe, deleteQuery, waitForCompletion, proceedOnConflicts, refreshAfterDeletion, useAutoSlices)
   }
 
-  def deleteByQuery(indices: Seq[Index], tpe: Type, deleteQuery: QueryRoot, waitForCompletion: Boolean): Future[RawJsonResponse] = {
+  def deleteByQuery(indices: Seq[Index],
+                    tpe: Type,
+                    deleteQuery: QueryRoot,
+                    waitForCompletion: Boolean,
+                    proceedOnConflicts: Boolean,
+                    refreshAfterDeletion: Boolean,
+                    useAutoSlices: Boolean): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
 
-    val uriQuery = UriQuery("wait_for_completion" -> waitForCompletion.toString)
+    val args = mutable.ArrayBuffer[(String, String)]()
+    args += "wait_for_completion" -> waitForCompletion.toString
+    if (proceedOnConflicts) {
+      args += "conflicts" -> "proceed"
+    }
+    if (refreshAfterDeletion) {
+      args += "refresh" -> "true"
+    }
+    if (useAutoSlices) {
+      args += "slices" -> "auto"
+    }
+
+    val uriQuery = UriQuery(args.toMap)
     runEsCommand(deleteQuery, s"/${indices.map(i => i.name).mkString(",")}/${tpe.name}/_delete_by_query", query = uriQuery, method = POST)
   }
 
