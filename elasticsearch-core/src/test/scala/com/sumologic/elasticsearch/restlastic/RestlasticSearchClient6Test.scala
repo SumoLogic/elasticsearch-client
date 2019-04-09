@@ -20,10 +20,13 @@ package com.sumologic.elasticsearch.restlastic
 import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{Bucket, BucketAggregationResultBody, RawJsonResponse}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
+import org.json4s._
+import org.json4s.jackson.JsonMethods._
 import org.scalatest._
 import org.scalatest.time.{Millis, Span}
 import spray.http.HttpMethods.GET
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndAfterAll
@@ -35,6 +38,7 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
 
   val indices = createIndices(3)
   val index = indices.apply(0)
+  val tpe = Type("foo")
 
   "RestlasticSearchClient6" should {
     behave like restlasticClient(
@@ -86,11 +90,58 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
       val indexFut = restClient.createIndex(index, Some(indexSetting))
       indexFut.futureValue
       restClient.runRawEsRequest(
-        op ="",
-        endpoint =s"/${index.name}/_settings/index.store.preload",
+        op = "",
+        endpoint = s"/${index.name}/_settings/index.store.preload",
         method = GET).futureValue should be(
         RawJsonResponse(s"""{"${index.name}":{"settings":{"index":{"store":{"preload":["dvd","nvm"]}}}}}""")
       )
+    }
+
+    "Support deleting by a query without waiting for the completion (async)" in {
+      implicit val formats = org.json4s.DefaultFormats
+      val docsCount = 10011
+      val documents = (1 to docsCount).map(i => Document(s"doc$i", Map("text7" -> "here7")))
+      val bulkInsertResult = restClient.bulkIndex(index, tpe, documents)
+      Await.result(bulkInsertResult, 20.seconds)
+      refresh()
+
+      val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
+      count should be(docsCount)
+
+      val termQuery = TermQuery("text7", "here7")
+
+      val delFut = restClient.deleteByQuery(index, tpe, new QueryRoot(termQuery),
+        waitForCompletion = false,
+        proceedOnConflicts = true,
+        refreshAfterDeletion = true,
+        useAutoSlices = true)
+
+      val delResult = Await.result(delFut, 20.seconds)
+      parse(delResult.jsonStr).extract[Map[String, String]].keySet should be (Set("task"))
+    }
+
+    "Support deleting by a query with refresh after deletion and slices" in {
+      val docsCount = 10011
+      val documents = (1 to docsCount).map(i => Document(s"doc$i", Map("text7" -> "here7")))
+      val bulkInsertResult = restClient.bulkIndex(index, tpe,documents)
+      Await.result(bulkInsertResult, 20.seconds)
+      refresh()
+
+      val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
+      count should be(docsCount)
+
+      val termQuery = TermQuery("text7", "here7")
+
+      val delFut = restClient.deleteByQuery(index, tpe, new QueryRoot(termQuery),
+        waitForCompletion = true,
+        proceedOnConflicts = true,
+        refreshAfterDeletion = true,
+        useAutoSlices = true)
+      Await.result(delFut, 20.seconds)
+      // don't need to refresh the index
+
+      val count1 = Await.result(restClient.count(index, tpe, new QueryRoot(termQuery)), 10.seconds)
+      count1 should be(0)
     }
   }
 
