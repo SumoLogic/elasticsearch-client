@@ -4,7 +4,7 @@
     <groupId>com.sumologic.elasticsearch</groupId>
     <artifactId>all</artifactId>
     <name>all</name>
-    <version>7.0.0-M14-SNAPSHOT</version>
+    <version>7.0.0-M15-SNAPSHOT</version>
     <packaging>pom</packaging>
     <licenses>
         <license>
@@ -19,8 +19,8 @@
         <module>elasticsearch-aws</module>
     </modules>
     <scm>
-        <url>https://github.com/SumoLogic/elasticsearch-client/tags/all-7.0.0-M14-SNAPSHOT</url>
-        <connection>https://github.com/SumoLogic/elasticsearch-client.git/tags/all-7.0.0-M14-SNAPSHOT</connection>
+        <url>https://github.com/SumoLogic/elasticsearch-client/tags/all-7.0.0-M15-SNAPSHOT</url>
+        <connection>https://github.com/SumoLogic/elasticsearch-client.git/tags/all-7.0.0-M15-SNAPSHOT</connection>
     </scm>
 
     <properties>
