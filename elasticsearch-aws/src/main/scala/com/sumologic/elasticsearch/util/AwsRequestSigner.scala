@@ -30,6 +30,7 @@ import spray.http.HttpRequest
 import com.amazonaws.auth.{AWSCredentials, AWSCredentialsProvider, AWSSessionCredentials}
 import com.amazonaws.internal.StaticCredentialsProvider
 import com.sumologic.elasticsearch.restlastic.RequestSigner
+import org.apache.commons.codec.binary.Hex
 
 /**
  * Sign AWS requests following the instructions at http://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html
@@ -191,5 +192,5 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
     mac.doFinal(data.getBytes("UTF8"))
   }
 
-  private def hexOf(buf: Array[Byte]) = buf.map("%02X" format _).mkString.toLowerCase
+  private def hexOf(buf: Array[Byte]): String = Hex.encodeHexString(buf)
 }
