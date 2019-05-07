@@ -1,4 +1,11 @@
 language: java
+dist: trusty
+jdk:
+  - oraclejdk8
+addons:
+  apt:
+    packages:
+      - oracle-java8-installer
 before_install:
   - curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.3.0.tar.gz && tar -xzf elasticsearch-6.3.0.tar.gz
   - elasticsearch-6.3.0/bin/elasticsearch -Ecluster.name=es-63 -Ehttp.port=9800 > /dev/null 2> /dev/null &
