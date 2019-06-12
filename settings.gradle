@@ -1,0 +1,7 @@
+rootProject.name='elasticsearch-client'
+include 'elasticsearch-core'
+include 'elasticsearch-akka'
+include 'elasticsearch-aws'
+
+// When we do scala 2.12 builds, this is one strategy:
+//project(':elasticsearch-core_2.12').projectDir=file("archaius-scala")
