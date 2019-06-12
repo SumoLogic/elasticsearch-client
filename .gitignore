@@ -23,4 +23,7 @@ config/*.conf
 # Vim
 *.sw*
 
+# Gradle specific
+.gradle
+
 *.surefire*
