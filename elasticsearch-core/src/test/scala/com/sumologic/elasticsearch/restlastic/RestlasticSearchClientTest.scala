@@ -825,6 +825,31 @@ trait RestlasticSearchClientTest {
       aggrQueryFuture.futureValue should be(expected)
     }
 
+    "Support Terms Aggregation Query with exclude clause" in {
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("f1" -> basicKeywordFieldMapping, "f2" -> basicNumericFieldMapping, "text" -> basicTextFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
+      val aggrDoc1 = Document("aggrDoc1", Map("f1" -> "aggr1", "f2" -> 1, "text" -> "text1"))
+      val aggrDoc2 = Document("aggrDoc2", Map("f1" -> "aggr2", "f2" -> 2, "text" -> "text2"))
+      val aggrDoc3 = Document("aggrDoc3", Map("f1" -> "aggr3", "f2" -> 1, "text" -> "text1"))
+      val aggrDoc4 = Document("aggrDoc4", Map("f1" -> "aggr4", "f2" -> 1, "text" -> "text1"))
+      val bulkIndexFuture = restClient.bulkIndex(index, tpe, Seq(aggrDoc1, aggrDoc2, aggrDoc3, aggrDoc4))
+      whenReady(bulkIndexFuture) { _ => refresh() }
+
+      val phasePrefixQuery = PrefixQuery("f1", "aggr")
+      val termf = TermFilter("f2", "1")
+      val filteredQuery = Bool(List(Must(phasePrefixQuery)), FilteredContext(List(termf)))
+      val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some("aggr[12]"), Some(5), Some(5), Some("map"))
+      val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
+
+      val expected = BucketAggregationResultBody(0, 0, List(Bucket("aggr3", 1), Bucket("aggr4", 1)))
+
+      val aggrQueryFuture = restClient.bucketAggregation(index, tpe, aggrQuery)
+      aggrQueryFuture.futureValue should be(expected)
+    }
 
     "Support Terms Aggregation Query with sort order" in {
       val metadataMapping = Mapping(tpe, IndexMapping(
