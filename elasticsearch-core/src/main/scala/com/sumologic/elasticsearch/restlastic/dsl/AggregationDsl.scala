@@ -38,7 +38,8 @@ trait AggregationDsl extends DslCommons with QueryDsl {
     }
   }
 
-  case class TermsAggregation(field: String, include: Option[String],
+  case class TermsAggregation(field: String,
+                              include: Option[String], exclude: Option[String],
                               size: Option[Int], shardSize: Option[Int],
                               hint: Option[String] = None,
                               name: Option[String] = None,
@@ -50,6 +51,7 @@ trait AggregationDsl extends DslCommons with QueryDsl {
     val _terms = "terms"
     val _field = "field"
     val _include = "include"
+    val _exclude = "exclude"
     val _size = "size"
     val _shardSize = "shard_size"
     val _hint = "execution_hint"
@@ -62,6 +64,7 @@ trait AggregationDsl extends DslCommons with QueryDsl {
           (Map(_terms ->
               (Map(_field -> field)
                   ++ include.map(_include -> _)
+                  ++ exclude.map(_exclude -> _)
                   ++ size.map(_size -> _)
                   ++ shardSize.map(_shardSize -> _)
                   ++ hint.map(_hint -> _)
