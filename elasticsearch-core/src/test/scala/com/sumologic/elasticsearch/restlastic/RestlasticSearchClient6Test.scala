@@ -71,7 +71,7 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
       val phasePrefixQuery = PrefixQuery("f1", "aggr")
       val termf = TermFilter("f2", "1")
       val filteredQuery = Bool(List(Must(phasePrefixQuery)), FilteredContext(List(termf)))
-      val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some(5), Some(5), Some("map"))
+      val termsAggr = TermsAggregation("f1", Some("aggr.*"), None, Some(5), Some(5), Some("map"))
       val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
 
       val expected = BucketAggregationResultBody(0, 0, List(Bucket("aggr1", 1), Bucket("aggr3", 1)))

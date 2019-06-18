@@ -816,7 +816,7 @@ trait RestlasticSearchClientTest {
       val phasePrefixQuery = PrefixQuery("f1", "aggr")
       val termf = TermFilter("f2", "1")
       val filteredQuery = Bool(List(Must(phasePrefixQuery)), FilteredContext(List(termf)))
-      val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some(5), Some(5), Some("map"))
+      val termsAggr = TermsAggregation("f1", Some("aggr.*"), None, Some(5), Some(5), Some("map"))
       val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
 
       val expected = BucketAggregationResultBody(0, 0, List(Bucket("aggr1", 1), Bucket("aggr3", 1)))
@@ -825,6 +825,31 @@ trait RestlasticSearchClientTest {
       aggrQueryFuture.futureValue should be(expected)
     }
 
+    "Support Terms Aggregation Query with exclude clause" in {
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("f1" -> basicKeywordFieldMapping, "f2" -> basicNumericFieldMapping, "text" -> basicTextFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
+      val aggrDoc1 = Document("aggrDoc1", Map("f1" -> "aggr1", "f2" -> 1, "text" -> "text1"))
+      val aggrDoc2 = Document("aggrDoc2", Map("f1" -> "aggr2", "f2" -> 2, "text" -> "text2"))
+      val aggrDoc3 = Document("aggrDoc3", Map("f1" -> "aggr3", "f2" -> 1, "text" -> "text1"))
+      val aggrDoc4 = Document("aggrDoc4", Map("f1" -> "aggr4", "f2" -> 1, "text" -> "text1"))
+      val bulkIndexFuture = restClient.bulkIndex(index, tpe, Seq(aggrDoc1, aggrDoc2, aggrDoc3, aggrDoc4))
+      whenReady(bulkIndexFuture) { _ => refresh() }
+
+      val phasePrefixQuery = PrefixQuery("f1", "aggr")
+      val termf = TermFilter("f2", "1")
+      val filteredQuery = Bool(List(Must(phasePrefixQuery)), FilteredContext(List(termf)))
+      val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some("aggr[12]"), Some(5), Some(5), Some("map"))
+      val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
+
+      val expected = BucketAggregationResultBody(0, 0, List(Bucket("aggr3", 1), Bucket("aggr4", 1)))
+
+      val aggrQueryFuture = restClient.bucketAggregation(index, tpe, aggrQuery)
+      aggrQueryFuture.futureValue should be(expected)
+    }
 
     "Support Terms Aggregation Query with sort order" in {
       val metadataMapping = Mapping(tpe, IndexMapping(
@@ -843,7 +868,7 @@ trait RestlasticSearchClientTest {
 
       val phasePrefixQuery = PrefixQuery("f1", "sortOrderAggr") // filters out ES docs for other tests
       val filteredQuery = Bool(List(Must(phasePrefixQuery)), FilteredContext(List(TermFilter("f2", "1"))))
-      val termsAggr = TermsAggregation("f1", None, Some(5), Some(5), None, None, None, Some(DescSortOrder))
+      val termsAggr = TermsAggregation("f1", None, None, Some(5), Some(5), None, None, None, Some(DescSortOrder))
       val aggrQuery = AggregationQuery(filteredQuery, termsAggr, Some(1000))
 
       val expected = BucketAggregationResultBody(0, 0, List(Bucket("sortOrderAggr3", 1), Bucket("sortOrderAggr1", 1)))
@@ -872,7 +897,7 @@ trait RestlasticSearchClientTest {
 
       val phasePrefixQuery = PrefixQuery("f1", "topHitsAggr")
 
-      val termsAggr = TermsAggregation("text", None, Some(5), Some(5), None, None,
+      val termsAggr = TermsAggregation("text", None, None, Some(5), Some(5), None, None,
         Some(TopHitsAggregation("thereCanBeOnlyOne", Some(1),
           Some(Seq(
             "f1",
@@ -953,8 +978,8 @@ trait RestlasticSearchClientTest {
       val regexFuture = restClient.bulkIndex(index, tpe, Seq(doc1, doc2, doc3))
       whenReady(regexFuture) { _ => refresh() }
 
-      val aggregations = TermsAggregation(name = Some("make"), field = "make", include = None, size = Some(Int.MaxValue), shardSize = None, hint = None,
-        aggs = Some(TermsAggregation(name = Some("color"), field = "color", include = None, size = Some(Int.MaxValue), shardSize = None, hint = None))
+      val aggregations = TermsAggregation(name = Some("make"), field = "make", include = None, exclude = None, size = Some(Int.MaxValue), shardSize = None, hint = None,
+        aggs = Some(TermsAggregation(name = Some("color"), field = "color", include = None, exclude = None, size = Some(Int.MaxValue), shardSize = None, hint = None))
       )
 
       val aggregationsQuery = AggregationQuery(
@@ -1436,7 +1461,7 @@ trait RestlasticSearchClientTest {
       whenReady(bulkIndexFuture) { _ => refreshIndex(index) }
 
       val termQuery = TermQuery("text", "wombat")
-      val termsAggr = TermsAggregation("f1", Some("aggr.*"), Some(5), Some(5), Some("map"))
+      val termsAggr = TermsAggregation("f1", Some("aggr.*"), None, Some(5), Some(5), Some("map"))
       val samplerAggr = SamplerAggregation(Sampler(2), termsAggr)
       val aggrQuery = AggregationQuery(termQuery, samplerAggr, Some(1000))
 
