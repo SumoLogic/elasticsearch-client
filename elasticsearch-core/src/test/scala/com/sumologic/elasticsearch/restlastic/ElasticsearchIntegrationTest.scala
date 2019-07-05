@@ -71,7 +71,8 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
   }
 
   private def delete(index: Index): ReturnTypes.RawJsonResponse = {
-    restClient.deleteIndex(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
+    implicit val patienceConfig = PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis)))
+    restClient.deleteIndex(index).futureValue
   }
 }
 

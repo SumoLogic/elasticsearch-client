@@ -146,7 +146,8 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
   }
 
   private def refresh(): Unit = {
-    restClient.refresh(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
+    implicit val patienceConfig = PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis)))
+    restClient.refresh(index).futureValue
   }
 }
 
