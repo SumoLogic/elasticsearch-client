@@ -66,7 +66,8 @@ trait RestlasticSearchClientTest {
     }
 
     def refreshIndex(index: Index): Unit = {
-      restClient.refresh(index).futureValue(PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis))))
+      implicit val patienceConfig = PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis)))
+      restClient.refresh(index).futureValue
     }
 
     def indexDocs(docs: Seq[Document], toIndex: Index = index): Unit = {
