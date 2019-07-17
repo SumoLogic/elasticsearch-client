@@ -100,7 +100,8 @@ trait IndexDsl extends DslCommons {
                           numberOfReplicas: Int,
                           analyzerMapping: Analysis,
                           refreshInterval: Int = 1,
-                          preload: Seq[String] = Seq.empty[String])
+                          preload: Seq[String] = Seq.empty[String],
+                          maxResultWindow: Int = 10000)
       extends EsOperation {
 
     val _shards = "number_of_shards"
@@ -108,13 +109,15 @@ trait IndexDsl extends DslCommons {
     val _analysis = "analysis"
     val _interval = "refresh_interval"
     val _preload = "index.store.preload"
+    val _maxResultWindow = "max_result_window"
 
     override def toJson(version: EsVersion): Map[String, Any] = {
       Map(
         _shards -> numberOfShards,
         _replicas -> numberOfReplicas,
         _analysis -> analyzerMapping.toJson(version),
-        _interval -> s"${refreshInterval}s") ++
+        _interval -> s"${refreshInterval}s",
+        _maxResultWindow -> maxResultWindow) ++
         (if (preload.isEmpty) Map.empty[String, Any] else Map(_preload -> preload))
     }
   }

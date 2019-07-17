@@ -95,6 +95,23 @@ trait RestlasticSearchClientTest {
       whenReady(indexFut) { _ => refreshWithClient() }
     }
 
+    "Support creating index with increased max_result_window setting" in {
+      val index = dsl.Dsl.Index(s"$IndexName-max_result_window")
+      val indexSetting = IndexSetting(
+        numberOfShards = 1,
+        numberOfReplicas = 1,
+        analyzerMapping = Analyzers.empty,
+        maxResultWindow = 15000)
+      val indexFut = restClient.createIndex(index, Some(indexSetting))
+      indexFut.futureValue
+      restClient.runRawEsRequest(
+        op = "",
+        endpoint = s"/${index.name}/_settings/index.max_result_window",
+        method = GET).futureValue should be(
+        RawJsonResponse(s"""{"${index.name}":{"settings":{"index":{"max_result_window":"15000"}}}}""")
+      )
+    }
+
     "Be able to setup document mapping" in {
       val basicFieldMapping = BasicFieldMapping(textType, None, Some(analyzerName))
       val metadataMapping = Mapping(tpe, IndexMapping(
