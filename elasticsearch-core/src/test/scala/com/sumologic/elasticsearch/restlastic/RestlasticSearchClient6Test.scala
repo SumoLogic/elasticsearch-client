@@ -143,6 +143,94 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
       val count1 = Await.result(restClient.count(index, tpe, new QueryRoot(termQuery)), 10.seconds)
       count1 should be(0)
     }
+
+    "Add script and check if it exists" in {
+      val scriptId = "poof"
+      val scriptSource = "return doc[params.hello];"
+      val scriptLang = "painless"
+
+      val response = restClient.addScript(scriptId, ScriptSource(scriptLang, scriptSource))
+      response.futureValue.acknowledged should be(true)
+      val script = restClient.getScript(scriptId)
+      val scriptFromES = script.futureValue
+      scriptFromES._id should be(scriptId)
+      scriptFromES.found should be(true)
+      scriptFromES.script should not be(null)
+      scriptFromES.script.isDefined should be(true)
+      scriptFromES.script.get.lang should be(scriptLang)
+      scriptFromES.script.get.source should be(scriptSource)
+    }
+
+    "Not find a non-existing script" in {
+      val script = restClient.getScript("poof2")
+      val scriptFromES = script.futureValue
+      scriptFromES._id should be("poof2")
+      scriptFromES.found should be(false)
+      scriptFromES.script.isEmpty should be(true)
+    }
+
+    "Remove an existing script" in {
+      val response = restClient.addScript("golden_retriever", ScriptSource("painless", "doc['f1'];"))
+      response.futureValue.acknowledged should be(true)
+      val removeResponse = restClient.deleteScript("golden_retriever")
+      removeResponse.futureValue should be(true)
+    }
+
+    "Not remove a non-existing script" in {
+      val removeResponse = restClient.deleteScript("bulldog")
+      removeResponse.futureValue should be(false)
+    }
+
+    "Overwrite an existing script" in {
+      val scriptId = "poof"
+      val scriptSource = "return doc[params.hello];"
+      val scriptLang = "painless"
+
+      val response = restClient.addScript(scriptId, ScriptSource(scriptLang, scriptSource))
+      response.futureValue.acknowledged should be(true)
+      val responseOverwrite = restClient.addScript(scriptId, ScriptSource(scriptLang, "; " + scriptSource))
+      responseOverwrite.futureValue.acknowledged should be(true)
+    }
+
+    "Support cardinality aggregations with scripts" in {
+      val metadataMapping = Mapping(tpe, IndexMapping(Map("f1" -> basicKeywordFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
+      val docs = Seq(
+        Document("cardinalityAggrDoc1", Map("f1" -> "cardinality1")),
+        Document("cardinalityAggrDoc2", Map("f1" -> "cardinality1")),
+        Document("cardinalityAggrDoc3", Map("f1" -> "cardinality2")),
+        Document("cardinalityAggrDoc4", Map("f1" -> "cardinality2")),
+        Document("cardinalityAggrDoc5", Map("f1" -> "cardinality2")),
+        Document("cardinalityAggrDoc6", Map("f1" -> "cardinality3")),
+        Document("cardinalityAggrDoc7", Map("f1" -> "cardinality4")),
+        Document("cardinalityAggrDoc8", Map("f1" -> "cardinality4"))
+      )
+      val bulkIndexFuture = restClient.bulkIndex(index, tpe, docs)
+      whenReady(bulkIndexFuture) { _ => refresh() }
+
+      // Inline script
+      val cardinalityAggregationSourcedScript =
+        CardinalityAggregation(SourcedScriptCardinalityAggregation("return doc['f1'];"))
+      val aggrQuerySourcedScript = AggregationQuery(MatchAll, cardinalityAggregationSourcedScript, Some(1000))
+
+      val aggrQueryFutureSourcedScript = restClient.cardinalityAggregation(index, tpe, aggrQuerySourcedScript)
+      aggrQueryFutureSourcedScript.futureValue.value should be(4)
+
+      // Stored script
+      val response = restClient.addScript("poofpoof", ScriptSource("painless", "return doc['f1'].value;"))
+      response.futureValue.acknowledged should be(true)
+      val cardinalityAggregationStoredScript =
+        CardinalityAggregation(StoredScriptCardinalityAggregation("poofpoof"))
+      val aggrQueryStoredScript =
+        AggregationQuery(MatchAll, cardinalityAggregationStoredScript, Some(1000))
+
+      val aggrQueryFutStoredScript = restClient.cardinalityAggregation(index, tpe, aggrQueryStoredScript)
+      aggrQueryFutStoredScript.futureValue.value should be(4)
+    }
+
   }
 
   private def refresh(): Unit = {

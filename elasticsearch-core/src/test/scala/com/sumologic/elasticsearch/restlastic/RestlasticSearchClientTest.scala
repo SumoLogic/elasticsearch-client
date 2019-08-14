@@ -75,6 +75,32 @@ trait RestlasticSearchClientTest {
       whenReady(bulkIndexFuture) { _ => refresh() }
     }
 
+    "Support cardinality aggregations" in {
+      val metadataMapping = Mapping(tpe, IndexMapping(Map("f1" -> basicKeywordFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
+      val docs = Seq(
+        Document("cardinalityAggrDoc1", Map("f1" -> "cardinality1")),
+        Document("cardinalityAggrDoc2", Map("f1" -> "cardinality1")),
+        Document("cardinalityAggrDoc3", Map("f1" -> "cardinality2")),
+        Document("cardinalityAggrDoc4", Map("f1" -> "cardinality2")),
+        Document("cardinalityAggrDoc5", Map("f1" -> "cardinality2")),
+        Document("cardinalityAggrDoc6", Map("f1" -> "cardinality3")),
+        Document("cardinalityAggrDoc7", Map("f1" -> "cardinality4")),
+        Document("cardinalityAggrDoc8", Map("f1" -> "cardinality4"))
+      )
+      val bulkIndexFuture = restClient.bulkIndex(index, tpe, docs)
+      whenReady(bulkIndexFuture) { _ => refresh() }
+
+      val cardinalityAggregation = CardinalityAggregation(FieldCardinalityAggregation("f1"))
+      val aggrQuery = AggregationQuery(MatchAll, cardinalityAggregation, Some(1000))
+
+      val aggrQueryFuture = restClient.cardinalityAggregation(index, tpe, aggrQuery)
+      aggrQueryFuture.futureValue.value should be(4)
+    }
+
     "Be able to create an index and setup index setting with keyword & edgengram lowercase analyzer" in {
       val edgeNgram = EdgeNGramFilter(Name(EdgeNGram.rep), 1, 20)
       val edgeNgramLowercaseAnalyzer = Analyzer(Name(s"${EdgeNGram.rep}_lowercase"), Keyword, Lowercase, EdgeNGram)

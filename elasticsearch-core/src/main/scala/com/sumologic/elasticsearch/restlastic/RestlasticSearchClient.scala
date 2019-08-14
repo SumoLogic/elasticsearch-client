@@ -22,8 +22,8 @@ import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes
 import com.sumologic.elasticsearch.restlastic.dsl.EsVersion
 import org.json4s.FieldSerializer.{renameFrom, renameTo}
 import org.json4s.jackson.JsonMethods._
-import scala.concurrent.Await
 
+import scala.concurrent.Await
 import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
@@ -141,6 +141,13 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
     }
   }
 
+  def cardinalityAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[CardinalityValue] = {
+    implicit val ec = searchExecutionCtx
+    runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
+      rawJson.mappedTo[CardinalityAggregationResponse].aggregations.field_count
+    }
+  }
+
   def sampleAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[BucketAggregationResultBody] = {
     implicit val ec = searchExecutionCtx
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
@@ -243,6 +250,12 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
     implicit val ec = indexExecutionCtx
     runEsCommand(EmptyObject, s"/${index.name}", DELETE)
   }
+
+  def getScript(scriptId: String, lang: String = ""): Future[ScriptResponse]
+
+  def addScript(scriptId: String, scriptSource: ScriptSource): Future[AddScriptResponse]
+
+  def deleteScript(scriptId: String, lang: String = ""): Future[Boolean]
 
   @deprecated("When plugin is not enabled this function doesn't handle pagination, so it deletes only first page of query results. Replaced by deleteDocuments.")
   def deleteDocument(index: Index, tpe: Type, deleteQuery: QueryRoot, pluginEnabled: Boolean = false): Future[RawJsonResponse] = {
@@ -437,6 +450,18 @@ object RestlasticSearchClient {
     case class SampleAggregationResponse(aggregations: SampleAggregations)
 
     case class SampleAggregations(sample: Aggregations)
+
+    case class CardinalityAggregationResponse(aggregations: CardinalityAggregations)
+
+    case class CardinalityAggregations(field_count: CardinalityValue)
+
+    case class CardinalityValue(value: Int)
+
+    case class ScriptResponse(_id: String, found: Boolean, script: Option[Script])
+
+    case class Script(lang: String, source: String)
+
+    case class AddScriptResponse(acknowledged: Boolean)
 
     case class Bucket(key: String, doc_count: Int)
 
