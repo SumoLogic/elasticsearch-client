@@ -197,6 +197,7 @@ trait AggregationDsl extends DslCommons with QueryDsl {
         _aggsName -> Map(_cardinality ->
           (Map()
             ++ cardinalityQuery.toJson(version)
+            ++ precisionThreshold.map(_precisionThreshold -> _)
             )
         )
       )
