@@ -69,6 +69,34 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
     }
   }
 
+  override def getScript(scriptId: String, lang: String = ""): Future[ScriptResponse] = {
+    implicit val ec = indexExecutionCtx
+    runEsCommand(EmptyObject, s"/_scripts/$lang/$scriptId", GET)
+      .map(resp => resp.mappedTo[ScriptResponse])
+      .recover {
+        case _: IllegalArgumentException =>
+          ScriptResponse(scriptId, false, None)
+      }
+  }
+
+  override def addScript(scriptId: String, scriptSource: ScriptSource): Future[AddScriptResponse] = {
+    implicit val ec = indexExecutionCtx
+    val fut = runEsCommand(scriptSource, s"/_scripts/${scriptSource.lang}/$scriptId", POST)
+    fut.map { resp =>
+      val extracted = resp.mappedTo[AddScriptResponse]
+      extracted
+    }
+  }
+
+  override def deleteScript(scriptId: String, lang: String = ""): Future[Boolean] = {
+    implicit val ec = indexExecutionCtx
+    runEsCommand(EmptyObject, s"/_scripts/$lang/$scriptId", DELETE)
+      .map(_ => true)
+      .recover {
+        case ex: ElasticErrorResponse if ex.status == 404 => false
+      }
+  }
+
   override protected def scrollDelete(index: Index,
                                       tpe: Type,
                                       scrollId: ScrollId,

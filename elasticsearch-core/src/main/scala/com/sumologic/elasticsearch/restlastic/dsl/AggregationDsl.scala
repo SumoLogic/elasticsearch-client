@@ -139,4 +139,67 @@ trait AggregationDsl extends DslCommons with QueryDsl {
     }
   }
 
+  sealed trait CardinalityQuery extends EsOperation
+
+  case class FieldCardinalityAggregation(field: String) extends CardinalityQuery {
+    val _field = "field"
+
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(_field -> field)
+    }
+  }
+
+  sealed trait ScriptAggregation extends CardinalityQuery {
+    val _script = "script"
+  }
+
+  case class StoredScriptCardinalityAggregation(id: String, params: Option[Map[String, String]] = None) extends ScriptAggregation {
+    val _id = "id"
+    val _params = "params"
+
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(_script -> (
+        Map()
+          ++ Map(_id -> id)
+          ++ params.map(_params -> _)
+      ))
+    }
+  }
+
+  case class SourcedScriptCardinalityAggregation(source: String, lang: Option[String] = None) extends ScriptAggregation {
+    val _lang = "lang"
+    val _source = "source"
+
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      version match {
+        case V2 =>
+          Map(_script -> source)
+        case V6 =>
+          Map(_script -> (
+            Map()
+              ++ lang.map(_lang -> _)
+              ++ Map(_source -> source)
+            ))
+      }
+    }
+  }
+
+  case class CardinalityAggregation(cardinalityQuery: CardinalityQuery,
+                                    name: Option[String] = None,
+                                    precisionThreshold: Option[Int] = None)
+    extends Aggregation {
+    val _aggsName = name.getOrElse("field_count")
+    val _cardinality = "cardinality"
+    val _precisionThreshold = "precision_threshold"
+
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(
+        _aggsName -> Map(_cardinality ->
+          (Map()
+            ++ cardinalityQuery.toJson(version)
+            )
+        )
+      )
+    }
+  }
 }

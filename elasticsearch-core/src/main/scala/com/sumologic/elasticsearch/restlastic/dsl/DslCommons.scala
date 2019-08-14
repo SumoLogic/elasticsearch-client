@@ -61,6 +61,19 @@ trait DslCommons {
     )
   }
 
+  case class ScriptSource(lang: String, source: String) extends RootObject {
+    val _lang = "lang"
+    val _source = "source"
+    val _script = "script"
+
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(_script ->
+        (Map()
+          ++ Map(_lang -> lang)
+          ++ Map(_source -> source)))
+    }
+  }
+
   case class Index(name: String)
 
   case class Type(name: String)
