@@ -220,7 +220,8 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
       aggrQueryFutureSourcedScript.futureValue.value should be(4)
 
       // Stored script
-      restClient.addScript("poofpoof", ScriptSource("painless", "return doc['f1'].value;"))
+      val response = restClient.addScript("poofpoof", ScriptSource("painless", "return doc['f1'].value;"))
+      response.futureValue.acknowledged should be(true)
       val cardinalityAggregationStoredScript =
         CardinalityAggregation(StoredScriptCardinalityAggregation("poofpoof"))
       val aggrQueryStoredScript =
