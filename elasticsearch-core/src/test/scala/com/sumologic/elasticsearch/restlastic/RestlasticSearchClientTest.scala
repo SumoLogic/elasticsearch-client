@@ -101,6 +101,33 @@ trait RestlasticSearchClientTest {
       aggrQueryFuture.futureValue.value should be(4)
     }
 
+    "Support strict mapping" in {
+      val metadataMapping = Mapping(
+        tpe,
+        IndexMapping(Map("f1" -> basicKeywordFieldMapping), strictMapping = true))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
+      val docs = Seq(Document("c1", Map("f1" -> "c1")))
+      val bulkIndexFuture = restClient.bulkIndex(index, tpe, docs)
+      val results = bulkIndexFuture.futureValue
+      results.size should be (1)
+      results.head.status should be (201)
+
+      // f2 is not allowed, the insert should fail
+      val docs1 = Seq(Document("c2", Map("f2" -> "c2")))
+      val bulkIndexFuture1 = restClient.bulkIndex(index, tpe, docs1)
+      val results1 = bulkIndexFuture1.futureValue
+      results1.size should be (1)
+      results1.head.status should be (400)
+      results1.head.error should not be empty
+
+      refresh()
+      val count = restClient.count(index, tpe, new QueryRoot(MatchAll))
+      count.futureValue should be (1)
+    }
+
     "Be able to create an index and setup index setting with keyword & edgengram lowercase analyzer" in {
       val edgeNgram = EdgeNGramFilter(Name(EdgeNGram.rep), 1, 20)
       val edgeNgramLowercaseAnalyzer = Analyzer(Name(s"${EdgeNGram.rep}_lowercase"), Keyword, Lowercase, EdgeNGram)
