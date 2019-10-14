@@ -142,14 +142,24 @@ trait MappingDsl extends DslCommons {
   }
 
   case class IndexMapping(fields: Map[String, FieldMapping],
-                          enableAllFieldOpt: Option[Boolean] = None)
+                          enableAllFieldOpt: Option[Boolean] = None,
+                          strictMapping: Boolean = false)
       extends EsOperation {
     val _all = "_all"
+    val _dynamic = "dynamic"
+    val _strict = "strict"
     val _enabled = "enabled"
+
+    val dynamicMapping: Map[String, String] = if (strictMapping) {
+      Map(_dynamic -> _strict)
+    } else {
+      Map()
+    }
 
     override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_properties -> fields.mapValues(_.toJson(version))) ++
-          enableAllFieldOpt.map(f => _all -> Map(_enabled -> f))
+      dynamicMapping ++
+      enableAllFieldOpt.map(f => _all -> Map(_enabled -> f))
     }
   }
 
