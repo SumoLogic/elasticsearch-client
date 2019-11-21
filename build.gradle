@@ -1,0 +1,66 @@
+subprojects {
+    apply plugin: 'scala'
+    apply plugin: 'maven-publish'
+
+    sourceCompatibility = 1.6
+    targetCompatibility = 1.6
+
+    repositories {
+        jcenter()
+    }
+    group = "com.sumologic.elasticsearch-client"
+
+    //Java 8 has JavaDoc linting enabled by default and will fail
+    tasks.withType(Javadoc).all {
+        options.addBooleanOption('Xdoclint:none', true)
+    }
+
+    tasks.withType(Test) { forkEvery = 1 }
+    test {
+        jvmArgs += [ "-XX:MaxPermSize=512m" ]
+        maxHeapSize = '2g'
+        testLogging {
+            events 'started', 'failed', 'passed', 'skipped'
+            showStandardStreams  = true
+        }
+    }
+project(':elasticsearch-core') {
+    dependencies {
+        compile "org.json4s:json4s-jackson_$scalaMajorVersion:3.3.0"
+        compile 'org.slf4j:slf4j-api:1.7.14'
+        compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
+        compile "io.spray:spray-can_$scalaMajorVersion:1.3.3"
+
+        testCompile "org.scalatest:scalatest_$scalaMajorVersion:2.2.6"
+        testCompile "org.mockito:mockito-core:1.9.5"
+        testCompile "org.apache.lucene:lucene-core:$luceneVersion"
+        testCompile "org.apache.lucene:lucene-analyzers-common:$luceneVersion"
+        testCompile "org.elasticsearch:elasticsearch:$elasticsearchVersion"
+    }
+}
+
+project(':elasticsearch-akka') {
+    dependencies {
+        compile project(':elasticsearch-core')
+        compile 'org.slf4j:slf4j-api:1.7.14'
+        compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
+        compile "com.typesafe.akka:akka-stream_$scalaMajorVersion:$akkaVersion"
+
+        testCompile "org.scalatest:scalatest_$scalaMajorVersion:2.2.6"
+        testCompile "org.mockito:mockito-core:1.9.5"
+        testCompile "com.typesafe.akka:akka-testkit_$scalaMajorVersion:$akkaVersion"
+
+    }
+}
+
+project(':elasticsearch-aws') {
+    dependencies {
+        compile project(':elasticsearch-core')
+        compile 'com.amazonaws:aws-java-sdk-core:1.10.62'
+        compile 'org.slf4j:slf4j-api:1.7.14'
+        compile "io.spray:spray-can_$scalaMajorVersion:1.3.3"
+        compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
+
+        testCompile "org.scalatest:scalatest_$scalaMajorVersion:2.2.6"
+    }
+}
