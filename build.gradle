@@ -27,7 +27,7 @@ subprojects {
     apply plugin: "com.github.hierynomus.license"
     apply plugin: "signing"
 
-    group = "com.sumologic.elasticsearch-client"
+    group = "com.sumologic.elasticsearch"
     description = "Elasticsearch Client for Scala that operates against the REST Endpoint"
 
     version = '7.0.0-M19-SNAPSHOT'
@@ -42,6 +42,7 @@ subprojects {
 
     dependencies {
         testCompile "org.scalatest:scalatest_${scalaMajorVersion}:${scalatestVersion}"
+        testCompile "junit:junit:${junitVersion}"
         testCompile "org.mockito:mockito-core:${mockitoVersion}"
     }
 
@@ -52,7 +53,7 @@ subprojects {
                 "-deprecation",
                 "-language:implicitConversions",
                 "-unchecked",
-                // TODO: (fdaca 2019-11-18) please consider repairing warnings and enabling this
+                // TODO: (fdaca 2019-11-22) please consider repairing warnings and enabling this
                 //"-Xfatal-warnings"
         ]
     }
@@ -60,7 +61,7 @@ subprojects {
     test {
         maxHeapSize = '2g'
         testLogging {
-            events 'started', 'failed', 'passed', 'skipped'
+            events 'failed', 'passed', 'skipped'
             showStandardStreams = true
         }
     }

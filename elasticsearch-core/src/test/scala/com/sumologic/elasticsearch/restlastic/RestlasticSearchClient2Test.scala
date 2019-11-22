@@ -19,10 +19,13 @@
 package com.sumologic.elasticsearch.restlastic
 import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
+import org.junit.runner.RunWith
 
 import scala.concurrent.duration._
 import org.scalatest._
+import org.scalatestplus.junit.JUnitRunner
 
+@RunWith(classOf[JUnitRunner])
 class RestlasticSearchClient2Test extends WordSpec with Matchers with BeforeAndAfterAll
     with ElasticsearchIntegrationTest with OneInstancePerTest with RestlasticSearchClientTest {
 

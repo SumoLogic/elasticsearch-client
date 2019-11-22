@@ -21,7 +21,10 @@ package com.sumologic.elasticsearch.restlastic
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{BucketNestedAggregationResponse, RawJsonResponse}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.junit.JUnitRunner
+import org.junit.runner.RunWith
 
+@RunWith(classOf[JUnitRunner])
 class BucketNestedAggregationResponseTest extends WordSpec with Matchers with ScalaFutures {
 
   "BucketAggregationResponse" should {

@@ -26,17 +26,20 @@ import com.sumologic.elasticsearch.akkahelpers.BulkIndexerActor.{BulkSession, Cr
 import com.sumologic.elasticsearch.restlastic.{RestlasticSearchClient, RestlasticSearchClient6}
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.BulkItem
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
+import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers._
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mock.MockitoSugar
+import org.scalatestplus.junit.JUnitRunner
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
 
+@RunWith(classOf[JUnitRunner])
 class BulkIndexerActorTest extends TestKit(ActorSystem("TestSystem")) with WordSpecLike with Matchers
 with BeforeAndAfterAll with BeforeAndAfterEach with MockitoSugar with ImplicitSender with Eventually {
 

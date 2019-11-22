@@ -22,13 +22,16 @@ import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
+import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.time.{Millis, Span}
+import org.scalatestplus.junit.JUnitRunner
 import spray.http.HttpMethods.GET
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
+@RunWith(classOf[JUnitRunner])
 class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndAfterAll
     with ElasticsearchIntegrationTest with OneInstancePerTest with RestlasticSearchClientTest {
 

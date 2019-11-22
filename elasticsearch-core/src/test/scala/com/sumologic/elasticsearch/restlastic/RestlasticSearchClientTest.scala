@@ -23,14 +23,18 @@ import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V2, V6}
 import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods.parse
+import org.junit.runner.RunWith
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.junit.JUnitRunner
 import spray.http.HttpMethods.GET
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
+
+@RunWith(classOf[JUnitRunner])
 trait RestlasticSearchClientTest {
   this: WordSpec with ScalaFutures with Matchers with ElasticsearchIntegrationTest =>
 
