@@ -110,8 +110,8 @@ subprojects {
                     }
                     developers {
                         developer {
-                            id = 'goledzki'
-                            name = 'Greg Oledzki'
+                            id = 'CCheSumo'
+                            name = 'Chuck Che'
                             organization = 'Sumo Logic'
                         }
                     }
