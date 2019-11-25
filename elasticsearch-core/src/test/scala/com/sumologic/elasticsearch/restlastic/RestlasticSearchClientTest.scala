@@ -18,6 +18,7 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
+import akka.http.scaladsl.model.HttpMethods
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{Suggestion => _, _}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V2, V6}
@@ -28,7 +29,6 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.junit.JUnitRunner
-import spray.http.HttpMethods.GET
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -164,7 +164,7 @@ trait RestlasticSearchClientTest {
       restClient.runRawEsRequest(
         op = "",
         endpoint = s"/${index.name}/_settings/index.max_result_window",
-        method = GET).futureValue should be(
+        method = HttpMethods.GET).futureValue should be(
         RawJsonResponse(s"""{"${index.name}":{"settings":{"index":{"max_result_window":"15000"}}}}""")
       )
     }
@@ -418,14 +418,14 @@ trait RestlasticSearchClientTest {
     }
 
     "Support raw requests" in {
-      val future = restClient.runRawEsRequest(op = "", endpoint = "/_cat/indices", GET)
+      val future = restClient.runRawEsRequest(op = "", endpoint = "/_cat/indices", HttpMethods.GET)
       whenReady(future) { res =>
         res.jsonStr should include(indexName)
       }
     }
 
     "Return error on failed raw requests" in {
-      val future = restClient.runRawEsRequest(op = "", endpoint = "/does/not/exist", GET)
+      val future = restClient.runRawEsRequest(op = "", endpoint = "/does/not/exist", HttpMethods.GET)
       whenReady(future.failed) { e =>
         e shouldBe a[ElasticErrorResponse]
         val elasticErrorResponse = e.asInstanceOf[ElasticErrorResponse]
@@ -1385,9 +1385,10 @@ trait RestlasticSearchClientTest {
     }
 
     "Delete only first page of query results" in {
-      val insertFutures = (1 to 100).map(i => restClient.index(index, tpe, Document(s"doc$i", Map("text7" -> "here7"))))
-      val ir = Future.sequence(insertFutures)
-      Await.result(ir, 20.seconds)
+      val docsCount = 100
+      val documents = (1 to docsCount).map(i => Document(s"doc$i", Map("text7" -> "here7")))
+      val bulkInsertResult = restClient.bulkIndex(index, tpe, documents)
+      Await.result(bulkInsertResult, 20.seconds)
       refresh()
 
       val delFut = restClient.deleteDocument(index, tpe, new QueryRoot(MatchAll, sizeOpt = Some(50)))

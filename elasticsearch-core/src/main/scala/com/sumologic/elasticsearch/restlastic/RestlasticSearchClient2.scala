@@ -18,11 +18,9 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
+import akka.http.scaladsl.model.{HttpEntity, HttpMethod, HttpMethods, HttpRequest, Uri}
 import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V2}
-import spray.http.HttpMethods._
-import spray.http.Uri.{Query => UriQuery}
-import spray.http._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -71,7 +69,7 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
 
   override def getScript(scriptId: String, lang: String = ""): Future[ScriptResponse] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(EmptyObject, s"/_scripts/$lang/$scriptId", GET)
+    runEsCommand(EmptyObject, s"/_scripts/$lang/$scriptId", HttpMethods.GET)
       .map(resp => resp.mappedTo[ScriptResponse])
       .recover {
         case _: IllegalArgumentException =>
@@ -81,7 +79,7 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
 
   override def addScript(scriptId: String, scriptSource: ScriptSource): Future[AddScriptResponse] = {
     implicit val ec = indexExecutionCtx
-    val fut = runEsCommand(scriptSource, s"/_scripts/${scriptSource.lang}/$scriptId", POST)
+    val fut = runEsCommand(scriptSource, s"/_scripts/${scriptSource.lang}/$scriptId", HttpMethods.POST)
     fut.map { resp =>
       val extracted = resp.mappedTo[AddScriptResponse]
       extracted
@@ -90,7 +88,7 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
 
   override def deleteScript(scriptId: String, lang: String = ""): Future[Boolean] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(EmptyObject, s"/_scripts/$lang/$scriptId", DELETE)
+    runEsCommand(EmptyObject, s"/_scripts/$lang/$scriptId", HttpMethods.DELETE)
       .map(_ => true)
       .recover {
         case ex: ElasticErrorResponse if ex.status == 404 => false
@@ -125,7 +123,7 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
 
   override def scroll(scrollId: ScrollId, resultWindowOpt: Option[String] = None): Future[(ScrollId, SearchResponse)] = {
     implicit val ec = searchExecutionCtx
-    val uriQuery = UriQuery("scroll_id" -> scrollId.id, "scroll" -> resultWindowOpt.getOrElse(defaultResultWindow))
+    val uriQuery = Uri.Query("scroll_id" -> scrollId.id, "scroll" -> resultWindowOpt.getOrElse(defaultResultWindow))
     runEsCommand(NoOp, s"/_search/scroll", query = uriQuery).map { resp =>
       val sr = resp.mappedTo[SearchResponseWithScrollId]
       (ScrollId(sr._scroll_id), SearchResponse(RawSearchResponse(sr.hits), resp.jsonStr))
@@ -151,8 +149,8 @@ class RestlasticSearchClient2(endpointProvider: EndpointProvider, signer: Option
 
   override def runRawEsRequest(op: String,
                                endpoint: String,
-                               method: HttpMethod = POST,
-                               query: UriQuery = UriQuery.Empty)
+                               method: HttpMethod = HttpMethods.POST,
+                               query: Uri.Query = Uri.Query.Empty)
                               (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse] = {
     val request = {
       val unauthed = HttpRequest(

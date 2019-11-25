@@ -22,11 +22,11 @@ import java.net.URLEncoder
 import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.{Calendar, TimeZone}
+
+import akka.http.scaladsl.model.{HttpEntity, HttpRequest}
+import akka.http.scaladsl.model.headers.{Host, RawHeader}
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-
-import spray.http.HttpHeaders.{Host, RawHeader}
-import spray.http.HttpRequest
 import com.amazonaws.auth.{AWSCredentials, AWSCredentialsProvider, AWSSessionCredentials}
 import com.amazonaws.internal.StaticCredentialsProvider
 import com.sumologic.elasticsearch.restlastic.RequestSigner
@@ -63,7 +63,7 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
     val headerValue = s"$Algorithm Credential=${awsCredentials.getAWSAccessKeyId}/${credentialScope(dateStr)}, SignedHeaders=${signedHeaders(withDateAndHost)}" +
       s", Signature=${signature(withDateAndHost, dateTimeStr, dateStr)}"
 
-    val withAuth = withDateAndHost.withHeaders(RawHeader("Authorization", headerValue) +: withDateAndHost.headers)
+    val withAuth = withDateAndHost.addHeader(RawHeader("Authorization", headerValue))
 
     // Append the session key, if session credentials were provided
     addSessionToken(withAuth)
@@ -73,26 +73,28 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
 
   def addSessionToken(httpRequest: HttpRequest): HttpRequest = awsCredentials match {
     case (sc: AWSSessionCredentials) =>
-      httpRequest.withHeaders(RawHeader(xAmzSecurityToken, sc.getSessionToken) +: httpRequest.headers)
+      httpRequest.addHeader(RawHeader(xAmzSecurityToken, sc.getSessionToken))
     case _ => httpRequest
   }
 
   private[util] def completedRequest(httpRequest: HttpRequest, dateTimeStr: String): HttpRequest = {
     // Add a date and host header, but only if they aren't already there
-    val dateHeader = if (httpRequest.headers.exists(header => Set(xAmzDate.toLowerCase, "date").contains(header.name.toLowerCase))) {
-      List()
+    val headerNames = Set(xAmzDate.toLowerCase, "date")
+
+    val withDate = if (headerNames.exists(name => httpRequest.getHeader(name).isPresent)) {
+      httpRequest
     } else {
-      val dateHeader = RawHeader(xAmzDate, dateTimeStr)
-      List(dateHeader)
+      httpRequest.addHeader(RawHeader(xAmzDate, dateTimeStr))
     }
 
-    val hostHeader = if (httpRequest.headers.exists(_.name.toLowerCase == "host")) {
-      List()
+    val withHost = if (httpRequest.getHeader("host").isPresent) {
+      withDate
     } else {
-      val hostHeader = Host(httpRequest.uri.authority.host.address, httpRequest.uri.authority.port)
-      List(hostHeader)
+      val hostHeader = Host(withDate.uri.authority.host, httpRequest.uri.authority.port)
+      withDate.addHeader(hostHeader)
     }
-    httpRequest.withHeaders(dateHeader ++ hostHeader ++ httpRequest.headers)
+
+    withHost
   }
 
   private[util] def stringToSign(httpRequest: HttpRequest, dateTimeStr: String, dateStr: String): String = {
@@ -146,7 +148,7 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
 
   private def canonicalRequestHash(httpRequest: HttpRequest) = {
     val canonicalRequest = createCanonicalRequest(httpRequest)
-    hexOf(hashSha256(canonicalRequest))
+    hexOf(hashSha256(canonicalRequest.getBytes("UTF-8")))
   }
 
 
@@ -159,7 +161,7 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
   private def urlEncode(s: String): String = URLEncoder.encode(s, "utf-8")
 
   private def canonicalQueryString(httpRequest: HttpRequest): String = {
-    val params = httpRequest.uri.query
+    val params = httpRequest.uri.query()
     val sortedEncoded = params.toList.map(kv => (urlEncode(kv._1), urlEncode(kv._2))).sortBy(_._1)
     sortedEncoded.map(kv => s"${kv._1}=${kv._2}").mkString("&")
   }
@@ -173,13 +175,15 @@ class AwsRequestSigner(awsCredentialsProvider: AWSCredentialsProvider, region: S
   }
 
   private def hashedPayloadByteArray(httpRequest: HttpRequest): Array[Byte] = {
-    val data = httpRequest.entity.asString
-    hashSha256(data)
+    httpRequest.entity match {
+      case HttpEntity.Strict(_, data) => hashSha256(data.toArray)
+      case _ => throw new IllegalArgumentException("non strict http entity is not supported")
+    }
   }
 
-  private def hashSha256(v: String): Array[Byte] = {
+  private def hashSha256(data: Array[Byte]): Array[Byte] = {
     val md = MessageDigest.getInstance("SHA-256")
-    md.update(v.getBytes("UTF-8"))
+    md.update(data)
     val digest = md.digest()
     digest
   }

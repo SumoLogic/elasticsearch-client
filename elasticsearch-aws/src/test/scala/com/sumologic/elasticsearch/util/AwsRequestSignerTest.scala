@@ -18,15 +18,14 @@
  */
 package com.sumologic.elasticsearch.util
 
+import akka.http.scaladsl.model.headers.{Host, RawHeader}
+import akka.http.scaladsl.model.{HttpEntity, HttpMethods, HttpRequest, Uri}
 import com.amazonaws.auth.{AWSCredentials, AWSSessionCredentials}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import com.sumologic.elasticsearch.restlastic.dsl.V6
 import org.junit.runner.RunWith
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.junit.JUnitRunner
-import spray.http.HttpHeaders.{Host, RawHeader}
-import spray.http.Uri.Query
-import spray.http.{HttpEntity, _}
 
 @RunWith(classOf[JUnitRunner])
 class AwsRequestSignerTest extends WordSpec with Matchers {
@@ -47,9 +46,8 @@ class AwsRequestSignerTest extends WordSpec with Matchers {
       method = HttpMethods.GET,
       uri = Uri.from(
         host = "host.foo.com",
-        path = "/",
-        query = Query("foo" -> "Zoo", "foo" -> "aha")
-      ),
+        path = "/"
+      ).withQuery(Uri.Query("foo" -> "Zoo", "foo" -> "aha")),
       headers = List(
         RawHeader("Date", "Mon, 09 Sep 2011 23:36:00 GMT"),
         RawHeader("Host", "host.foo.com")
@@ -118,7 +116,7 @@ class AwsRequestSignerTest extends WordSpec with Matchers {
 
   "sign with host header AND specified host:port url, host header wins" in {
     val signer = new TestSigner("", "", dummyCredentials, region, "es")
-    val req = signer.withAuthHeader(HttpRequest(uri = Uri("http://somehost:9200/some/path"),headers = List(HttpHeaders.Host("0.0.0.0"))))
+    val req = signer.withAuthHeader(HttpRequest(uri = Uri("http://somehost:9200/some/path"),headers = List(Host("0.0.0.0"))))
     req.headers.find(_.is("host")).map(_.value).getOrElse("") should be("0.0.0.0")
   }
 
