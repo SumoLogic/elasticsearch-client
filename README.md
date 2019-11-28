@@ -13,34 +13,26 @@ _This project is currently targeted at Elasticsearch 6.0.x. For ES 2.3 compatibi
 Along with a basic Elasticsearch client (`elasticsearch-core`), helper functionality for using Elasticsearch with Akka (`elasticssearch-akka`) and AWS (`elasticsearch-aws`) is also provided. The goal of the DSL is to keep it as simple as possible, occasionally sacrifing some end-user boilerplate to maintain a DSL that is easy to modify and add to. The DSL attempts to be type-safe in that it should be impossible to create an invalid Elasticsearch query. Rather than be as compact as possible, the DSL aims to closely reflect the JSON it generates when reasonable. This makes it easier discover how to access functionality than a traditional maximally compact DSL.
 ## Install / Download
 The library components are offered a la carte:
-* `elasticsearch-core` contains the basic Elasticsearch client and typesafe DSL
-* `elasticsearch-aws` contains utilities for using [AWS Hosted Elasticsearch](https://aws.amazon.com/elasticsearch-service/).
-* `elasticsearch-akka` contains Actors to use with Akka & Akka Streams
-* `elasticsearch-test` contains a test harness to test against a in JVM Elasticsearch instance
+* `elasticsearch-core_2.11` contains the basic Elasticsearch client and typesafe DSL
+* `elasticsearch-aws_2.11` contains utilities for using [AWS Hosted Elasticsearch](https://aws.amazon.com/elasticsearch-service/).
+* `elasticsearch-akka_2.11` contains Actors to use with Akka & Akka Streams
 ```
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
-      <artifactId>elasticsearch-core</artifactId>
+      <artifactId>elasticsearch-core_2.11</artifactId>
       <version>6.0.0</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
-      <artifactId>elasticsearch-aws</artifactId>
+      <artifactId>elasticsearch-aws_2.11</artifactId>
       <version>6.0.0</version>
     </dependency>
 
     <dependency>
       <groupId>com.sumologic.elasticsearch</groupId>
-      <artifactId>elasticsearch-akka</artifactId>
+      <artifactId>elasticsearch-akka_2.11</artifactId>
       <version>6.0.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.sumologic.elasticsearch</groupId>
-      <artifactId>elasticsearch-test</artifactId>
-      <version>6.0.0</version>
-      <scope>test</scope>
     </dependency>
   ```
 ## Usage
@@ -107,3 +99,72 @@ val restClient = new RestlasticSearchClient(endpoint, Some(signer))
 ## Contributing
 
 Sumo Logic Elasticsearch uses Maven and the Maven GPG Plug-in for builds and testing. After cloning the repository make sure you have a GPG key created.  Then run `maven clean install`.
+
+
+### [Dev] Building
+
+To build project in default Scala version:
+```
+./gradlew build
+```
+
+To build project in any supported Scala version:
+```
+./gradlew build -PscalaVersion=2.12.8
+```
+
+### [Dev] Testing
+
+Tests in this project are run against local Elasticsearch servers es23 es63.
+
+For testing, change your consumer `pom.xml` or `gradle.properties` to depend on the `SNAPSHOT` version generated.
+
+### [Dev] Managing Scala versions
+
+This project supports multiple versions of Scala. Supported versions are listed in `gradle.properties`.
+- `supportedScalaVersions` - list of supported versions (Gradle prevents building with versions from 
+outside this list)
+- `defaultScalaVersion` - default version of Scala used for building - can be overridden with `-PscalaVersion`
+
+### [Dev] How to release new version
+1. Make sure you have all credentials - access to `Open Source` vault in 1Password.
+    1. Can login as `sumoapi` https://oss.sonatype.org/index.html
+    2. Can import and verify the signing key:
+        ```
+        gpg --import ~/Desktop/api.private.key
+        gpg-agent --daemon
+        touch a
+        gpg --use-agent --sign a
+        gpg -k
+        ```
+    3. Have nexus and signing credentials in `~/.gradle/gradle.properties`
+        ```
+        nexus_username=sumoapi
+        nexus_password=${sumoapi_password_for_sonatype_nexus}
+        signing.gnupg.executable=gpg
+        signing.gnupg.keyName=${id_of_imported_sumoapi_key}
+        signing.gnupg.passphrase=${password_for_imported_sumoapi_key}
+        ```
+2. Remove `-SNAPSHOT` suffix from `version` in `build.gradle`
+3. Make a release branch with Scala version and project version, ex. `elasticsearch-client-7.0.0-M19`:
+    ```
+    export RELEASE_VERSION=elasticsearch-client-7.0.0-M19
+    git checkout -b ${RELEASE_VERSION}
+    git add build.gradle
+    git commit -m "[release] ${RELEASE_VERSION}"
+    ```
+4. Perform a release in selected Scala versions:
+    ```
+    ./gradlew build publish -PscalaVersion=2.11.12
+    ./gradlew build publish -PscalaVersion=2.12.8
+    ```
+5. Go to https://oss.sonatype.org/index.html#stagingRepositories, search for com.sumologic and release your repo. 
+NOTE: If you had to login, reload the URL. It doesn't take you to the right page post-login
+6. Update the `README.md` and `CHANGELOG.md` with the new version and set upcoming snapshot `version` 
+in `build.gradle`, ex. `7.0.0-M20-SNAPSHOT` 
+7. Commit the change and push as a PR:
+    ```
+    git add build.gradle README.md CHANGELOG.md
+    git commit -m "[release] Updating version after release ${RELEASE_VERSION}"
+    git push
+    ```

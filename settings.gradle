@@ -1,0 +1,36 @@
+rootProject.name = 'elasticsearch-client'
+include 'elasticsearch-core'
+include 'elasticsearch-akka'
+include 'elasticsearch-aws'
+
+determineAndSetScalaVersion()
+
+private void determineAndSetScalaVersion() {
+    def selectedScalaVersion = resolveScalaVersion()
+    applyScalaVersion(selectedScalaVersion)
+    println "Scala version: ${gradle.ext.scalaMajorVersion}.${gradle.ext.scalaMinorVersion}"
+}
+
+private String resolveScalaVersion() {
+    def selectedScalaVersion = ext.has("scalaVersion")
+            ? ext.scalaVersion
+            : ext.defaultScalaVersion
+
+    if (!ext.supportedScalaVersions
+            .split(",")
+            .collect{it.trim()}
+            .contains(selectedScalaVersion)) {
+        throw new GradleException("Unsupported scala version '$selectedScalaVersion'. " +
+                "Available versions: '${ext.supportedScalaVersions}'")
+    }
+
+    return selectedScalaVersion
+}
+
+private void applyScalaVersion(selectedScalaVersion) {
+    def m = (selectedScalaVersion =~ /(\d+\.\d+)\.(\d+(-(RC|M)\d+)?)/)
+    m.matches()
+
+    gradle.ext.scalaMajorVersion = m.group(1)
+    gradle.ext.scalaMinorVersion = m.group(2)
+}

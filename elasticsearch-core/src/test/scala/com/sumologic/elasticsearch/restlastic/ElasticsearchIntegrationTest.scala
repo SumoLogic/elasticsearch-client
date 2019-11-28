@@ -20,9 +20,11 @@ package com.sumologic.elasticsearch.restlastic
 
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
+import org.junit.runner.RunWith
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Span}
 import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.scalatestplus.junit.JUnitRunner
 
 import scala.util.{Random, Try}
 
@@ -35,6 +37,7 @@ import scala.util.{Random, Try}
   * and will be cleaned up when the test is complete.
   */
 
+@RunWith(classOf[JUnitRunner])
 trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
   this: Suite =>
   private val indexPrefix = "test-index"

@@ -13,7 +13,7 @@ before_install:
   - elasticsearch-2.3.5/bin/elasticsearch --cluster.name=es-23 --http.port=9200 > /dev/null 2> /dev/null &
   - sleep 15
   - ps aux | grep elasticsearch
-install: mvn install -DskipTests=true -Dgpg.skip=true
+install: ./gradlew build
 after_success:
   - pkill -f elasticsearch
   - bash <(curl -s https://codecov.io/bash)

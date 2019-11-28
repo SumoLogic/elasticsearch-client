@@ -27,11 +27,14 @@ import com.sumologic.elasticsearch.restlastic.dsl.Dsl
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.json4s.Extraction._
 import org.json4s._
+import org.junit.runner.RunWith
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.junit.JUnitRunner
 
 import scala.concurrent.{ExecutionContext, Future}
 
+@RunWith(classOf[JUnitRunner])
 class ScanAndScrollSourceTest extends WordSpec with Matchers with ScalaFutures {
   val resultMaps: List[Map[String, AnyRef]] = List(Map("a" -> "1"), Map("a" -> "2"), Map("a" -> "3"))
   implicit val formats = org.json4s.DefaultFormats
