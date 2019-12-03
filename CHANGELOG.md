@@ -4,6 +4,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Support for both Scala 2.11 and 2.12
+
+### Changed
+- Migrated from Spray to Akka HTTP
+
 ## [7.0.0-M19] - 2019-11-22
 
 ### Added

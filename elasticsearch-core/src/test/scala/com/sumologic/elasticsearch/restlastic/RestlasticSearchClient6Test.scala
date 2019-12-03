@@ -17,6 +17,7 @@
  * under the License.
  */
 package com.sumologic.elasticsearch.restlastic
+import akka.http.scaladsl.model.HttpMethods
 import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{Bucket, BucketAggregationResultBody, RawJsonResponse}
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
@@ -26,7 +27,6 @@ import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.time.{Millis, Span}
 import org.scalatestplus.junit.JUnitRunner
-import spray.http.HttpMethods.GET
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -95,7 +95,7 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
       restClient.runRawEsRequest(
         op = "",
         endpoint = s"/${index.name}/_settings/index.store.preload",
-        method = GET).futureValue should be(
+        method = HttpMethods.GET).futureValue should be(
         RawJsonResponse(s"""{"${index.name}":{"settings":{"index":{"store":{"preload":["dvd","nvm"]}}}}}""")
       )
     }

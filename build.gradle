@@ -151,7 +151,8 @@ project(':elasticsearch-core') {
         compile "org.json4s:json4s-jackson_${scalaMajorVersion}:${json4sVersion}"
         compile "org.slf4j:slf4j-api:${slf4jVersion}"
         compile "com.typesafe.akka:akka-actor_${scalaMajorVersion}:${akkaVersion}"
-        compile "io.spray:spray-can_${scalaMajorVersion}:${sprayVersion}"
+        compile "com.typesafe.akka:akka-http_${scalaMajorVersion}:${akkaHttpVersion}"
+        compile "com.typesafe.akka:akka-stream_${scalaMajorVersion}:${akkaVersion}"
 
         testCompile "org.apache.lucene:lucene-core:${luceneVersion}"
         testCompile "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
@@ -175,7 +176,8 @@ project(':elasticsearch-aws') {
         compile project(':elasticsearch-core')
         compile "com.amazonaws:aws-java-sdk-core:${awsJavaSdkVersion}"
         compile "org.slf4j:slf4j-api:${slf4jVersion}"
-        compile "io.spray:spray-can_${scalaMajorVersion}:${sprayVersion}"
+        compile "com.typesafe.akka:akka-http_${scalaMajorVersion}:${akkaHttpVersion}"
+        compile "com.typesafe.akka:akka-stream_${scalaMajorVersion}:${akkaVersion}"
         compile "com.typesafe.akka:akka-actor_${scalaMajorVersion}:${akkaVersion}"
     }
 }

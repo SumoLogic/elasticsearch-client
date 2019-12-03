@@ -25,17 +25,14 @@ import org.json4s.jackson.JsonMethods._
 
 import scala.concurrent.Await
 import akka.actor.ActorSystem
-import akka.io.IO
-import akka.pattern.ask
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.{HttpMethod, HttpMethods, HttpRequest, HttpResponse, Uri}
+import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.dsl.Dsl
 import org.json4s._
 import org.slf4j.LoggerFactory
-import spray.can.Http
-import spray.http.HttpMethods._
-import spray.http.Uri.{Query => UriQuery}
-import spray.http.HttpResponse
-import spray.http._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -97,6 +94,9 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
                                      (implicit val system: ActorSystem = ActorSystem(),
                                       val timeout: Timeout = Timeout(30 seconds)) extends ScrollClient {
 
+  private implicit val formats: DefaultFormats.type = org.json4s.DefaultFormats
+  private implicit val mat: ActorMaterializer = ActorMaterializer()
+
   protected val logger = LoggerFactory.getLogger(RestlasticSearchClient.getClass)
 
   import Dsl._
@@ -108,7 +108,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
             tpe: Type,
             query: RootObject,
             rawJsonStr: Boolean = true,
-            uriQuery: UriQuery = UriQuery.Empty,
+            uriQuery: Uri.Query = Uri.Query.Empty,
             profile: Boolean = false): Future[SearchResponse] = {
     queryIndices(Seq(index), tpe, query, rawJsonStr, uriQuery, profile)
   }
@@ -117,7 +117,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
                    tpe: Type,
                    query: RootObject,
                    rawJsonStr: Boolean = true,
-                   uriQuery: UriQuery = UriQuery.Empty,
+                   uriQuery: Uri.Query = Uri.Query.Empty,
                    profile: Boolean = false): Future[SearchResponse] = {
     implicit val ec = searchExecutionCtx
     val endpoint = s"/${indices.map(i => i.name).mkString(",")}/${tpe.name}/_search"
@@ -182,7 +182,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
 
   def deleteById(index: Index, tpe: Type, id: String): Future[DeleteResponse] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", DELETE).map(_.mappedTo[DeleteResponse])
+    runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", HttpMethods.DELETE).map(_.mappedTo[DeleteResponse])
   }
 
   def deleteByQuery(index: Index,
@@ -203,7 +203,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
 
   def documentExistsById(index: Index, tpe: Type, id: String): Future[Boolean] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", HEAD).map(_ => true).recover {
+    runEsCommand(NoOp, s"/${index.name}/${tpe.name}/$id", HttpMethods.HEAD).map(_ => true).recover {
       case ex: ElasticErrorResponse if ex.status == 404 =>
         false
     }
@@ -241,14 +241,14 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
 
   def getMapping(index: Index, tpe: Type): Future[RawJsonResponse] = {
     implicit val ec = searchExecutionCtx
-    runEsCommand(EmptyObject, s"/${index.name}/_mapping/${tpe.name}", GET)
+    runEsCommand(EmptyObject, s"/${index.name}/_mapping/${tpe.name}", HttpMethods.GET)
   }
 
   def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse]
 
   def deleteIndex(index: Index): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(EmptyObject, s"/${index.name}", DELETE)
+    runEsCommand(EmptyObject, s"/${index.name}", HttpMethods.DELETE)
   }
 
   def getScript(scriptId: String, lang: String = ""): Future[ScriptResponse]
@@ -261,7 +261,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
   def deleteDocument(index: Index, tpe: Type, deleteQuery: QueryRoot, pluginEnabled: Boolean = false): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
     if (pluginEnabled) {
-      runEsCommand(deleteQuery, s"/${index.name}/${tpe.name}/_query", DELETE)
+      runEsCommand(deleteQuery, s"/${index.name}/${tpe.name}/_query", HttpMethods.DELETE)
     } else {
       val response = Await.result(query(index, tpe, deleteQuery, rawJsonStr = false), 10.seconds).rawSearchResponse
       val totalHits = response.hits.total
@@ -301,7 +301,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
                                    params: Map[String, String]): Future[(ScrollId, SearchResponse)] = {
     implicit val ec = searchExecutionCtx
     val endpoint = s"/${indices.map(i => i.name).mkString(",")}/${tpe.name}/_search"
-    runEsCommand(query, endpoint, query = UriQuery(params)).map { resp =>
+    runEsCommand(query, endpoint, query = Uri.Query(params)).map { resp =>
       val sr = resp.mappedTo[SearchResponseWithScrollId]
       (ScrollId(sr._scroll_id), SearchResponse(RawSearchResponse(sr.hits), resp.jsonStr))
     }
@@ -325,8 +325,8 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
 
   protected def runEsCommand(op: RootObject,
                              endpoint: String,
-                             method: HttpMethod = POST,
-                             query: UriQuery = UriQuery.Empty,
+                             method: HttpMethod = HttpMethods.POST,
+                             query: Uri.Query = Uri.Query.Empty,
                              profile: Boolean = false)
                             (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     val jsonStr = if (profile) {
@@ -339,39 +339,42 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
 
   def runRawEsRequest(op: String,
                       endpoint: String,
-                      method: HttpMethod = POST,
-                      query: UriQuery = UriQuery.Empty)
+                      method: HttpMethod = HttpMethods.POST,
+                      query: Uri.Query = Uri.Query.Empty)
                      (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse]
 
   protected def runRawEsRequest(op: String,
                                 endpoint: String,
                                 method: HttpMethod,
-                                query: UriQuery,
+                                query: Uri.Query,
                                 request: HttpRequest)
                                (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     logger.debug(f"Got Rs request: $request (op was $op)")
 
+    val responseFuture: Future[HttpResponse] = Http().singleRequest(request)
 
-    val responseFuture: Future[HttpResponse] = (IO(Http) ? request)(timeout).mapTo[HttpResponse]
-
-    responseFuture.map { response =>
+    responseFuture.flatMap { response =>
       logger.debug(f"Got Es response: $response")
+      val responseBody = Unmarshal(response.entity).to[String]
+
       if (response.status.isFailure) {
-        logger.warn(s"Failure response: ${response.entity.asString.take(500)}")
+        logger.warn(s"Failure response: ${response.status.defaultMessage()}")
         logger.warn(s"Failing request: ${op.take(5000)}")
-        throw ElasticErrorResponse(JString(response.entity.asString), response.status.intValue)
+        responseBody.flatMap(body =>
+          Future.failed(ElasticErrorResponse(JString(body), response.status.intValue)))
+      } else {
+        responseBody.map(RawJsonResponse)
       }
-      RawJsonResponse(response.entity.asString)
     }
   }
 
-  protected def buildUri(path: String, query: UriQuery = UriQuery.Empty): Uri = {
+  protected def buildUri(path: String, query: Uri.Query = Uri.Query.Empty): Uri = {
     val ep = endpointProvider.endpoint
     val scheme = ep.port match {
       case 443 => "https"
       case _ => "http"
     }
-    Uri.from(scheme = scheme, host = ep.host, port = ep.port, path = path, query = query)
+    Uri.from(scheme = scheme, host = ep.host, port = ep.port, path = path).withQuery(query)
   }
 }
 

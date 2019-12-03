@@ -18,11 +18,9 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpMethod, HttpMethods, HttpRequest, Uri}
 import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V6}
-import spray.http.HttpMethods._
-import spray.http.Uri.{Query => UriQuery}
-import spray.http._
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -80,13 +78,13 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
       args += "slices" -> "auto"
     }
 
-    val uriQuery = UriQuery(args.toMap)
-    runEsCommand(deleteQuery, s"/${indices.map(i => i.name).mkString(",")}/${tpe.name}/_delete_by_query", query = uriQuery, method = POST)
+    val uriQuery = Uri.Query(args.toMap)
+    runEsCommand(deleteQuery, s"/${indices.map(i => i.name).mkString(",")}/${tpe.name}/_delete_by_query", query = uriQuery, method = HttpMethods.POST)
   }
 
   def createIndex(index: Index, settings: Option[IndexSetting] = None): Future[RawJsonResponse] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(CreateIndex(settings), s"/${index.name}", PUT).recover {
+    runEsCommand(CreateIndex(settings), s"/${index.name}", HttpMethods.PUT).recover {
       case ElasticErrorResponse(message, status) if message.toString contains "resource_already_exists_exception" =>
         throw IndexAlreadyExistsException(message.toString)
     }
@@ -120,7 +118,7 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
 
   override def getScript(scriptId: String, lang: String = ""): Future[ScriptResponse] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(EmptyObject, s"/_scripts/$scriptId", GET)
+    runEsCommand(EmptyObject, s"/_scripts/$scriptId", HttpMethods.GET)
       .map(resp => resp.mappedTo[ScriptResponse])
       .recover {
         case ex: ElasticErrorResponse if ex.status == 404 =>
@@ -130,7 +128,7 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
 
   override def addScript(scriptId: String, scriptSource: ScriptSource): Future[AddScriptResponse] = {
     implicit val ec = indexExecutionCtx
-    val fut = runEsCommand(scriptSource, s"/_scripts/$scriptId", POST)
+    val fut = runEsCommand(scriptSource, s"/_scripts/$scriptId", HttpMethods.POST)
     fut.map { resp =>
       val extracted = resp.mappedTo[AddScriptResponse]
       extracted
@@ -139,7 +137,7 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
 
   override def deleteScript(scriptId: String, lang: String = ""): Future[Boolean] = {
     implicit val ec = indexExecutionCtx
-    runEsCommand(EmptyObject, s"/_scripts/$scriptId", DELETE)
+    runEsCommand(EmptyObject, s"/_scripts/$scriptId", HttpMethods.DELETE)
       .map(_ => true)
       .recover {
         case ex: ElasticErrorResponse if ex.status == 404 => false
@@ -173,8 +171,8 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
 
   override def runRawEsRequest(op: String,
                                endpoint: String,
-                               method: HttpMethod = POST,
-                               query: UriQuery = UriQuery.Empty)
+                               method: HttpMethod = HttpMethods.POST,
+                               query: Uri.Query = Uri.Query.Empty)
                               (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse] = {
     val request = {
       val unauthed = HttpRequest(
