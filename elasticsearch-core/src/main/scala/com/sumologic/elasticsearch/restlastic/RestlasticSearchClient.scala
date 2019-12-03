@@ -358,7 +358,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
       val responseBody = Unmarshal(response.entity).to[String]
 
       if (response.status.isFailure) {
-          logger.warn(s"Failure response: ${response.status.defaultMessage()}")
+        logger.warn(s"Failure response: ${response.status.defaultMessage()}")
         logger.warn(s"Failing request: ${op.take(5000)}")
         responseBody.flatMap(body =>
           Future.failed(ElasticErrorResponse(JString(body), response.status.intValue)))
