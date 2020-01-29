@@ -18,7 +18,9 @@
  */
 package com.sumologic.elasticsearch.restlastic
 
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpMethod, HttpMethods, HttpRequest, Uri}
+import java.nio.charset.StandardCharsets
+
+import akka.http.scaladsl.model.{ContentType, HttpEntity, HttpMethod, HttpMethods, HttpRequest, Uri}
 import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V6}
 
@@ -171,14 +173,15 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
 
   override def runRawEsRequest(op: String,
                                endpoint: String,
-                               method: HttpMethod = HttpMethods.POST,
-                               query: Uri.Query = Uri.Query.Empty)
-                              (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse] = {
+                               method: HttpMethod,
+                               query: Uri.Query,
+                               contentType: ContentType)
+  (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     val request = {
       val unauthed = HttpRequest(
         method = method,
         uri = buildUri(endpoint, query),
-        entity = HttpEntity(ContentTypes.`application/json`, op),
+        entity = HttpEntity(contentType, op.getBytes(StandardCharsets.UTF_8)),
         headers = List())
       signer.map(_.withAuthHeader(unauthed)).getOrElse(unauthed)
     }

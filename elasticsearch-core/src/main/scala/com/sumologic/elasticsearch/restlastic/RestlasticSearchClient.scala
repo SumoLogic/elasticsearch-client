@@ -26,7 +26,7 @@ import org.json4s.jackson.JsonMethods._
 import scala.concurrent.Await
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpMethod, HttpMethods, HttpRequest, HttpResponse, Uri}
+import akka.http.scaladsl.model.{ContentType, HttpCharsets, HttpMethod, HttpMethods, HttpRequest, HttpResponse, MediaType, Uri}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
@@ -339,9 +339,21 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
 
   def runRawEsRequest(op: String,
                       endpoint: String,
+                      method: HttpMethod,
+                      query: Uri.Query,
+                      contentType: ContentType)
+                      (implicit ec: ExecutionContext): Future[RawJsonResponse]
+
+  def runRawEsRequest(op: String,
+                      endpoint: String,
                       method: HttpMethod = HttpMethods.POST,
-                      query: Uri.Query = Uri.Query.Empty)
-                     (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse]
+                      query: Uri.Query = Uri.Query.Empty,
+                      contentSubType: String = "json")
+                     (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse] = {
+    val mediaType = MediaType.applicationWithOpenCharset(contentSubType)
+    val contentTypeWithCharset: ContentType = mediaType.withMissingCharset
+    runRawEsRequest(op, endpoint, method, query, contentTypeWithCharset)
+  }
 
   protected def runRawEsRequest(op: String,
                                 endpoint: String,
@@ -349,12 +361,12 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
                                 query: Uri.Query,
                                 request: HttpRequest)
                                (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
-    logger.debug(f"Got Rs request: $request (op was $op)")
+    logger.warn(f"Got Rs request: $request (op was $op)")
 
     val responseFuture: Future[HttpResponse] = Http().singleRequest(request)
 
     responseFuture.flatMap { response =>
-      logger.debug(f"Got Es response: $response")
+      logger.warn(f"Got Es response: $response")
       val responseBody = Unmarshal(response.entity).to[String]
 
       if (response.status.isFailure) {
