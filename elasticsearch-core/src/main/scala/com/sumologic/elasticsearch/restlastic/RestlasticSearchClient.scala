@@ -361,12 +361,12 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
                                 query: Uri.Query,
                                 request: HttpRequest)
                                (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
-    logger.warn(f"Got Rs request: $request (op was $op)")
+    logger.debug(f"Got Rs request: $request (op was $op)")
 
     val responseFuture: Future[HttpResponse] = Http().singleRequest(request)
 
     responseFuture.flatMap { response =>
-      logger.warn(f"Got Es response: $response")
+      logger.debug(f"Got Es response: $response")
       val responseBody = Unmarshal(response.entity).to[String]
 
       if (response.status.isFailure) {
