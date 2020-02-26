@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [7.1.1] - 2020-02-25
+
+Support for specifying custom content type.
+
 ## [7.1.0] - 2019-12-03
 
 ### Added
