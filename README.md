@@ -146,9 +146,9 @@ outside this list)
         signing.gnupg.passphrase=${password_for_imported_sumoapi_key}
         ```
 2. Remove `-SNAPSHOT` suffix from `version` in `build.gradle`
-3. Make a release branch with Scala version and project version, ex. `elasticsearch-client-7.1.1`:
+3. Make a release branch with Scala version and project version, ex. `elasticsearch-client-7.1.2`:
     ```
-    export RELEASE_VERSION=elasticsearch-client-7.1.1
+    export RELEASE_VERSION=elasticsearch-client-7.1.2
     git checkout -b ${RELEASE_VERSION}
     git add build.gradle
     git commit -m "[release] ${RELEASE_VERSION}"
@@ -161,7 +161,7 @@ outside this list)
 5. Go to https://oss.sonatype.org/index.html#stagingRepositories, search for com.sumologic and release your repo. 
 NOTE: If you had to login, reload the URL. It doesn't take you to the right page post-login
 6. Update the `README.md` and `CHANGELOG.md` with the new version and set upcoming snapshot `version` 
-in `build.gradle`, ex. `7.1.2-SNAPSHOT` 
+in `build.gradle`, ex. `7.1.3-SNAPSHOT` 
 7. Commit the change and push as a PR:
     ```
     git add build.gradle README.md CHANGELOG.md
