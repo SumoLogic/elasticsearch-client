@@ -26,7 +26,7 @@ import org.json4s.jackson.JsonMethods._
 import scala.concurrent.Await
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{ContentType, HttpCharsets, HttpMethod, HttpMethods, HttpRequest, HttpResponse, MediaType, Uri}
+import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpCharsets, HttpMethod, HttpMethods, HttpRequest, HttpResponse, MediaType, Uri}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
@@ -342,7 +342,7 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
                       method: HttpMethod = HttpMethods.POST,
                       query: Uri.Query = Uri.Query.Empty)
                      (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse] = {
-    runRawEsRequest(op, endpoint, method, query, contentSubType = "json")
+    runRawEsRequest(op, endpoint, method, query, ContentTypes.`text/plain(UTF-8)`)
   }
 
   def runRawEsRequest(op: String,
