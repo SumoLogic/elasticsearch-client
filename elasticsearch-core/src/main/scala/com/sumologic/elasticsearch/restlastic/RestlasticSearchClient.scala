@@ -342,8 +342,10 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
                       method: HttpMethod = HttpMethods.POST,
                       query: Uri.Query = Uri.Query.Empty)
                      (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse] = {
-    runRawEsRequest(op, endpoint, method, query, ContentTypes.`text/plain(UTF-8)`)
+    runRawEsRequest(op, endpoint, method, query, defaultContentType())
   }
+
+  def defaultContentType() : ContentType
 
   def runRawEsRequest(op: String,
                       endpoint: String,
