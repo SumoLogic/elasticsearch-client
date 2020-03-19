@@ -26,7 +26,7 @@ import org.json4s.jackson.JsonMethods._
 import scala.concurrent.Await
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{ContentType, HttpCharsets, HttpMethod, HttpMethods, HttpRequest, HttpResponse, MediaType, Uri}
+import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpCharsets, HttpMethod, HttpMethods, HttpRequest, HttpResponse, MediaType, Uri}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
@@ -339,6 +339,16 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
 
   def runRawEsRequest(op: String,
                       endpoint: String,
+                      method: HttpMethod = HttpMethods.POST,
+                      query: Uri.Query = Uri.Query.Empty)
+                     (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse] = {
+    runRawEsRequest(op, endpoint, method, query, defaultContentType())
+  }
+
+  def defaultContentType() : ContentType
+
+  def runRawEsRequest(op: String,
+                      endpoint: String,
                       method: HttpMethod,
                       query: Uri.Query,
                       contentType: ContentType)
@@ -346,10 +356,10 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
 
   def runRawEsRequest(op: String,
                       endpoint: String,
-                      method: HttpMethod = HttpMethods.POST,
-                      query: Uri.Query = Uri.Query.Empty,
-                      contentSubType: String = "json")
-                     (implicit ec: ExecutionContext = ExecutionContext.Implicits.global): Future[RawJsonResponse] = {
+                      method: HttpMethod,
+                      query: Uri.Query,
+                      contentSubType: String)
+                     (implicit ec: ExecutionContext): Future[RawJsonResponse] = {
     val mediaType = MediaType.applicationWithOpenCharset(contentSubType)
     val contentTypeWithCharset: ContentType = mediaType.withMissingCharset
     runRawEsRequest(op, endpoint, method, query, contentTypeWithCharset)

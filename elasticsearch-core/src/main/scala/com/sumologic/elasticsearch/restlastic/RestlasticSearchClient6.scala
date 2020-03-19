@@ -20,7 +20,7 @@ package com.sumologic.elasticsearch.restlastic
 
 import java.nio.charset.StandardCharsets
 
-import akka.http.scaladsl.model.{ContentType, HttpEntity, HttpMethod, HttpMethods, HttpRequest, Uri}
+import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpEntity, HttpMethod, HttpMethods, HttpRequest, Uri}
 import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V6}
 
@@ -187,4 +187,6 @@ class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option
     }
     super.runRawEsRequest(op, endpoint, method, query, request)
   }
+
+  override def defaultContentType(): ContentType = ContentTypes.`application/json`
 }
