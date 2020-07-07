@@ -847,6 +847,69 @@ trait RestlasticSearchClientTest {
       }
     }
 
+    "Support TermQuery with boost" in {
+      val d1 = Document("d1", Map("f1" -> "wombat", "text" -> "australia"))
+      val d2 = Document("d2", Map("f1" -> "koala", "text" -> "australia"))
+      val d3 = Document("d3", Map("f1" -> "hedgehog", "text" -> "europe"))
+      val fut = restClient.bulkIndex(index, tpe, Seq(d1, d2, d3))
+      whenReady(fut) { _ => refresh() }
+
+      val query = new QueryRoot(
+        Bool(
+          List(
+            Should(TermQuery("f1", "koala", boost = Some(2.0f))),
+            Should(TermQuery("text", "australia")))))
+      val responseFuture = restClient.query(index, tpe, query)
+      whenReady(responseFuture) { response =>
+        response.sourceAsMap should be(
+          Seq(
+            Map("f1" -> "koala", "text" -> "australia"),
+            Map("f1" -> "wombat", "text" -> "australia")))
+      }
+    }
+
+    "Support WildcardQuery with boost" in {
+      val d1 = Document("d1", Map("f1" -> "wombat", "text" -> "australia"))
+      val d2 = Document("d2", Map("f1" -> "koala", "text" -> "australia"))
+      val d3 = Document("d3", Map("f1" -> "hedgehog", "text" -> "europe"))
+      val fut = restClient.bulkIndex(index, tpe, Seq(d1, d2, d3))
+      whenReady(fut) { _ => refresh() }
+
+      val query = new QueryRoot(
+        Bool(
+          List(
+            Should(WildcardQuery("f1", "*oa*", boost = Some(2.0f))),
+            Should(WildcardQuery("text", "aust*")))))
+      val responseFuture = restClient.query(index, tpe, query)
+      whenReady(responseFuture) { response =>
+        response.sourceAsMap should be(
+          Seq(
+            Map("f1" -> "koala", "text" -> "australia"),
+            Map("f1" -> "wombat", "text" -> "australia")))
+      }
+    }
+
+    "Support PrefixQuery with boost" in {
+      val d1 = Document("d1", Map("f1" -> "wombat", "text" -> "australia"))
+      val d2 = Document("d2", Map("f1" -> "koala", "text" -> "australia"))
+      val d3 = Document("d3", Map("f1" -> "hedgehog", "text" -> "europe"))
+      val fut = restClient.bulkIndex(index, tpe, Seq(d1, d2, d3))
+      whenReady(fut) { _ => refresh() }
+
+      val query = new QueryRoot(
+        Bool(
+          List(
+            Should(PrefixQuery("f1", "koa", boost = Some(2.0f))),
+            Should(PrefixQuery("text", "aus")))))
+      val responseFuture = restClient.query(index, tpe, query)
+      whenReady(responseFuture) { response =>
+        response.sourceAsMap should be(
+          Seq(
+            Map("f1" -> "koala", "text" -> "australia"),
+            Map("f1" -> "wombat", "text" -> "australia")))
+      }
+    }
+
     "Support PhraseQuery" in {
       val phraseDoc = Document("matchDoc", Map("f1" -> "Phrase Query", "f2" -> 5))
       val phraseNotInsertionFuture = restClient.index(index, tpe, phraseDoc)

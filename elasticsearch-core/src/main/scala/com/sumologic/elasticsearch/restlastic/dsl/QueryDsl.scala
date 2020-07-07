@@ -217,11 +217,12 @@ trait QueryDsl extends DslCommons with SortDsl {
     override def toJson(version: EsVersion): Map[String, Any] = Map(_lte -> value)
   }
 
-  case class WildcardQuery(key: String, value: String) extends Query {
+  case class WildcardQuery(key: String, value: String, boost: Option[Float] = None) extends Query {
     val _wildcard = "wildcard"
+    val _boost = "boost"
 
     override def toJson(version: EsVersion): Map[String, Any] = {
-      Map(_wildcard -> Map(key -> value))
+      Map(_wildcard -> (Map(key -> value) ++ boost.map(_boost -> _)))
     }
   }
 
@@ -233,11 +234,12 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class TermQuery(key: String, value: String) extends Query {
+  case class TermQuery(key: String, value: String, boost: Option[Float] = None) extends Query {
     val _term = "term"
+    val _boost = "boost"
 
     override def toJson(version: EsVersion): Map[String, Any] = {
-      Map(_term -> Map(key -> value))
+      Map(_term -> (Map(key -> value) ++ boost.map(_boost -> _)))
     }
   }
 
@@ -262,13 +264,14 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class PrefixQuery(key: String, prefix: String)
+  case class PrefixQuery(key: String, prefix: String, boost: Option[Float] = None)
       extends Query {
     val _prefix = "prefix"
+    val _boost = "boost"
 
     override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_prefix ->
-          Map(key -> prefix)
+          (Map(key -> prefix) ++ boost.map(_boost -> _))
       )
     }
   }
