@@ -43,7 +43,7 @@ trait RestlasticSearchClientTest {
   protected val basicNumericFieldMapping = BasicFieldMapping(IntegerType, None, None, None, None)
 
   override implicit val patienceConfig = PatienceConfig(
-    timeout = scaled(Span(10, Seconds)), interval = scaled(Span(50, Millis)))
+    timeout = scaled(Span(30, Seconds)), interval = scaled(Span(50, Millis)))
 
   def restlasticClient(restClient: => RestlasticSearchClient,
                        indexName: String,
@@ -70,8 +70,7 @@ trait RestlasticSearchClientTest {
     }
 
     def refreshIndex(index: Index): Unit = {
-      implicit val patienceConfig = PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis)))
-      restClient.refresh(index).futureValue
+      restClient.refresh(index).flatMap(_ => restClient.flush(index)).futureValue
     }
 
     def indexDocs(docs: Seq[Document], toIndex: Index = index): Unit = {
