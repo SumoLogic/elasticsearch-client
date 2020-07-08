@@ -857,14 +857,17 @@ trait RestlasticSearchClientTest {
       val query = new QueryRoot(
         Bool(
           List(
-            Should(TermQuery("f1", "koala", boost = Some(2.0f))),
-            Should(TermQuery("text", "australia")))))
+            Should(
+              TermQuery("f1", "koala"),
+              TermQuery("text", "australia"),
+              TermQuery("text", "europe", boost = Some(10.0f))))))
       val responseFuture = restClient.query(index, tpe, query)
       whenReady(responseFuture) { response =>
         response.sourceAsMap should be(
           Seq(
-            Map("f1" -> "koala", "text" -> "australia"),
-            Map("f1" -> "wombat", "text" -> "australia")))
+            Map("f1" -> "hedgehog", "text" -> "europe"), // high boost
+            Map("f1" -> "koala", "text" -> "australia"), // two matching terms
+            Map("f1" -> "wombat", "text" -> "australia"))) // just a single matching term
       }
     }
 
@@ -878,12 +881,15 @@ trait RestlasticSearchClientTest {
       val query = new QueryRoot(
         Bool(
           List(
-            Should(WildcardQuery("f1", "*oa*", boost = Some(2.0f))),
-            Should(WildcardQuery("text", "aust*")))))
+            Should(
+              WildcardQuery("f1", "*oa*"),
+              WildcardQuery("text", "aust*"),
+              WildcardQuery("text", "eur*", boost = Some(10.0f))))))
       val responseFuture = restClient.query(index, tpe, query)
       whenReady(responseFuture) { response =>
         response.sourceAsMap should be(
           Seq(
+            Map("f1" -> "hedgehog", "text" -> "europe"),
             Map("f1" -> "koala", "text" -> "australia"),
             Map("f1" -> "wombat", "text" -> "australia")))
       }
@@ -899,12 +905,15 @@ trait RestlasticSearchClientTest {
       val query = new QueryRoot(
         Bool(
           List(
-            Should(PrefixQuery("f1", "koa", boost = Some(2.0f))),
-            Should(PrefixQuery("text", "aus")))))
+            Should(
+              PrefixQuery("f1", "koa"),
+              PrefixQuery("text", "aus"),
+              PrefixQuery("text", "eu", boost = Some(10.0f))))))
       val responseFuture = restClient.query(index, tpe, query)
       whenReady(responseFuture) { response =>
         response.sourceAsMap should be(
           Seq(
+            Map("f1" -> "hedgehog", "text" -> "europe"),
             Map("f1" -> "koala", "text" -> "australia"),
             Map("f1" -> "wombat", "text" -> "australia")))
       }

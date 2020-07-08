@@ -32,6 +32,14 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   trait Filter extends EsOperation
 
+  trait ValueBoost {
+    val _boost = "boost"
+    val _value = "value"
+    def value: String
+    def boost: Option[Float]
+    def inner: AnyRef = boost.map(b => Map(_value -> value, _boost -> b)).getOrElse(value)
+  }
+
   class QueryRoot(query: Query,
                   fromOpt: Option[Int] = None,
                   sizeOpt: Option[Int] = None,
@@ -220,12 +228,11 @@ trait QueryDsl extends DslCommons with SortDsl {
     override def toJson(version: EsVersion): Map[String, Any] = Map(_lte -> value)
   }
 
-  case class WildcardQuery(key: String, value: String, boost: Option[Float] = None) extends Query {
+  case class WildcardQuery(key: String, value: String, boost: Option[Float] = None) extends Query with ValueBoost {
     val _wildcard = "wildcard"
-    val _boost = "boost"
 
     override def toJson(version: EsVersion): Map[String, Any] = {
-      Map(_wildcard -> (Map(key -> value) ++ boost.map(_boost -> _)))
+      Map(_wildcard -> Map(key -> inner))
     }
   }
 
@@ -237,12 +244,11 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class TermQuery(key: String, value: String, boost: Option[Float] = None) extends Query {
+  case class TermQuery(key: String, value: String, boost: Option[Float] = None) extends Query with ValueBoost {
     val _term = "term"
-    val _boost = "boost"
 
     override def toJson(version: EsVersion): Map[String, Any] = {
-      Map(_term -> (Map(key -> value) ++ boost.map(_boost -> _)))
+      Map(_term -> Map(key -> inner))
     }
   }
 
@@ -267,15 +273,12 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class PrefixQuery(key: String, prefix: String, boost: Option[Float] = None)
-      extends Query {
+  case class PrefixQuery(key: String, prefix: String, boost: Option[Float] = None) extends Query with ValueBoost {
     val _prefix = "prefix"
-    val _boost = "boost"
+    override val value = prefix
 
     override def toJson(version: EsVersion): Map[String, Any] = {
-      Map(_prefix ->
-          (Map(key -> prefix) ++ boost.map(_boost -> _))
-      )
+      Map(_prefix -> Map(key -> inner))
     }
   }
 
