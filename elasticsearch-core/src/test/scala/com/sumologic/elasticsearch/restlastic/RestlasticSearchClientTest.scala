@@ -945,6 +945,33 @@ trait RestlasticSearchClientTest {
       }
     }
 
+    "Support Bool query including must_not with boost" in {
+      val d1 = Document("d1", Map("f1" -> "wombat", "text" -> "australia"))
+      val d2 = Document("d2", Map("f1" -> "koala", "text" -> "australia"))
+      val d3 = Document("d3", Map("f1" -> "hedgehog", "text" -> "europe"))
+      val fut = restClient.bulkIndex(index, tpe, Seq(d1, d2, d3))
+      whenReady(fut) { _ => refresh() }
+
+      val query = new QueryRoot(
+        Bool(
+          List(
+            Should(
+              Bool(
+                List(
+                  Must(TermQuery("f1", "hedgehog", boost = Some(10.0f))))),
+              Bool(
+                List(
+                  Must(MatchAll),
+                  MustNot(TermQuery("text", "europe"))),
+                boost = Some(20.0f))))))
+      val responseFuture = restClient.query(index, tpe, query)
+      whenReady(responseFuture) { response =>
+        val responseMaps = response.sourceAsMap
+        responseMaps.size should be(3)
+        responseMaps.last should be(Map("f1" -> "hedgehog", "text" -> "europe")) // anything from outsize Europe is boosted
+      }
+    }
+
     "Support PhraseQuery" in {
       val phraseDoc = Document("matchDoc", Map("f1" -> "Phrase Query", "f2" -> 5))
       val phraseNotInsertionFuture = restClient.index(index, tpe, phraseDoc)
