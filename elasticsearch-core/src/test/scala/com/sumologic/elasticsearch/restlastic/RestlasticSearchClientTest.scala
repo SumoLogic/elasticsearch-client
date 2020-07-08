@@ -910,6 +910,32 @@ trait RestlasticSearchClientTest {
       }
     }
 
+    "Support Bool query with boost" in {
+      val d1 = Document("d1", Map("f1" -> "wombat", "text" -> "australia"))
+      val d2 = Document("d2", Map("f1" -> "koala", "text" -> "australia"))
+      val d3 = Document("d3", Map("f1" -> "hedgehog", "text" -> "europe"))
+      val fut = restClient.bulkIndex(index, tpe, Seq(d1, d2, d3))
+      whenReady(fut) { _ => refresh() }
+
+      val query = new QueryRoot(
+        Bool(
+          List(
+            Should(
+              Bool(
+                List(
+                  Should(TermQuery("f1", "wombat"), TermQuery("text", "australia")))),
+              Bool(
+                List(
+                  Should(TermQuery("f1", "wallaby"), TermQuery("text", "europe"))),
+                boost = Some(154.0f))))))
+      val responseFuture = restClient.query(index, tpe, query)
+      whenReady(responseFuture) { response =>
+        val responseMaps = response.sourceAsMap
+        responseMaps.size should be(3)
+        responseMaps.head should be(Map("f1" -> "hedgehog", "text" -> "europe"))
+      }
+    }
+
     "Support PhraseQuery" in {
       val phraseDoc = Document("matchDoc", Map("f1" -> "Phrase Query", "f2" -> 5))
       val phraseNotInsertionFuture = restClient.index(index, tpe, phraseDoc)

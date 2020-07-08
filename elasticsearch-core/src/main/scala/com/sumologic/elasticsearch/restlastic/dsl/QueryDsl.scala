@@ -147,13 +147,16 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class Bool(queries: List[BoolQuery], filterContext: FilteredContext = FilteredContext(List())) extends CompoundQuery {
+  case class Bool(queries: List[BoolQuery],
+                  filterContext: FilteredContext = FilteredContext(List()),
+                  boost: Option[Float] = None) extends CompoundQuery {
     val _bool = "bool"
+    val _boost = "boost"
 
     override def toJson(version: EsVersion): Map[String, Any] = Map(_bool -> (queryMap(version) ++ filterContext.toJson(version)))
 
     private def queryMap(version: EsVersion): Map[String, Any] = {
-      queries.map(_.toJson(version)).map(map => (map.keys.head, map(map.keys.head))).toMap
+      queries.map(_.toJson(version)).map(map => (map.keys.head, map(map.keys.head))).toMap ++ boost.map(_boost -> _)
     }
   }
 
