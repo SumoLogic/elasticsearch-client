@@ -69,9 +69,6 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class ConstantScore(filter: Filter) extends SingleField("constant_score", filter) with Filter
-
-
   case class FilteredContext(filter: List[Filter]) extends Query {
     val _filter = "filter"
     val _query = "query"
@@ -479,6 +476,16 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   case class Scroll(id: String, window: String) extends RootObject {
     override def toJson(version: EsVersion): Map[String, Any] = Map("scroll_id" -> id, "scroll" -> window)
+  }
+
+  case class ConstantScore(filter: Query, boost: Float) extends Query {
+    val _constantScore = "constant_score"
+    val _filter = "filter"
+    val _boost = "boost"
+
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(_constantScore -> Map(_filter -> filter.toJson(version), _boost -> boost))
+    }
   }
 
 }

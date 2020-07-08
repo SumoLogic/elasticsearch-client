@@ -972,6 +972,33 @@ trait RestlasticSearchClientTest {
       }
     }
 
+    "Support ConstantScore query" in {
+      val d1 = Document("d1", Map("f1" -> "wombat", "text" -> "australia"))
+      val d2 = Document("d2", Map("f1" -> "koala", "text" -> "australia"))
+      val d3 = Document("d3", Map("f1" -> "hedgehog", "text" -> "europe"))
+      val fut = restClient.bulkIndex(index, tpe, Seq(d1, d2, d3))
+      whenReady(fut) { _ => refresh() }
+
+      val query = new QueryRoot(
+        Bool(
+          List(
+            Should(
+              ConstantScore(TermQuery("f1", "wombat"), boost = 100.0f),
+              ConstantScore(
+                Bool(
+                  List(
+                    Must(
+                      TermQuery("f1", "koala"),
+                      TermQuery("text", "australia")))),
+                boost = 50.0f)))))
+      val responseFuture = restClient.query(index, tpe, query)
+      whenReady(responseFuture) { response =>
+        response.sourceAsMap should be(Seq(
+          Map("f1" -> "wombat", "text" -> "australia"),
+          Map("f1" -> "koala", "text" -> "australia")))
+      }
+    }
+
     "Support PhraseQuery" in {
       val phraseDoc = Document("matchDoc", Map("f1" -> "Phrase Query", "f2" -> 5))
       val phraseNotInsertionFuture = restClient.index(index, tpe, phraseDoc)
