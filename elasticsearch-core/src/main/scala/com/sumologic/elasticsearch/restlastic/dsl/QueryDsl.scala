@@ -32,6 +32,14 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   trait Filter extends EsOperation
 
+  trait ValueBoost {
+    val _boost = "boost"
+    val _value = "value"
+    def value: String
+    def boost: Option[Float]
+    def inner: AnyRef = boost.map(b => Map(_value -> value, _boost -> b)).getOrElse(value)
+  }
+
   class QueryRoot(query: Query,
                   fromOpt: Option[Int] = None,
                   sizeOpt: Option[Int] = None,
@@ -60,9 +68,6 @@ trait QueryDsl extends DslCommons with SortDsl {
           terminateAfterOpt.map(_terminate_after -> _)
     }
   }
-
-  case class ConstantScore(filter: Filter) extends SingleField("constant_score", filter) with Filter
-
 
   case class FilteredContext(filter: List[Filter]) extends Query {
     val _filter = "filter"
@@ -147,13 +152,16 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class Bool(queries: List[BoolQuery], filterContext: FilteredContext = FilteredContext(List())) extends CompoundQuery {
+  case class Bool(queries: List[BoolQuery],
+                  filterContext: FilteredContext = FilteredContext(List()),
+                  boost: Option[Float] = None) extends CompoundQuery {
     val _bool = "bool"
+    val _boost = "boost"
 
     override def toJson(version: EsVersion): Map[String, Any] = Map(_bool -> (queryMap(version) ++ filterContext.toJson(version)))
 
     private def queryMap(version: EsVersion): Map[String, Any] = {
-      queries.map(_.toJson(version)).map(map => (map.keys.head, map(map.keys.head))).toMap
+      queries.map(_.toJson(version)).map(map => (map.keys.head, map(map.keys.head))).toMap ++ boost.map(_boost -> _)
     }
   }
 
@@ -217,11 +225,11 @@ trait QueryDsl extends DslCommons with SortDsl {
     override def toJson(version: EsVersion): Map[String, Any] = Map(_lte -> value)
   }
 
-  case class WildcardQuery(key: String, value: String) extends Query {
+  case class WildcardQuery(key: String, value: String, boost: Option[Float] = None) extends Query with ValueBoost {
     val _wildcard = "wildcard"
 
     override def toJson(version: EsVersion): Map[String, Any] = {
-      Map(_wildcard -> Map(key -> value))
+      Map(_wildcard -> Map(key -> inner))
     }
   }
 
@@ -233,11 +241,11 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class TermQuery(key: String, value: String) extends Query {
+  case class TermQuery(key: String, value: String, boost: Option[Float] = None) extends Query with ValueBoost {
     val _term = "term"
 
     override def toJson(version: EsVersion): Map[String, Any] = {
-      Map(_term -> Map(key -> value))
+      Map(_term -> Map(key -> inner))
     }
   }
 
@@ -262,14 +270,12 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class PrefixQuery(key: String, prefix: String)
-      extends Query {
+  case class PrefixQuery(key: String, prefix: String, boost: Option[Float] = None) extends Query with ValueBoost {
     val _prefix = "prefix"
+    override val value = prefix
 
     override def toJson(version: EsVersion): Map[String, Any] = {
-      Map(_prefix ->
-          Map(key -> prefix)
-      )
+      Map(_prefix -> Map(key -> inner))
     }
   }
 
@@ -470,6 +476,16 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   case class Scroll(id: String, window: String) extends RootObject {
     override def toJson(version: EsVersion): Map[String, Any] = Map("scroll_id" -> id, "scroll" -> window)
+  }
+
+  case class ConstantScore(filter: Query, boost: Float) extends Query {
+    val _constantScore = "constant_score"
+    val _filter = "filter"
+    val _boost = "boost"
+
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(_constantScore -> Map(_filter -> filter.toJson(version), _boost -> boost))
+    }
   }
 
 }

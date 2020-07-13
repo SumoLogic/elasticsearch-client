@@ -43,7 +43,7 @@ trait RestlasticSearchClientTest {
   protected val basicNumericFieldMapping = BasicFieldMapping(IntegerType, None, None, None, None)
 
   override implicit val patienceConfig = PatienceConfig(
-    timeout = scaled(Span(10, Seconds)), interval = scaled(Span(50, Millis)))
+    timeout = scaled(Span(30, Seconds)), interval = scaled(Span(50, Millis)))
 
   def restlasticClient(restClient: => RestlasticSearchClient,
                        indexName: String,
@@ -70,8 +70,7 @@ trait RestlasticSearchClientTest {
     }
 
     def refreshIndex(index: Index): Unit = {
-      implicit val patienceConfig = PatienceConfig(scaled(Span(1500, Millis)), scaled(Span(15, Millis)))
-      restClient.refresh(index).futureValue
+      restClient.refresh(index).flatMap(_ => restClient.flush(index)).futureValue
     }
 
     def indexDocs(docs: Seq[Document], toIndex: Index = index): Unit = {
@@ -845,6 +844,158 @@ trait RestlasticSearchClientTest {
       val matchResultFuture = restClient.query(index, tpe, new QueryRoot(MatchQuery("f1", "MatchQueryWithBoost", 5)))
       whenReady(matchResultFuture) { resp =>
         resp.extractSource[DocType].head should be(DocType("MatchQueryWithBoost", 5))
+      }
+    }
+
+    "Support TermQuery with boost" in {
+      val d1 = Document("d1", Map("f1" -> "wombat", "text" -> "australia"))
+      val d2 = Document("d2", Map("f1" -> "koala", "text" -> "australia"))
+      val d3 = Document("d3", Map("f1" -> "hedgehog", "text" -> "europe"))
+      val fut = restClient.bulkIndex(index, tpe, Seq(d1, d2, d3))
+      whenReady(fut) { _ => refresh() }
+
+      val query = new QueryRoot(
+        Bool(
+          List(
+            Should(
+              TermQuery("f1", "koala"),
+              TermQuery("text", "australia"),
+              TermQuery("text", "europe", boost = Some(10.0f))))))
+      val responseFuture = restClient.query(index, tpe, query)
+      whenReady(responseFuture) { response =>
+        response.sourceAsMap should be(
+          Seq(
+            Map("f1" -> "hedgehog", "text" -> "europe"), // high boost
+            Map("f1" -> "koala", "text" -> "australia"), // two matching terms
+            Map("f1" -> "wombat", "text" -> "australia"))) // just a single matching term
+      }
+    }
+
+    "Support WildcardQuery with boost" in {
+      val d1 = Document("d1", Map("f1" -> "wombat", "text" -> "australia"))
+      val d2 = Document("d2", Map("f1" -> "koala", "text" -> "australia"))
+      val d3 = Document("d3", Map("f1" -> "hedgehog", "text" -> "europe"))
+      val fut = restClient.bulkIndex(index, tpe, Seq(d1, d2, d3))
+      whenReady(fut) { _ => refresh() }
+
+      val query = new QueryRoot(
+        Bool(
+          List(
+            Should(
+              WildcardQuery("f1", "*oa*"),
+              WildcardQuery("text", "aust*"),
+              WildcardQuery("text", "eur*", boost = Some(10.0f))))))
+      val responseFuture = restClient.query(index, tpe, query)
+      whenReady(responseFuture) { response =>
+        response.sourceAsMap should be(
+          Seq(
+            Map("f1" -> "hedgehog", "text" -> "europe"),
+            Map("f1" -> "koala", "text" -> "australia"),
+            Map("f1" -> "wombat", "text" -> "australia")))
+      }
+    }
+
+    "Support PrefixQuery with boost" in {
+      val d1 = Document("d1", Map("f1" -> "wombat", "text" -> "australia"))
+      val d2 = Document("d2", Map("f1" -> "koala", "text" -> "australia"))
+      val d3 = Document("d3", Map("f1" -> "hedgehog", "text" -> "europe"))
+      val fut = restClient.bulkIndex(index, tpe, Seq(d1, d2, d3))
+      whenReady(fut) { _ => refresh() }
+
+      val query = new QueryRoot(
+        Bool(
+          List(
+            Should(
+              PrefixQuery("f1", "koa"),
+              PrefixQuery("text", "aus"),
+              PrefixQuery("text", "eu", boost = Some(10.0f))))))
+      val responseFuture = restClient.query(index, tpe, query)
+      whenReady(responseFuture) { response =>
+        response.sourceAsMap should be(
+          Seq(
+            Map("f1" -> "hedgehog", "text" -> "europe"),
+            Map("f1" -> "koala", "text" -> "australia"),
+            Map("f1" -> "wombat", "text" -> "australia")))
+      }
+    }
+
+    "Support Bool query with boost" in {
+      val d1 = Document("d1", Map("f1" -> "wombat", "text" -> "australia"))
+      val d2 = Document("d2", Map("f1" -> "koala", "text" -> "australia"))
+      val d3 = Document("d3", Map("f1" -> "hedgehog", "text" -> "europe"))
+      val fut = restClient.bulkIndex(index, tpe, Seq(d1, d2, d3))
+      whenReady(fut) { _ => refresh() }
+
+      val query = new QueryRoot(
+        Bool(
+          List(
+            Should(
+              Bool(
+                List(
+                  Should(TermQuery("f1", "wombat"), TermQuery("text", "australia")))),
+              Bool(
+                List(
+                  Should(TermQuery("f1", "wallaby"), TermQuery("text", "europe"))),
+                boost = Some(154.0f))))))
+      val responseFuture = restClient.query(index, tpe, query)
+      whenReady(responseFuture) { response =>
+        val responseMaps = response.sourceAsMap
+        responseMaps.size should be(3)
+        responseMaps.head should be(Map("f1" -> "hedgehog", "text" -> "europe"))
+      }
+    }
+
+    "Support Bool query including must_not with boost" in {
+      val d1 = Document("d1", Map("f1" -> "wombat", "text" -> "australia"))
+      val d2 = Document("d2", Map("f1" -> "koala", "text" -> "australia"))
+      val d3 = Document("d3", Map("f1" -> "hedgehog", "text" -> "europe"))
+      val fut = restClient.bulkIndex(index, tpe, Seq(d1, d2, d3))
+      whenReady(fut) { _ => refresh() }
+
+      val query = new QueryRoot(
+        Bool(
+          List(
+            Should(
+              Bool(
+                List(
+                  Must(TermQuery("f1", "hedgehog", boost = Some(10.0f))))),
+              Bool(
+                List(
+                  Must(MatchAll),
+                  MustNot(TermQuery("text", "europe"))),
+                boost = Some(20.0f))))))
+      val responseFuture = restClient.query(index, tpe, query)
+      whenReady(responseFuture) { response =>
+        val responseMaps = response.sourceAsMap
+        responseMaps.size should be(3)
+        responseMaps.last should be(Map("f1" -> "hedgehog", "text" -> "europe")) // anything from outsize Europe is boosted
+      }
+    }
+
+    "Support ConstantScore query" in {
+      val d1 = Document("d1", Map("f1" -> "wombat", "text" -> "australia"))
+      val d2 = Document("d2", Map("f1" -> "koala", "text" -> "australia"))
+      val d3 = Document("d3", Map("f1" -> "hedgehog", "text" -> "europe"))
+      val fut = restClient.bulkIndex(index, tpe, Seq(d1, d2, d3))
+      whenReady(fut) { _ => refresh() }
+
+      val query = new QueryRoot(
+        Bool(
+          List(
+            Should(
+              ConstantScore(TermQuery("f1", "wombat"), boost = 100.0f),
+              ConstantScore(
+                Bool(
+                  List(
+                    Must(
+                      TermQuery("f1", "koala"),
+                      TermQuery("text", "australia")))),
+                boost = 50.0f)))))
+      val responseFuture = restClient.query(index, tpe, query)
+      whenReady(responseFuture) { response =>
+        response.sourceAsMap should be(Seq(
+          Map("f1" -> "wombat", "text" -> "australia"),
+          Map("f1" -> "koala", "text" -> "australia")))
       }
     }
 

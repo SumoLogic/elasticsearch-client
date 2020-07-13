@@ -104,8 +104,7 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
       implicit val formats = org.json4s.DefaultFormats
       val docsCount = 10011
       val documents = (1 to docsCount).map(i => Document(s"doc$i", Map("text7" -> "here7")))
-      val bulkInsertResult = restClient.bulkIndex(index, tpe, documents)
-      Await.result(bulkInsertResult, 20.seconds)
+      restClient.bulkIndex(index, tpe, documents).futureValue
       refresh()
 
       val count = Await.result(restClient.count(index, tpe, new QueryRoot(MatchAll)), 10.seconds)
@@ -119,7 +118,7 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
         refreshAfterDeletion = true,
         useAutoSlices = true)
 
-      val delResult = Await.result(delFut, 20.seconds)
+      val delResult = delFut.futureValue
       parse(delResult.jsonStr).extract[Map[String, String]].keySet should be (Set("task"))
     }
 
