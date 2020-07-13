@@ -4,6 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [7.1.3] - 2020-07-13
+
+- Boost support in `TermQuery`, `WildcardQuery` and `PrefixQuery`
+- `ConstantScore` query support
+
 ## [7.1.2] - 2020-03-19
 
 - Fix backward compatibility with < 7.1.0
