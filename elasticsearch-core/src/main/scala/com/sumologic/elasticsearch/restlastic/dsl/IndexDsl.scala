@@ -71,9 +71,15 @@ trait IndexDsl extends DslCommons {
   case class BulkOperation(operation: OperationType, location: Option[(Index, Type)], document: Document, retryOnConflictOpt: Option[Int] = None, upsertOpt: Option[Document] = None, docAsUpsertOpt: Option[Boolean] = None) extends EsOperation {
     import EsOperation.compactJson
 
+    private val jsonStrCache = TrieMap.empty[EsVersion, String]
+
     override def toJson(version: EsVersion): Map[String, Any] = throw new UnsupportedOperationException
 
     def toJsonStr(version: EsVersion): String = {
+      jsonStrCache.getOrElseUpdate(version, makeJsonStr(version))
+    }
+
+    private def makeJsonStr(version: EsVersion): String = {
       val (doc, retryOpt) = operation match {
         case `update` =>
           val updateOps = upsertOpt match {
