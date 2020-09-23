@@ -161,7 +161,7 @@ outside this list)
 5. Go to https://oss.sonatype.org/index.html#stagingRepositories, search for com.sumologic and release your repo. 
 NOTE: If you had to login, reload the URL. It doesn't take you to the right page post-login
 6. Update the `README.md` and `CHANGELOG.md` with the new version and set upcoming snapshot `version` 
-in `build.gradle`, ex. `7.1.4-SNAPSHOT` 
+in `build.gradle`, ex. `7.1.5-SNAPSHOT` 
 7. Commit the change and push as a PR:
     ```
     git add build.gradle README.md CHANGELOG.md
