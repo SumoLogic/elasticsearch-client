@@ -4,7 +4,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-## [7.1.5] - 2020-10-27
+## [7.1.5, 7.1.6] - 2020-10-27
 
 -  Add an option to pass a customer actor system to es client
 
