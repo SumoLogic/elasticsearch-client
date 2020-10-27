@@ -118,6 +118,7 @@ To build project in any supported Scala version:
 Tests in this project are run against local Elasticsearch servers es23 es63.
 
 For testing, change your consumer `pom.xml` or `gradle.properties` to depend on the `SNAPSHOT` version generated.
+Make sure, your consumer can resolve artifacts from a local repository.
 
 ### [Dev] Managing Scala versions
 
@@ -158,7 +159,7 @@ outside this list)
     ./gradlew build publish -PscalaVersion=2.11.12
     ./gradlew build publish -PscalaVersion=2.12.8
     ```
-5. Go to https://oss.sonatype.org/index.html#stagingRepositories, search for com.sumologic and release your repo. 
+5. Go to https://oss.sonatype.org/index.html#stagingRepositories, search for com.sumologic, close and release your repo. 
 NOTE: If you had to login, reload the URL. It doesn't take you to the right page post-login
 6. Update the `README.md` and `CHANGELOG.md` with the new version and set upcoming snapshot `version` 
 in `build.gradle`, ex. `7.1.6-SNAPSHOT` 
