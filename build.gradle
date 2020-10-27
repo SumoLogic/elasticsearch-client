@@ -30,7 +30,7 @@ subprojects {
     group = "com.sumologic.elasticsearch"
     description = "Elasticsearch Client for Scala that operates against the REST Endpoint"
 
-    version = '7.1.5-SNAPSHOT'
+    version = '7.1.5'
 
     sourceCompatibility = javaSourceVersion
     targetCompatibility = javaTargetVersion
