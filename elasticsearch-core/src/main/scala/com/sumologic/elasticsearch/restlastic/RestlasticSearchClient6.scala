@@ -20,6 +20,7 @@ package com.sumologic.elasticsearch.restlastic
 
 import java.nio.charset.StandardCharsets
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpEntity, HttpMethod, HttpMethods, HttpRequest, Uri}
 import akka.util.Timeout
 import com.sumologic.elasticsearch.restlastic.dsl.{Dsl, V6}
@@ -39,8 +40,9 @@ import scala.concurrent.{ExecutionContext, Future}
 class RestlasticSearchClient6(endpointProvider: EndpointProvider, signer: Option[RequestSigner] = None,
                               override val indexExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global,
                               searchExecutionCtx: ExecutionContext = ExecutionContext.Implicits.global)
-                             (override implicit val timeout: Timeout = Timeout(30 seconds))
-  extends RestlasticSearchClient(endpointProvider, signer, indexExecutionCtx, searchExecutionCtx) {
+                             (override implicit val system: ActorSystem = ActorSystem(),
+                              override implicit val timeout: Timeout = Timeout(30 seconds))
+  extends RestlasticSearchClient(endpointProvider, indexExecutionCtx, searchExecutionCtx) {
 
   private implicit val formats = org.json4s.DefaultFormats
 

@@ -88,11 +88,11 @@ trait RequestSigner {
   def withAuthHeader(httpRequest: HttpRequest): HttpRequest
 }
 
-abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer: Option[RequestSigner],
+abstract class RestlasticSearchClient(endpointProvider: EndpointProvider,
                                       override val indexExecutionCtx: ExecutionContext,
                                       searchExecutionCtx: ExecutionContext)
                                      (implicit val system: ActorSystem = ActorSystem(),
-                                      val timeout: Timeout = Timeout(30 seconds)) extends ScrollClient {
+                                      implicit val timeout: Timeout = Timeout(30 seconds)) extends ScrollClient {
 
   private implicit val formats: DefaultFormats.type = org.json4s.DefaultFormats
   private implicit val mat: ActorMaterializer = ActorMaterializer()
