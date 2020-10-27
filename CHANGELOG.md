@@ -4,6 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [7.1.5] - 2020-10-27
+
+-  Add an option to pass a customer actor system to es client
+
+## [7.1.4] - 2020-09-22
+
+-  Cache JSON string inside single BulkOperation
+
 ## [7.1.3] - 2020-07-13
 
 - Boost support in `TermQuery`, `WildcardQuery` and `PrefixQuery`
