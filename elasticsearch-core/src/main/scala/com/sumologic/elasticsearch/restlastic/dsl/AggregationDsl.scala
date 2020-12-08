@@ -203,4 +203,21 @@ trait AggregationDsl extends DslCommons with QueryDsl {
       )
     }
   }
+
+  case class FiltersAggregation(filters: Map[String, Filter],
+                                name: Option[String] = None,
+                                other: Boolean = false) extends Aggregation {
+    val _aggsName = name.getOrElse("filters")
+    val _filters = "filters"
+    val _other = "other"
+
+    override def toJson(version: EsVersion): Map[String, Any] = {
+      Map(
+        _aggsName -> Map(
+          _filters -> filters.mapValues(_.toJson(version)),
+          _other -> other
+        )
+      )
+    }
+  }
 }
