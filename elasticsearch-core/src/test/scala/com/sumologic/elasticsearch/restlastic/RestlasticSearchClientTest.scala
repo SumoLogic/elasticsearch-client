@@ -1697,6 +1697,74 @@ trait RestlasticSearchClientTest {
       val aggrQueryFuture = restClient.sampleAggregation(index, tpe, aggrQuery)
       aggrQueryFuture.futureValue should be(expected)
     }
+
+
+
+    "Support filters aggregations" in {
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("f1" -> basicKeywordFieldMapping, "f2" -> basicNumericFieldMapping, "text" -> basicTextFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
+      val aggrDoc1 = Document("aggrDoc1", Map("f1" -> "aggr1", "f2" -> 1, "text" -> "text1"))
+      val aggrDoc2 = Document("aggrDoc2", Map("f1" -> "aggr2", "f2" -> 2, "text" -> "text1"))
+      val aggrDoc3 = Document("aggrDoc3", Map("f1" -> "aggr3", "f2" -> 1, "text" -> "text2"))
+      val aggrDoc4 = Document("aggrDoc4", Map("f1" -> "aggr4", "f2" -> 1, "text" -> "text2"))
+      val bulkIndexFuture = restClient.bulkIndex(index, tpe, Seq(aggrDoc1, aggrDoc2, aggrDoc3, aggrDoc4))
+      whenReady(bulkIndexFuture) { _ => refresh() }
+
+      val query = PrefixQuery("f1", "aggr")
+      val filtersAggr = FiltersAggregation(
+        filters = Map(
+          "filter_1" -> TermFilter("text", "text1"),
+          "filter_2" -> CompoundFilter(TermFilter("f2", "1"), TermFilter("text", "text2"))
+        )
+      )
+      val aggrQuery = AggregationQuery(query, filtersAggr, Some(1000))
+
+      val expected = FiltersAggregations(FiltersBuckets(Map(
+        "filter_1" -> FilterBucket(2, None),
+        "filter_2" -> FilterBucket(2, None)
+      )))
+
+      val aggrQueryFuture = restClient.filtersAggregation(index, tpe, aggrQuery)
+      aggrQueryFuture.futureValue should be(expected)
+    }
+
+    "Support sub aggregations in filters aggregation" in {
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("f1" -> basicKeywordFieldMapping, "f2" -> basicNumericFieldMapping, "text" -> basicTextFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
+      val aggrDoc1 = Document("aggrDoc1", Map("f1" -> "aggr1", "f2" -> 1, "text" -> "text1"))
+      val aggrDoc2 = Document("aggrDoc2", Map("f1" -> "aggr2", "f2" -> 2, "text" -> "text1"))
+      val aggrDoc3 = Document("aggrDoc3", Map("f1" -> "aggr3", "f2" -> 1, "text" -> "text2"))
+      val aggrDoc4 = Document("aggrDoc4", Map("f1" -> "aggr4", "f2" -> 1, "text" -> "text2"))
+      val bulkIndexFuture = restClient.bulkIndex(index, tpe, Seq(aggrDoc1, aggrDoc2, aggrDoc3, aggrDoc4))
+      whenReady(bulkIndexFuture) { _ => refresh() }
+
+      val query = PrefixQuery("f1", "aggr")
+      val filtersAggr = FiltersAggregation(
+        filters = Map(
+          "filter_1" -> TermFilter("text", "text1"),
+          "filter_2" -> CompoundFilter(TermFilter("f2", "1"), TermFilter("text", "text2"))
+        ),
+        subAggregation = Some(TermsAggregation(
+          field = "f1", include = None, exclude = None, size = None, shardSize = None
+        ))
+      )
+      val aggrQuery = AggregationQuery(query, filtersAggr, Some(1000))
+
+      val aggrQueryFuture = restClient.filtersAggregation(index, tpe, aggrQuery)
+      val result = aggrQueryFuture.futureValue.filters_agg
+      result.buckets.mapValues(v => (v.doc_count, v.subAggsMappedTo[BucketAggregationResultBody])) shouldBe Map(
+        "filter_1" -> (2, Some(BucketAggregationResultBody(0, 0, List(Bucket("aggr1", 1), Bucket("aggr2", 1))))),
+        "filter_2" -> (2, Some(BucketAggregationResultBody(0, 0, List(Bucket("aggr3", 1), Bucket("aggr4", 1)))))
+      )
+    }
   }
 }
 
