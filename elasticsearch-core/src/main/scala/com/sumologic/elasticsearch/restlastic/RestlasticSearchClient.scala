@@ -21,6 +21,7 @@ package com.sumologic.elasticsearch.restlastic
 import com.sumologic.elasticsearch.restlastic.RestlasticSearchClient.ReturnTypes.{ScrollId, SearchResponse}
 import com.sumologic.elasticsearch.restlastic.dsl.EsVersion
 import org.json4s.FieldSerializer.{renameFrom, renameTo}
+import org.json4s.Extraction._
 import org.json4s.jackson.JsonMethods._
 
 import scala.concurrent.Await
@@ -138,6 +139,13 @@ abstract class RestlasticSearchClient(endpointProvider: EndpointProvider, signer
     implicit val ec = searchExecutionCtx
     runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
       rawJson.mappedTo[BucketAggregationResponse].aggregations.aggs_name
+    }
+  }
+
+  def filtersAggregation(index: Index, tpe: Type, query: AggregationQuery): Future[FiltersAggregations] = {
+    implicit val ec = searchExecutionCtx
+    runEsCommand(query, s"/${index.name}/${tpe.name}/_search").map { rawJson =>
+      rawJson.mappedTo[FiltersAggregationResponse].aggregations
     }
   }
 
@@ -471,6 +479,24 @@ object RestlasticSearchClient {
     case class BucketAggregationResultBody(doc_count_error_upper_bound: Int,
                                            sum_other_doc_count: Int,
                                            buckets: List[Bucket])
+
+    case class FiltersAggregationResponse(aggregations: FiltersAggregations)
+
+    case class FiltersAggregations(filters_agg: FiltersBuckets)
+
+    case class FiltersBuckets(buckets: Map[String, FilterBucket])
+
+    type FilterSubAgg = Map[String, Any]
+
+    case class FilterBucket(doc_count: Int, aggs_name: Option[FilterSubAgg]) {
+      def subAggsMappedTo[T : Manifest]: Option[T] = {
+        implicit val formats = org.json4s.DefaultFormats
+        aggs_name.map { aggsMap =>
+          val jsonTree = decompose(aggsMap)
+          jsonTree.extract[T]
+        }
+      }
+    }
 
     case class SampleAggregationResponse(aggregations: SampleAggregations)
 
