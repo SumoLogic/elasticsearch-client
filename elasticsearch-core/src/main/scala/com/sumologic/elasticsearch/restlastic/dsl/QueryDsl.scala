@@ -46,7 +46,8 @@ trait QueryDsl extends DslCommons with SortDsl {
                   sortOpt: Option[Seq[Sort]] = None,
                   timeoutOpt: Option[Int] = None,
                   sourceFilterOpt: Option[Seq[String]] = None,
-                  terminateAfterOpt: Option[Int] = None)
+                  terminateAfterOpt: Option[Int] = None,
+                  searchAfterOpt: Option[Seq[Any]] = None)
       extends RootObject {
 
     val _query = "query"
@@ -57,6 +58,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     val _timeout = "timeout"
     val _source = "_source"
     val _terminate_after = "terminate_after"
+    val _search_after = "search_after"
 
     override def toJson(version: EsVersion): Map[String, Any] = {
       Map(_query -> query.toJson(version)) ++
@@ -65,7 +67,8 @@ trait QueryDsl extends DslCommons with SortDsl {
           timeoutOpt.map(t => _timeout -> s"${t}ms") ++
           sortOpt.map(_sort -> _.map(_.toJson(version))) ++
           sourceFilterOpt.map(_source -> _) ++
-          terminateAfterOpt.map(_terminate_after -> _)
+          terminateAfterOpt.map(_terminate_after -> _) ++
+          searchAfterOpt.map(_search_after -> _)
     }
   }
 

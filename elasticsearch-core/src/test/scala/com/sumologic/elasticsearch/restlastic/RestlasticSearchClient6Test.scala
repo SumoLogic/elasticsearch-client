@@ -233,6 +233,75 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndA
       aggrQueryFutStoredScript.futureValue.value should be(4)
     }
 
+
+    "Support search after" in {
+      val metadataMapping = Mapping(tpe, IndexMapping(
+        Map("f1" -> basicKeywordFieldMapping, "f2" -> basicNumericFieldMapping, "f3" -> basicKeywordFieldMapping)))
+
+      val mappingFut = restClient.putMapping(index, tpe, metadataMapping)
+      whenReady(mappingFut) { _ => refresh() }
+
+      // https://www.elastic.co/guide/en/elasticsearch/reference/current/paginate-search-results.html#search-after
+      val searchAfterDoc1 = Document("searchAfterDoc1", Map("f1" -> "ab", "f2" -> 11, "f3" -> "searchAfter"))
+      val searchAfterDoc2 = Document("searchAfterDoc2", Map("f1" -> "aa", "f2" -> 12, "f3" -> "searchAfter"))
+      val searchAfterDoc3 = Document("searchAfterDoc3", Map("f1" -> "ab", "f2" -> 12, "f3" -> "searchAfter"))
+      val searchAfterFuture = restClient.bulkIndex(index, tpe, Seq(searchAfterDoc1, searchAfterDoc2, searchAfterDoc3))
+      whenReady(searchAfterFuture) { ok => refresh() }
+      val searchAfterQueryFuture1 = restClient.query(index, tpe, new QueryRoot(
+        query = MatchQuery("f3", "searchAfter"),
+        fromOpt = None,
+        sizeOpt = Some(1),
+        sortOpt = Some(Seq(SimpleSort("f1", AscSortOrder), SimpleSort("f2", DescSortOrder))),
+        timeoutOpt = None,
+        sourceFilterOpt = None,
+        terminateAfterOpt = None,
+        searchAfterOpt = None)
+      )
+      searchAfterQueryFuture1.futureValue.sourceAsMap should be(Seq(
+        Map("f1" -> "aa", "f2" -> 12, "f3" -> "searchAfter")
+      ))
+
+      val searchAfterQueryFuture2 = restClient.query(index, tpe, new QueryRoot(
+        query = MatchQuery("f3", "searchAfter"),
+        fromOpt = None,
+        sizeOpt = Some(1),
+        sortOpt = Some(Seq(SimpleSort("f1", AscSortOrder), SimpleSort("f2", DescSortOrder))),
+        timeoutOpt = None,
+        sourceFilterOpt = None,
+        terminateAfterOpt = None,
+        searchAfterOpt = Some(Seq("aa", 12)))
+      )
+      searchAfterQueryFuture2.futureValue.sourceAsMap should be(Seq(
+        Map("f1" -> "ab", "f2" -> 12, "f3" -> "searchAfter")
+      ))
+
+      val searchAfterQueryFuture3 = restClient.query(index, tpe, new QueryRoot(
+        query = MatchQuery("f3", "searchAfter"),
+        fromOpt = None,
+        sizeOpt = Some(1),
+        sortOpt = Some(Seq(SimpleSort("f1", AscSortOrder), SimpleSort("f2", DescSortOrder))),
+        timeoutOpt = None,
+        sourceFilterOpt = None,
+        terminateAfterOpt = None,
+        searchAfterOpt = Some(Seq("ab", 12)))
+      )
+      searchAfterQueryFuture3.futureValue.sourceAsMap should be(Seq(
+        Map("f1" -> "ab", "f2" -> 11, "f3" -> "searchAfter")
+      ))
+
+      val searchAfterQueryFuture4 = restClient.query(index, tpe, new QueryRoot(
+        query = MatchQuery("f3", "searchAfter"),
+        fromOpt = None,
+        sizeOpt = Some(1),
+        sortOpt = Some(Seq(SimpleSort("f1", AscSortOrder), SimpleSort("f2", DescSortOrder))),
+        timeoutOpt = None,
+        sourceFilterOpt = None,
+        terminateAfterOpt = None,
+        searchAfterOpt = Some(Seq("ab", 11)))
+      )
+      searchAfterQueryFuture4.futureValue.sourceAsMap should be(empty)
+    }
+
   }
 
   private def refresh(): Unit = {
