@@ -4,10 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-## [7.1.7]
+## [7.1.8] - 2021-01-18
 
-- Add support for `filters` aggregation with sub-aggregations.
-- Add compound filter type allowing combining multiple filters into one bool must clause.
+-  Add support for `search_after`
+
+## [7.1.7] - 2020-12-10
+
+-  Add support for `filters` aggregation with sub-aggregations.
+-  Add compound filter type allowing combining multiple filters into one bool must clause.
 
 ## [7.1.5, 7.1.6] - 2020-10-27
 
