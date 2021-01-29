@@ -204,7 +204,7 @@ trait AggregationDsl extends DslCommons with QueryDsl {
     }
   }
 
-  case class FiltersAggregation(filters: Map[String, Filter],
+  case class FiltersAggregation(filters: Map[String, Query],
                                 subAggregation: Option[Aggregation] = None,
                                 otherBucket: Boolean = false) extends Aggregation {
     val _aggsName = "filters_agg"

@@ -30,7 +30,7 @@ trait QueryDsl extends DslCommons with SortDsl {
 
   trait CompoundQuery extends Query
 
-  trait Filter extends EsOperation
+  trait Filter extends Query
 
   trait ValueBoost {
     val _boost = "boost"
@@ -72,7 +72,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class FilteredContext(filter: List[Filter]) extends Query {
+  case class FilteredContext(filter: List[Query]) extends Query {
     val _filter = "filter"
     val _query = "query"
     val _searchType = "search-type"
@@ -84,7 +84,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class MultiTermFilterContext(filter: Filter*) extends Query {
+  case class MultiTermFilterContext(filter: Query*) extends Query {
     val _filter = "filter"
     val _query = "query"
     val _must = "must"
@@ -96,7 +96,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class MultiTermFilteredQuery(query: Query, filter: Filter*) extends Query {
+  case class MultiTermFilteredQuery(query: Query, filter: Query*) extends Query {
     val _filtered = "filtered"
     val _filter = "filter"
     val _query = "query"
@@ -155,7 +155,7 @@ trait QueryDsl extends DslCommons with SortDsl {
     }
   }
 
-  case class CompoundFilter(filters: Filter*) extends Filter {
+  case class CompoundFilter(filters: Query*) extends Filter {
     val _bool = "bool"
     val _must = "must"
 

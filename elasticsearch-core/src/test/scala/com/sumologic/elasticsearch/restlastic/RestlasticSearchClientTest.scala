@@ -836,6 +836,46 @@ trait RestlasticSearchClientTest {
       }
     }
 
+    "Support queries in filter context" in {
+      val futures = (1 to 10).map { n =>
+        Document(s"queryFilterDoc-$n", Map("f1" -> n, "f2" -> "field2", "f3" -> "field3"))
+      }.map { doc =>
+        restClient.index(index, tpe, doc)
+      }
+
+      val range = Future.sequence(futures)
+      whenReady(range) { _ =>
+        refresh()
+      }
+      refresh()
+
+      val rangeQuery = RangeQuery("f1", Gt("7"))
+      val termFilter = TermFilter("f2", "field2")
+      val wildcardQuery = WildcardQuery("f3", "fi*")
+
+      val query1 = Bool(List(Must(rangeQuery, termFilter, wildcardQuery, MatchAll)))
+      val query2 = MultiTermFilteredQuery(rangeQuery, termFilter, wildcardQuery, MatchAll)
+      val query3 = Bool(List(), FilteredContext(List(rangeQuery, termFilter, wildcardQuery, MatchAll)))
+      val query4 = CompoundFilter(rangeQuery, termFilter, wildcardQuery, MatchAll)
+      val expected = List(
+        Map("f1" -> 8, "f2" -> "field2", "f3" -> "field3"),
+        Map("f1" -> 9, "f2" -> "field2", "f3" -> "field3"),
+        Map("f1" -> 10, "f2" -> "field2", "f3" -> "field3")
+      )
+
+      val resFut1 = restClient.query(index, tpe, new QueryRoot(query1))
+      whenReady(resFut1) { res => res.sourceAsMap.toList should contain theSameElementsAs expected }
+
+      val resFut2 = restClient.query(index, tpe, new QueryRoot(query2))
+      whenReady(resFut2) { res => res.sourceAsMap.toList should contain theSameElementsAs expected }
+
+      val resFut3 = restClient.query(index, tpe, new QueryRoot(query3))
+      whenReady(resFut3) { res => res.sourceAsMap.toList should contain theSameElementsAs expected }
+
+      val resFut4 = restClient.query(index, tpe, new QueryRoot(query4))
+      whenReady(resFut4) { res => res.sourceAsMap.toList should contain theSameElementsAs expected }
+    }
+
     "Support MatchQuery with boost" in {
       val matchDoc = Document("matchDoc", Map("f1" -> "MatchQueryWithBoost", "f2" -> 5))
       val matchNotInsertionFuture = restClient.index(index, tpe, matchDoc)
@@ -1750,7 +1790,7 @@ trait RestlasticSearchClientTest {
       val filtersAggr = FiltersAggregation(
         filters = Map(
           "filter_1" -> TermFilter("text", "text1"),
-          "filter_2" -> CompoundFilter(TermFilter("f2", "1"), TermFilter("text", "text2"))
+          "filter_2" -> MultiTermFilteredQuery(TermQuery("f2", "1"), TermQuery("text", "text2"))
         ),
         subAggregation = Some(TermsAggregation(
           field = "f1", include = None, exclude = None, size = None, shardSize = None

@@ -32,7 +32,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 @RunWith(classOf[JUnitRunner])
-class RestlasticSearchClient6Test extends WordSpec with Matchers with BeforeAndAfterAll
+class RestlasticSearchClient6Test extends WordSpec with Matchers
     with ElasticsearchIntegrationTest with OneInstancePerTest with RestlasticSearchClientTest {
 
   override val restClient = RestlasticSearchClient6Test.restClient

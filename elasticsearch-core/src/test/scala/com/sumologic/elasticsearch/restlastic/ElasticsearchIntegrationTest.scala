@@ -23,7 +23,7 @@ import com.sumologic.elasticsearch.restlastic.dsl.Dsl._
 import org.junit.runner.RunWith
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Span}
-import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 import org.scalatestplus.junit.JUnitRunner
 
 import scala.util.{Random, Try}
@@ -38,7 +38,7 @@ import scala.util.{Random, Try}
   */
 
 @RunWith(classOf[JUnitRunner])
-trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
+trait ElasticsearchIntegrationTest extends BeforeAndAfterEach with ScalaFutures {
   this: Suite =>
   private val indexPrefix = "test-index"
 
@@ -63,14 +63,9 @@ trait ElasticsearchIntegrationTest extends BeforeAndAfterAll with ScalaFutures {
     })
   }
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
+  override def afterEach(): Unit = {
     Try(delete(Index(s"$indexPrefix*")))
-  }
-
-  override def afterAll(): Unit = {
-    Try(delete(Index(s"$indexPrefix*")))
-    super.afterAll()
+    super.afterEach()
   }
 
   private def delete(index: Index): ReturnTypes.RawJsonResponse = {
