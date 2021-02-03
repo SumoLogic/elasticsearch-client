@@ -4,6 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [7.1.9] - 2021-02-03
+
+-  Make `Filter` trait extend `Query`
+-  Allow using broader `Query` instead of more limited `Filter` in various case classes
+
 ## [7.1.8] - 2021-01-18
 
 -  Add support for `search_after`
