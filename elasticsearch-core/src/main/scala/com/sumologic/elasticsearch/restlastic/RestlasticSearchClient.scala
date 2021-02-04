@@ -523,6 +523,7 @@ object RestlasticSearchClient {
                                    _id: String,
                                    _score: Option[Float],
                                    _source: JObject,
+                                   sort: Array[Any],
                                    highlight: Option[JObject],
                                    inner_hits: Option[JObject])
 
