@@ -260,6 +260,9 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers
       searchAfterQueryFuture1.futureValue.sourceAsMap should be(Seq(
         Map("f1" -> "aa", "f2" -> 12, "f3" -> "searchAfter")
       ))
+      searchAfterQueryFuture1.futureValue.rawSearchResponse.hits.hits.last.sort should be(Seq(
+        "aa", 12
+      ))
 
       val searchAfterQueryFuture2 = restClient.query(index, tpe, new QueryRoot(
         query = MatchQuery("f3", "searchAfter"),
@@ -274,6 +277,9 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers
       searchAfterQueryFuture2.futureValue.sourceAsMap should be(Seq(
         Map("f1" -> "ab", "f2" -> 12, "f3" -> "searchAfter")
       ))
+      searchAfterQueryFuture2.futureValue.rawSearchResponse.hits.hits.last.sort should be(Seq(
+        "ab", 12
+      ))
 
       val searchAfterQueryFuture3 = restClient.query(index, tpe, new QueryRoot(
         query = MatchQuery("f3", "searchAfter"),
@@ -287,6 +293,9 @@ class RestlasticSearchClient6Test extends WordSpec with Matchers
       )
       searchAfterQueryFuture3.futureValue.sourceAsMap should be(Seq(
         Map("f1" -> "ab", "f2" -> 11, "f3" -> "searchAfter")
+      ))
+      searchAfterQueryFuture3.futureValue.rawSearchResponse.hits.hits.last.sort should be(Seq(
+        "ab", 11
       ))
 
       val searchAfterQueryFuture4 = restClient.query(index, tpe, new QueryRoot(
