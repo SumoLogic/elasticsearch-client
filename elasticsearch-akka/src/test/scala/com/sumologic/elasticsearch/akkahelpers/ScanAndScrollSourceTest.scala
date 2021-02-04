@@ -42,7 +42,7 @@ class ScanAndScrollSourceTest extends WordSpec with Matchers with ScalaFutures {
   implicit val materializer = ActorMaterializer()
 
   def searchResponseFromMap(map: Map[String, AnyRef]) = {
-    val raw = RawSearchResponse(Hits(List(ElasticJsonDocument("index", "type", "id", Some(0.1f), decompose(map).asInstanceOf[JObject], highlight = None, inner_hits = None)), 1))
+    val raw = RawSearchResponse(Hits(List(ElasticJsonDocument("index", "type", "id", Some(0.1f), decompose(map).asInstanceOf[JObject], Array(), highlight = None, inner_hits = None)), 1))
     SearchResponse(raw, "{}")
   }
 
